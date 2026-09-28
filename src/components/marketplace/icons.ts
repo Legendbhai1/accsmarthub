@@ -1,0 +1,72 @@
+import {
+  BadgeCheck,
+  BookMarked,
+  BookOpen,
+  Braces,
+  Download,
+  FileSpreadsheet,
+  Gamepad2,
+  Gem,
+  Gift,
+  GraduationCap,
+  Headphones,
+  KeyRound,
+  LayoutTemplate,
+  MonitorSmartphone,
+  Music,
+  Package,
+  Palette,
+  Presentation,
+  RefreshCcw,
+  Rocket,
+  ShieldCheck,
+  Shapes,
+  ShoppingBag,
+  Swords,
+  Terminal,
+  Ticket,
+  Timer,
+  Video,
+  Workflow,
+  type LucideIcon,
+} from "lucide-react";
+
+/**
+ * Explicit icon registry for demo catalog artwork. Keeps lucide tree-shakeable
+ * instead of pulling the whole icon set in with a namespace import.
+ */
+export const catalogIcons: Record<string, LucideIcon> = {
+  BadgeCheck,
+  BookMarked,
+  BookOpen,
+  Braces,
+  Download,
+  FileSpreadsheet,
+  Gamepad2,
+  Gem,
+  Gift,
+  GraduationCap,
+  Headphones,
+  KeyRound,
+  LayoutTemplate,
+  MonitorSmartphone,
+  Music,
+  Package,
+  Palette,
+  Presentation,
+  RefreshCcw,
+  Rocket,
+  ShieldCheck,
+  Shapes,
+  ShoppingBag,
+  Swords,
+  Terminal,
+  Ticket,
+  Timer,
+  Video,
+  Workflow,
+};
+
+export function getCatalogIcon(name: string): LucideIcon {
+  return catalogIcons[name] ?? Package;
+}
