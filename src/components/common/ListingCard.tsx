@@ -17,7 +17,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
         </span>
         <div className="flex flex-col items-end gap-1.5">
           {listing.oldPrice && (
-            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
+            <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
               Save {Math.round((1 - listing.price / listing.oldPrice) * 100)}%
             </span>
           )}
@@ -54,8 +54,8 @@ export function ListingCard({ listing }: { listing: Listing }) {
           <p className="text-lg font-bold tracking-tight">{formatPrice(listing.price)}</p>
           <p className="text-xs text-muted-foreground">
             {available ? (
-              <span className="inline-flex items-center gap-1 text-emerald-400/90">
-                <span className="size-1.5 rounded-full bg-emerald-400" /> Available
+              <span className="inline-flex items-center gap-1 text-emerald-600">
+                <span className="size-1.5 rounded-full bg-emerald-500" /> Available
               </span>
             ) : listing.status === "sold" ? (
               "Sold"

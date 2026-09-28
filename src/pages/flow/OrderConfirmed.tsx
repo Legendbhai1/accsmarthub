@@ -20,7 +20,7 @@ export default function OrderConfirmed() {
         className="glass w-full p-10"
       >
         <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500/10">
-          <PackageCheck className="size-7 text-emerald-400" />
+          <PackageCheck className="size-7 text-emerald-600" />
         </div>
         <h1 className="mt-6 text-2xl font-bold tracking-tight">
           {order ? `Order ${order.id} confirmed` : "Order confirmed"}
@@ -50,7 +50,7 @@ export default function OrderConfirmed() {
             Escrow confirmation sent to your email
           </li>
           <li className="inset-well flex items-center gap-3 rounded-xl px-4 py-3">
-            <ShieldCheck className="size-4.5 shrink-0 text-emerald-400" />
+            <ShieldCheck className="size-4.5 shrink-0 text-emerald-600" />
             Funds stay protected until you confirm the transfer
           </li>
         </ul>

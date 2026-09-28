@@ -47,7 +47,7 @@ export function DashLayout({
               <Icon className="size-4.5" />
               {label}
               {badge === label && (
-                <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-red-500/15 text-[10px] font-bold text-red-400">
+                <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-red-500/15 text-[10px] font-bold text-red-600">
                   1
               </span>
               )}
@@ -116,7 +116,7 @@ function MobileDashNav({ nav, badge }: { nav: NavItem[]; badge?: string }) {
             <span className="relative">
               <Icon className="size-5" />
               {badge === label && (
-                <span className="absolute -right-1 -top-0.5 size-2 rounded-full bg-red-400" />
+                <span className="absolute -right-1 -top-0.5 size-2 rounded-full bg-red-500" />
               )}
             </span>
             {label}

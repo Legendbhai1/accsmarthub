@@ -120,7 +120,7 @@ export default function BuyerOrderDetail() {
         <div className="glass p-6">
           <h3 className="font-semibold">Transfer progress</h3>
           {order.status === "disputed" || order.status === "refunded" ? (
-            <p className="mt-3 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <p className="mt-3 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-600">
               This order is {order.status}. See the dispute section below for
               details and next steps.
             </p>
@@ -132,7 +132,7 @@ export default function BuyerOrderDetail() {
                 return (
                   <li key={step.key} className="flex items-start gap-2.5">
                     {done ? (
-                      <CheckCircle2 className="mt-0.5 size-4.5 shrink-0 text-emerald-400" />
+                      <CheckCircle2 className="mt-0.5 size-4.5 shrink-0 text-emerald-600" />
                     ) : (
                       <Circle className="mt-0.5 size-4.5 shrink-0 text-muted-foreground/40" />
                     )}

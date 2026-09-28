@@ -34,11 +34,11 @@ export default function AdminSellers() {
                 <td className="px-6 py-4 tabular-nums">{s.sales.toLocaleString()}</td>
                 <td className="px-6 py-4">
                   {s.verified ? (
-                    <span className="inline-flex items-center gap-1.5 text-emerald-400">
+                    <span className="inline-flex items-center gap-1.5 text-emerald-600">
                       <BadgeCheck className="size-4" /> Verified
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-amber-400">
+                    <span className="inline-flex items-center gap-1.5 text-amber-600">
                       <BadgeX className="size-4" /> Pending
                     </span>
                   )}

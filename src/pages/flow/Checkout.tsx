@@ -100,7 +100,7 @@ export default function Checkout() {
               </div>
             </div>
             {!user && (
-              <p className="mt-4 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
+              <p className="mt-4 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
                 You need an account to complete this purchase.{" "}
                 <Link to={`/auth?returnTo=/checkout?listing=${listing.id}%26qty=${qty}`} className="font-medium underline">
                   Sign in
@@ -143,7 +143,7 @@ export default function Checkout() {
                 </Label>
               ))}
             </RadioGroup>
-            <p className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-xs text-emerald-300">
+            <p className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-xs text-emerald-700">
               <Lock className="size-3.5 shrink-0" />
               Demo checkout — no real payment is processed and card data is
               never collected or stored.
@@ -203,7 +203,7 @@ export default function Checkout() {
               )}
             </Button>
 
-            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-emerald-400/90">
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-emerald-600">
               <ShieldCheck className="size-3.5" />
               Funds held until you approve the transfer
             </p>

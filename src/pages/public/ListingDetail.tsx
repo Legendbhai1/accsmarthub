@@ -281,12 +281,12 @@ export default function ListingDetail() {
 
             <div className="mt-3 text-sm">
               {available ? (
-                <span className="inline-flex items-center gap-1.5 text-emerald-400/90">
-                  <span className="size-1.5 rounded-full bg-emerald-400" />
+                <span className="inline-flex items-center gap-1.5 text-emerald-600">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
                   Available · exclusive listing
                 </span>
               ) : (
-                <span className="font-medium text-amber-400 capitalize">
+                <span className="font-medium text-amber-600 capitalize">
                   {listing.status === "sold" ? "Sold" : "Currently unavailable"}
                 </span>
               )}
@@ -399,7 +399,7 @@ export default function ListingDetail() {
             {/* Refund / dispute info */}
             <div className="space-y-3 text-sm">
               <div className="flex gap-3">
-                <ShieldCheck className="mt-0.5 size-4.5 shrink-0 text-emerald-400" />
+                <ShieldCheck className="mt-0.5 size-4.5 shrink-0 text-emerald-600" />
                 <div>
                   <p className="font-medium">Escrow-protected payment</p>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">

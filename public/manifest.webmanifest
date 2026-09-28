@@ -4,8 +4,8 @@
   "description": "The professional marketplace for buying and selling social media accounts.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#12141a",
-  "theme_color": "#12141a",
+  "background_color": "#fbfbfd",
+  "theme_color": "#fbfbfd",
   "icons": [
     {
       "src": "/logo.svg",
