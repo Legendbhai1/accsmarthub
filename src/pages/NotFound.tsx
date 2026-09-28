@@ -1,24 +1,37 @@
+import { Link } from "react-router";
+import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/site/Logo";
 
 export default function NotFound() {
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen flex flex-col"
+      transition={{ duration: 0.4 }}
+      className="flex min-h-screen flex-col"
     >
-
-      
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="max-w-5xl mx-auto relative px-4">
-          <div className="flex items-center justify-center min-h-[200px]">
-            <div className="text-center">
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
-              <p className="text-lg text-gray-600">Page Not Found</p>
-            </div>
-          </div>
+      <div className="px-4 py-5 sm:px-6">
+        <Logo />
+      </div>
+      <div className="flex flex-1 flex-col items-center justify-center px-4 pb-24 text-center md:pb-0">
+        <p className="text-7xl font-bold tracking-tight text-gradient sm:text-8xl">
+          404
+        </p>
+        <h1 className="mt-4 text-xl font-semibold">Page not found</h1>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+          The page you're looking for doesn't exist or may have been moved.
+        </p>
+        <div className="mt-7 flex flex-col gap-2.5 sm:flex-row">
+          <Button className="rounded-xl" asChild>
+            <Link to="/">
+              <ArrowLeft className="size-4" /> Back to marketplace
+            </Link>
+          </Button>
+          <Button variant="outline" className="rounded-xl" asChild>
+            <Link to="/marketplace">Browse listings</Link>
+          </Button>
         </div>
       </div>
     </motion.div>

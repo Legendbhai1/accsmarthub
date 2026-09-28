@@ -1,30 +1,55 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
-import { RequireAuth } from "@/components/RequireAuth";
+import { SessionProvider } from "@/lib/session";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient } from "convex/react";
-import { CartProvider } from "@/lib/cart";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import "./index.css";
+import { RequireRole } from "@/components/site/guards";
 
 // Lazy load route components for better code splitting
-const Landing = lazy(() => import("./pages/Landing.tsx"));
-const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const SiteLayout = lazy(() => import("@/components/site/SiteLayout").then((m) => ({ default: m.SiteLayout })));
+const Home = lazy(() => import("./pages/public/Home.tsx"));
+const Marketplace = lazy(() => import("./pages/public/Marketplace.tsx"));
+const ListingDetail = lazy(() => import("./pages/public/ListingDetail.tsx"));
+const Trust = lazy(() => import("./pages/public/Trust.tsx"));
+const Faq = lazy(() => import("./pages/public/Faq.tsx"));
+const Auth = lazy(() => import("./pages/flow/Auth.tsx"));
+const Checkout = lazy(() => import("./pages/flow/Checkout.tsx"));
+const OrderConfirmed = lazy(() => import("./pages/flow/OrderConfirmed.tsx"));
+const BuyerDashboard = lazy(() => import("./pages/buyer/BuyerDashboard.tsx"));
+const BuyerOrders = lazy(() => import("./pages/buyer/BuyerOrders.tsx"));
+const BuyerOrderDetail = lazy(() => import("./pages/buyer/BuyerOrderDetail.tsx"));
+const BuyerPurchased = lazy(() => import("./pages/buyer/BuyerPurchased.tsx"));
+const BuyerWallet = lazy(() => import("./pages/buyer/BuyerWallet.tsx"));
+const BuyerNotifications = lazy(() => import("./pages/buyer/BuyerNotifications.tsx"));
+const BuyerSupport = lazy(() => import("./pages/buyer/BuyerSupport.tsx"));
+const BuyerProfile = lazy(() => import("./pages/buyer/BuyerProfile.tsx"));
+const SellerDashboard = lazy(() => import("./pages/seller/SellerDashboard.tsx"));
+const SellerListings = lazy(() => import("./pages/seller/SellerListings.tsx"));
+const SellerOrders = lazy(() => import("./pages/seller/SellerOrders.tsx"));
+const SellerEarnings = lazy(() => import("./pages/seller/SellerEarnings.tsx"));
+const SellerDisputes = lazy(() => import("./pages/seller/SellerDisputes.tsx"));
+const SellerProfile = lazy(() => import("./pages/seller/SellerProfile.tsx"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.tsx"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers.tsx"));
+const AdminSellers = lazy(() => import("./pages/admin/AdminSellers.tsx"));
+const AdminListings = lazy(() => import("./pages/admin/AdminListings.tsx"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders.tsx"));
+const AdminPayments = lazy(() => import("./pages/admin/AdminPayments.tsx"));
+const AdminDisputes = lazy(() => import("./pages/admin/AdminDisputes.tsx"));
+const AdminCategories = lazy(() => import("./pages/admin/AdminCategories.tsx"));
+const AdminReports = lazy(() => import("./pages/admin/AdminReports.tsx"));
+const AdminAudit = lazy(() => import("./pages/admin/AdminAudit.tsx"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
-const Marketplace = lazy(() => import("./pages/Marketplace.tsx"));
-const ProductPage = lazy(() => import("./pages/Product.tsx"));
-const Checkout = lazy(() => import("./pages/Checkout.tsx"));
-const OrderConfirmed = lazy(() => import("./pages/OrderConfirmed.tsx"));
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="animate-pulse text-sm text-muted-foreground">Loading…</div>
     </div>
   );
 }
@@ -66,14 +91,14 @@ class RootErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
+        <div className="flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
           <div className="max-w-lg text-center">
             <p className="text-sm font-semibold">Preview runtime error</p>
-            <p className="mt-2 text-xs text-muted-foreground break-words">
+            <p className="mt-2 break-words text-xs text-muted-foreground">
               {this.state.message}
             </p>
             {this.state.stack && (
-              <pre className="mt-3 text-left text-[10px] leading-4 text-muted-foreground/80 max-h-40 overflow-auto rounded border border-border/60 p-2">
+              <pre className="mt-3 max-h-40 overflow-auto rounded border border-border/60 p-2 text-left text-[10px] leading-4 text-muted-foreground/80">
                 {this.state.stack}
               </pre>
             )}
@@ -84,10 +109,6 @@ class RootErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
-
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
-
-
 
 function RouteSyncer() {
   const location = useLocation();
@@ -112,43 +133,68 @@ function RouteSyncer() {
   return null;
 }
 
-
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RootErrorBoundary>
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>
-      <ConvexAuthProvider client={convex}>
-        <CartProvider>
+      <SessionProvider>
         <BrowserRouter>
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
             <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/marketplace" element={<Marketplace />} />
-              <Route path="/product/:slug" element={<ProductPage />} />
+              {/* Public site */}
+              <Route element={<SiteLayout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/marketplace" element={<Marketplace />} />
+                <Route path="/listing/:id" element={<ListingDetail />} />
+                <Route path="/trust" element={<Trust />} />
+                <Route path="/faq" element={<Faq />} />
+              </Route>
+
+              {/* Auth & purchase flow */}
+              <Route path="/auth" element={<Auth />} />
               <Route path="/checkout" element={<Checkout />} />
-              <Route path="/order-confirmed" element={<OrderConfirmed />} />
-              <Route
-                path="/auth"
-                element={<AuthPage redirectAfterAuth="/dashboard" />}
-              />
-              <Route
-                path="/dashboard"
-                element={
-                  <RequireAuth>
-                    <Dashboard />
-                  </RequireAuth>
-                }
-              />
+              <Route path="/order/:orderId/confirmed" element={<OrderConfirmed />} />
+
+              {/* Buyer account */}
+              <Route path="/account" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerDashboard /></RequireRole>} />
+              <Route path="/account/orders" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerOrders /></RequireRole>} />
+              <Route path="/account/orders/:orderId" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerOrderDetail /></RequireRole>} />
+              <Route path="/account/purchased" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerPurchased /></RequireRole>} />
+              <Route path="/account/wallet" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerWallet /></RequireRole>} />
+              <Route path="/account/notifications" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerNotifications /></RequireRole>} />
+              <Route path="/account/support" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerSupport /></RequireRole>} />
+              <Route path="/account/profile" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerProfile /></RequireRole>} />
+
+              {/* Seller area */}
+              <Route path="/seller" element={<RequireRole roles={["seller", "admin"]}><SellerDashboard /></RequireRole>} />
+              <Route path="/seller/listings" element={<RequireRole roles={["seller", "admin"]}><SellerListings /></RequireRole>} />
+              <Route path="/seller/orders" element={<RequireRole roles={["seller", "admin"]}><SellerOrders /></RequireRole>} />
+              <Route path="/seller/earnings" element={<RequireRole roles={["seller", "admin"]}><SellerEarnings /></RequireRole>} />
+              <Route path="/seller/disputes" element={<RequireRole roles={["seller", "admin"]}><SellerDisputes /></RequireRole>} />
+              <Route path="/seller/profile" element={<RequireRole roles={["seller", "admin"]}><SellerProfile /></RequireRole>} />
+
+              {/* Admin panel */}
+              <Route path="/admin" element={<RequireRole roles={["admin"]}><AdminDashboard /></RequireRole>} />
+              <Route path="/admin/users" element={<RequireRole roles={["admin"]}><AdminUsers /></RequireRole>} />
+              <Route path="/admin/sellers" element={<RequireRole roles={["admin"]}><AdminSellers /></RequireRole>} />
+              <Route path="/admin/listings" element={<RequireRole roles={["admin"]}><AdminListings /></RequireRole>} />
+              <Route path="/admin/orders" element={<RequireRole roles={["admin"]}><AdminOrders /></RequireRole>} />
+              <Route path="/admin/payments" element={<RequireRole roles={["admin"]}><AdminPayments /></RequireRole>} />
+              <Route path="/admin/disputes" element={<RequireRole roles={["admin"]}><AdminDisputes /></RequireRole>} />
+              <Route path="/admin/categories" element={<RequireRole roles={["admin"]}><AdminCategories /></RequireRole>} />
+              <Route path="/admin/reports" element={<RequireRole roles={["admin"]}><AdminReports /></RequireRole>} />
+              <Route path="/admin/audit" element={<RequireRole roles={["admin"]}><AdminAudit /></RequireRole>} />
+              <Route path="/admin/settings" element={<RequireRole roles={["admin"]}><AdminSettings /></RequireRole>} />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
         </BrowserRouter>
-        </CartProvider>
-        <Toaster />
-      </ConvexAuthProvider>
+      </SessionProvider>
+      <Toaster />
     </RootErrorBoundary>
   </StrictMode>,
 );

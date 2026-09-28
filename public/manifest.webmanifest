@@ -1,11 +1,11 @@
 {
-  "name": "Digital Product Hub",
-  "short_name": "DPH",
+  "name": "AccsMartHub",
+  "short_name": "AccsMartHub",
   "description": "The professional marketplace for buying and selling social media accounts.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0b0d12",
-  "theme_color": "#0b0d12",
+  "background_color": "#12141a",
+  "theme_color": "#12141a",
   "icons": [
     {
       "src": "/logo.svg",
