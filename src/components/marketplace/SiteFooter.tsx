@@ -1,6 +1,6 @@
 import { Link } from "react-router";
-import { Linkedin, Twitter, Youtube } from "lucide-react";
 import { Logo } from "@/components/marketplace/Logo";
+import { BrandIcon } from "@/components/marketplace/BrandIcon";
 import { useSectionNav } from "@/hooks/use-section-nav";
 
 const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
@@ -59,17 +59,17 @@ export function SiteFooter() {
             </p>
             <div className="mt-5 flex items-center gap-2">
               {[
-                { icon: Twitter, label: "Digital Product Hub on X" },
-                { icon: Linkedin, label: "Digital Product Hub on LinkedIn" },
-                { icon: Youtube, label: "Digital Product Hub on YouTube" },
-              ].map(({ icon: Icon, label }) => (
+                { brand: "x", label: "Digital Product Hub on X" },
+                { brand: "linkedin", label: "Digital Product Hub on LinkedIn" },
+                { brand: "youtube", label: "Digital Product Hub on YouTube" },
+              ].map(({ brand, label }) => (
                 <a
                   key={label}
                   href="#"
                   aria-label={label}
-                  className="clay-inset flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:text-foreground"
+                  className="flex size-9 items-center justify-center rounded-xl border border-border/70 bg-muted/40 text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  <Icon className="size-4" />
+                  <BrandIcon brand={brand} className="size-4" />
                 </a>
               ))}
             </div>

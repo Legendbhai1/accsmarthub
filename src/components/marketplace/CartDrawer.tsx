@@ -59,7 +59,7 @@ export function CartDrawer() {
                   key={item.slug}
                   className="clay-inset flex items-center gap-3 rounded-2xl p-3"
                 >
-                  <ProductArtwork icon="Package" hue={item.hue} size="sm" />
+                  <ProductArtwork brand={item.brand} size="sm" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{item.name}</p>
                     <p className="text-xs text-muted-foreground">

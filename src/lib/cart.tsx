@@ -13,7 +13,8 @@ export type CartItem = {
   name: string;
   price: number;
   quantity: number;
-  hue: number;
+  /** simple-icons brand key, used for the cart line artwork */
+  brand: string;
 };
 
 type CartContextValue = {

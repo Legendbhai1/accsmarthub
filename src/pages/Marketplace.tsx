@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { PackageSearch, RotateCcw, Search, SlidersHorizontal, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -20,10 +20,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  ProductCard,
-  ProductCardSkeleton,
-} from "@/components/marketplace/ProductCard";
+import { ProductCard } from "@/components/marketplace/ProductCard";
 import { SiteHeader } from "@/components/marketplace/SiteHeader";
 import { SiteFooter } from "@/components/marketplace/SiteFooter";
 import { categories, products, sellers } from "@/data/catalog";
@@ -65,15 +62,6 @@ export default function Marketplace() {
   const verifiedOnly = params.get("verified") === "1";
 
   const [searchInput, setSearchInput] = useState(q);
-  const [isPending, startTransition] = useTransition();
-
-  // Simulated async fetch: filter changes run inside a transition so the grid
-  // stays responsive and skeletons surface while the "fetch" completes.
-  useEffect(() => {
-    startTransition(() => {});
-    const t = window.setTimeout(() => {}, 350);
-    return () => window.clearTimeout(t);
-  }, [q, category, sort, priceRange, minRating, verifiedOnly, startTransition]);
 
   const setParam = (key: string, value: string) => {
     setParams(
@@ -326,13 +314,7 @@ export default function Marketplace() {
                 </Select>
               </div>
 
-              {isPending ? (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <ProductCardSkeleton key={i} />
-                  ))}
-                </div>
-              ) : filtered.length === 0 ? (
+              {filtered.length === 0 ? (
                 <div className="clay flex flex-col items-center justify-center px-6 py-20 text-center">
                   <div className="clay-inset flex size-16 items-center justify-center rounded-3xl">
                     <PackageSearch className="size-7 text-muted-foreground" />

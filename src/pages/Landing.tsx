@@ -350,14 +350,6 @@ export default function Landing() {
               {...fadeUp}
               className="clay relative overflow-hidden p-8 sm:p-12"
             >
-              <div
-                className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-secondary/25 blur-3xl"
-                aria-hidden="true"
-              />
-              <div
-                className="pointer-events-none absolute -bottom-24 left-10 size-64 rounded-full bg-primary/20 blur-3xl"
-                aria-hidden="true"
-              />
               <div className="relative grid items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
                 <div>
                   <Badge

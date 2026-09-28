@@ -19,7 +19,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tabs,
   TabsContent,
@@ -49,15 +48,12 @@ export default function ProductPage() {
 function ProductPageContent({ slug }: { slug?: string }) {
   const product = useMemo(() => (slug ? getProductBySlug(slug) : undefined), [slug]);
   // Re-mounted per slug via key (see <ProductPageContent key={slug} /> above):
-  // this gives a fresh loading state + quantity without setState-in-effect.
-  const [loading, setLoading] = useState(true);
+  // this gives fresh local state (quantity) without setState-in-effect.
   const [quantity, setQuantity] = useState(1);
   const { add, setOpen } = useCart();
 
   useEffect(() => {
-    const t = window.setTimeout(() => setLoading(false), 400);
     window.scrollTo(0, 0);
-    return () => window.clearTimeout(t);
   }, []);
 
   if (!product) {
@@ -97,7 +93,7 @@ function ProductPageContent({ slug }: { slug?: string }) {
         slug: product.slug,
         name: product.name,
         price: product.price,
-        hue: product.hue,
+        brand: product.brand,
       },
       quantity,
     );
@@ -109,7 +105,7 @@ function ProductPageContent({ slug }: { slug?: string }) {
         slug: product.slug,
         name: product.name,
         price: product.price,
-        hue: product.hue,
+        brand: product.brand,
       },
       quantity,
     );
@@ -147,38 +143,21 @@ function ProductPageContent({ slug }: { slug?: string }) {
             </span>
           </nav>
 
-          {loading ? (
-            <ProductDetailSkeleton />
-          ) : (
+          {(
             <>
               <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_26rem]">
                 {/* ---------- Left: gallery + tabs ---------- */}
                 <div className="min-w-0">
                   {/* Gallery */}
-                  <div className="clay relative flex h-72 items-center justify-center overflow-hidden rounded-(--radius-xl) sm:h-96">
-                    <div
-                      className="absolute inset-0 opacity-50"
-                      style={{
-                        background: `radial-gradient(70% 70% at 30% 20%, oklch(0.6 0.12 ${product.hue} / 30%), transparent 70%), radial-gradient(60% 60% at 80% 90%, oklch(0.55 0.14 ${product.hue + 40} / 25%), transparent 70%)`,
-                      }}
-                    />
-                    <div
-                      className="absolute inset-0 opacity-30"
-                      style={{
-                        backgroundImage:
-                          "radial-gradient(oklch(1 0 0 / 10%) 1px, transparent 1.5px)",
-                        backgroundSize: "20px 20px",
-                      }}
-                    />
+                  <div className="relative flex h-72 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-card/40 sm:h-96">
                     <ProductArtwork
-                      icon={product.icon}
-                      hue={product.hue}
+                      brand={product.brand}
                       size="lg"
-                      className="size-32! rounded-[2rem] sm:size-40!"
+                      className="size-28 rounded-3xl sm:size-36"
                     />
                     <Badge
                       variant="secondary"
-                      className="clay-inset absolute left-5 top-5 rounded-full border-border/60 px-3 py-1 text-xs text-muted-foreground"
+                      className="absolute left-5 top-5 rounded-full border-border/60 bg-muted/60 px-3 py-1 text-xs text-muted-foreground"
                     >
                       {category.name}
                     </Badge>
@@ -537,24 +516,6 @@ function DetailRow({
       <div>
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className="text-sm font-medium">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function ProductDetailSkeleton() {
-  return (
-    <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_26rem]">
-      <div className="min-w-0">
-        <Skeleton className="h-72 rounded-(--radius-xl) sm:h-96" />
-        <Skeleton className="mt-6 h-8 w-3/4" />
-        <Skeleton className="mt-3 h-5 w-1/3" />
-        <Skeleton className="mt-8 h-11 w-full max-w-md rounded-2xl" />
-        <Skeleton className="mt-5 h-24 rounded-(--radius-xl)" />
-        <Skeleton className="mt-8 h-36 rounded-(--radius-xl)" />
-      </div>
-      <div>
-        <Skeleton className="h-96 rounded-(--radius-xl)" />
       </div>
     </div>
   );

@@ -3,9 +3,7 @@ import { BadgeCheck, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  ProductArtwork,
-} from "@/components/marketplace/ProductArtwork";
+import { ProductArtwork } from "@/components/marketplace/ProductArtwork";
 import { Stars } from "@/components/marketplace/Stars";
 import { getCategory, getSeller } from "@/data/catalog";
 import { formatPrice, useCart } from "@/lib/cart";
@@ -18,12 +16,12 @@ export function ProductCard({ product }: { product: Product }) {
   const outOfStock = product.stock === 0;
 
   return (
-    <article className="clay clay-hover group flex h-full flex-col p-5">
+    <article className="group flex h-full flex-col rounded-2xl border border-border/70 bg-card/40 p-5 transition-colors hover:border-primary/35 hover:bg-accent/30">
       <div className="flex items-start justify-between gap-3">
-        <ProductArtwork icon={product.icon} hue={product.hue} />
+        <ProductArtwork brand={product.brand} />
         <Badge
           variant="secondary"
-          className="border-border/60 bg-muted/60 text-muted-foreground backdrop-blur-sm"
+          className="border-border/60 bg-muted/60 text-muted-foreground"
         >
           {category.name}
         </Badge>
@@ -32,7 +30,7 @@ export function ProductCard({ product }: { product: Product }) {
       <h3 className="mt-4 text-base font-semibold leading-snug tracking-tight">
         <Link
           to={`/product/${product.slug}`}
-          className="outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60 rounded-sm"
+          className="rounded-sm outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60"
         >
           {product.name}
         </Link>
@@ -86,7 +84,7 @@ export function ProductCard({ product }: { product: Product }) {
                 slug: product.slug,
                 name: product.name,
                 price: product.price,
-                hue: product.hue,
+                brand: product.brand,
               })
             }
           >
@@ -103,8 +101,11 @@ export function ProductCard({ product }: { product: Product }) {
 
 export function ProductCardSkeleton() {
   return (
-    <div className="clay flex h-full flex-col p-5" aria-hidden="true">
-      <Skeleton className="size-14 rounded-2xl" />
+    <div
+      className="flex h-full flex-col rounded-2xl border border-border/70 bg-card/40 p-5"
+      aria-hidden="true"
+    >
+      <Skeleton className="size-14 rounded-xl" />
       <Skeleton className="mt-4 h-5 w-4/5" />
       <Skeleton className="mt-2 h-4 w-2/5" />
       <Skeleton className="mt-3 h-4 w-3/5" />

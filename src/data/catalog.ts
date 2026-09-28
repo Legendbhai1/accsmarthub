@@ -8,8 +8,8 @@ export type Category = {
   slug: string;
   name: string;
   description: string;
-  icon: string;
-  hue: number; // artwork hue for generated artwork
+  /** simple-icons brand key for the platform's official mark */
+  brand: string;
   productCount: number; // marketplace-wide count (demo figure)
 };
 
@@ -29,6 +29,7 @@ export type Product = {
   slug: string;
   name: string;
   category: string; // category slug
+  brand: string; // simple-icons brand key
   sellerId: string;
   price: number;
   oldPrice?: number;
@@ -40,8 +41,6 @@ export type Product = {
   delivery: string;
   included: string[];
   description: string;
-  icon: string;
-  hue: number;
 };
 
 export type Review = {
@@ -57,80 +56,70 @@ export const categories: Category[] = [
     slug: "instagram",
     name: "Instagram",
     description: "Theme pages, niche hubs and creator accounts with real engagement.",
-    icon: "Instagram",
-    hue: 320,
+    brand: "instagram",
     productCount: 512,
   },
   {
     slug: "tiktok",
     name: "TikTok",
     description: "Short-form video accounts with established audiences and growth trails.",
-    icon: "Music2",
-    hue: 350,
+    brand: "tiktok",
     productCount: 438,
   },
   {
     slug: "youtube",
     name: "YouTube",
     description: "Monetized channels, niche libraries and watch-time-ready channels.",
-    icon: "Youtube",
-    hue: 0,
+    brand: "youtube",
     productCount: 286,
   },
   {
     slug: "x-twitter",
     name: "X (Twitter)",
     description: "Commentary, finance and news handles with aged followers.",
-    icon: "Twitter",
-    hue: 230,
+    brand: "x",
     productCount: 241,
   },
   {
     slug: "linkedin",
     name: "LinkedIn",
     description: "Professional profiles and company pages with industry authority.",
-    icon: "Linkedin",
-    hue: 217,
+    brand: "linkedin",
     productCount: 124,
   },
   {
     slug: "facebook",
     name: "Facebook",
     description: "Groups, pages and ad accounts with standing activity history.",
-    icon: "Facebook",
-    hue: 214,
+    brand: "facebook",
     productCount: 198,
   },
   {
     slug: "twitch",
     name: "Twitch",
     description: "Streaming channels with followers, panels and clean logs.",
-    icon: "Twitch",
-    hue: 270,
+    brand: "twitch",
     productCount: 96,
   },
   {
     slug: "pinterest",
     name: "Pinterest",
     description: "Boards and traffic accounts in home, food and lifestyle niches.",
-    icon: "Pin",
-    hue: 14,
+    brand: "pinterest",
     productCount: 87,
   },
   {
     slug: "telegram",
     name: "Telegram",
     description: "Channels and communities with active, engaged subscriber bases.",
-    icon: "MessagesSquare",
-    hue: 205,
+    brand: "telegram",
     productCount: 152,
   },
   {
     slug: "discord",
     name: "Discord",
     description: "Established servers with roles, channels and moderation history.",
-    icon: "Gamepad2",
-    hue: 235,
+    brand: "discord",
     productCount: 74,
   },
 ];
@@ -224,6 +213,7 @@ export const products: Product[] = [
     slug: "aurora-lifestyle-theme-page-890k",
     name: "Aurora Lifestyle — Instagram Theme Page, 890K",
     category: "instagram",
+    brand: "instagram",
     sellerId: "meridian",
     price: 7400,
     oldPrice: 8900,
@@ -241,14 +231,13 @@ export const products: Product[] = [
     ],
     description:
       "A curated lifestyle theme page with 892K followers and a three-year posting history. Engagement holds at 4.1% with consistent reach across Reels and carousels, and the page has never received a strike or restriction.",
-    icon: "Instagram",
-    hue: 320,
   },
   {
     id: "p-002",
     slug: "daily-plate-food-page-210k",
     name: "The Daily Plate — Instagram Food Page, 210K",
     category: "instagram",
+    brand: "instagram",
     sellerId: "crescentrow",
     price: 2350,
     rating: 4.7,
@@ -265,14 +254,13 @@ export const products: Product[] = [
     ],
     description:
       "A food and recipe page with a loyal, foodie-heavy audience and steady saves-to-reach ratio. Two recurring brand partnerships transfer with the account, both negotiated on monthly retainers.",
-    icon: "Instagram",
-    hue: 335,
   },
   {
     id: "p-003",
     slug: "fitfuel-shortform-tiktok-340k",
     name: "FitFuel Daily — TikTok Account, 340K",
     category: "tiktok",
+    brand: "tiktok",
     sellerId: "harborlight",
     price: 3900,
     oldPrice: 4600,
@@ -290,14 +278,13 @@ export const products: Product[] = [
     ],
     description:
       "A fitness and meal-prep account built on repeatable short-form formats. Average views sit at 310K per post with a healthy follower-to-view ratio, and monetization is already approved and paying out.",
-    icon: "Music2",
-    hue: 350,
   },
   {
     id: "p-004",
     slug: "urban-x-finance-commentary-95k",
     name: "UrbanX Finance — X Commentary Handle, 95K",
     category: "x-twitter",
+    brand: "x",
     sellerId: "archerpeak",
     price: 4200,
     rating: 4.5,
@@ -314,14 +301,13 @@ export const products: Product[] = [
     ],
     description:
       "An aged finance commentary handle with a professional audience skewed toward analysts and founders. The account has never been suspended, and its reply activity is unusually high for the niche.",
-    icon: "Twitter",
-    hue: 230,
   },
   {
     id: "p-005",
     slug: "workshop-monetized-youtube-64k",
     name: "The Workshop — Monetized YouTube Channel, 64K",
     category: "youtube",
+    brand: "youtube",
     sellerId: "vantage",
     price: 9800,
     oldPrice: 11500,
@@ -339,14 +325,13 @@ export const products: Product[] = [
     ],
     description:
       "A woodworking and tool-review channel with 64K subscribers and a back catalog of evergreen reviews. Monthly ad revenue averages $1,850 with sponsorships on top, and the channel carries a clean copyright record.",
-    icon: "Youtube",
-    hue: 0,
   },
   {
     id: "p-006",
     slug: "quiet-focus-lofi-youtube-31k",
     name: "Quiet Focus — Lofi YouTube Channel, 31K",
     category: "youtube",
+    brand: "youtube",
     sellerId: "crescentrow",
     price: 5100,
     rating: 4.8,
@@ -363,14 +348,13 @@ export const products: Product[] = [
     ],
     description:
       "A lofi and ambient-music channel with long-form streams that collect watch time around the clock. All uploaded audio is fully licensed, and the license portfolio transfers with the channel.",
-    icon: "Youtube",
-    hue: 8,
   },
   {
     id: "p-007",
     slug: "atlas-business-linkedin-24k",
     name: "Atlas Advisory — LinkedIn Authority Profile, 24K",
     category: "linkedin",
+    brand: "linkedin",
     sellerId: "meridian",
     price: 6200,
     rating: 4.9,
@@ -387,14 +371,13 @@ export const products: Product[] = [
     ],
     description:
       "A consulting authority profile in the operations niche with 24K relevant connections and a newsletter that converts. Ideal for a firm entering B2B advisory with immediate distribution.",
-    icon: "Linkedin",
-    hue: 217,
   },
   {
     id: "p-008",
     slug: "kitchen-craft-pinterest-45k",
     name: "Kitchen & Craft — Pinterest Traffic Account, 45K",
     category: "pinterest",
+    brand: "pinterest",
     sellerId: "vantage",
     price: 1850,
     rating: 4.8,
@@ -411,14 +394,13 @@ export const products: Product[] = [
     ],
     description:
       "A home and recipe account that drives consistent outbound traffic to blogs and storefronts. Boards are tightly themed, and the audience is 82% United States-based with strong purchase intent.",
-    icon: "Pin",
-    hue: 14,
   },
   {
     id: "p-009",
     slug: "marketpulse-telegram-channel-58k",
     name: "MarketPulse — Telegram Channel, 58K",
     category: "telegram",
+    brand: "telegram",
     sellerId: "archerpeak",
     price: 3400,
     rating: 4.7,
@@ -435,14 +417,13 @@ export const products: Product[] = [
     ],
     description:
       "A markets and investing channel with 58K subscribers and 22% average view rate. Sponsored slots are booked three weeks out, and the current operator will share their placement calendar.",
-    icon: "MessagesSquare",
-    hue: 205,
   },
   {
     id: "p-010",
     slug: "techprism-x-news-handle-48k",
     name: "TechPrism — X News Handle, 48K",
     category: "x-twitter",
+    brand: "x",
     sellerId: "solstice",
     price: 2900,
     rating: 4.5,
@@ -459,14 +440,13 @@ export const products: Product[] = [
     ],
     description:
       "A technology news handle with an audience of founders, engineers and investors. Posting cadence is three to five tweets a day, and engagement concentrates on thread formats.",
-    icon: "Twitter",
-    hue: 222,
   },
   {
     id: "p-011",
     slug: "gridiron-gaming-tiktok-510k",
     name: "GridIron Plays — TikTok Gaming Account, 510K",
     category: "tiktok",
+    brand: "tiktok",
     sellerId: "northgate",
     price: 8200,
     oldPrice: 9900,
@@ -484,14 +464,13 @@ export const products: Product[] = [
     ],
     description:
       "A gaming highlights account with 510K followers and multiple videos above 4M views. Creator-fund payouts and two sponsor retainers transfer with the account, along with the content pipeline.",
-    icon: "Music2",
-    hue: 268,
   },
   {
     id: "p-012",
     slug: "homefront-interior-instagram-130k",
     name: "HomeFront — Instagram Interior Page, 130K",
     category: "instagram",
+    brand: "instagram",
     sellerId: "harborlight",
     price: 3200,
     rating: 4.6,
@@ -508,14 +487,13 @@ export const products: Product[] = [
     ],
     description:
       "An interior-design page with a US-heavy audience and strong affiliate conversion history. The seller includes their Reels templates and a tested posting cadence to keep growth on track.",
-    icon: "Instagram",
-    hue: 305,
   },
   {
     id: "p-013",
     slug: "dealstream-facebook-group-74k",
     name: "DealStream — Facebook Group, 74K Members",
     category: "facebook",
+    brand: "facebook",
     sellerId: "solstice",
     price: 4100,
     rating: 4.5,
@@ -532,14 +510,13 @@ export const products: Product[] = [
     ],
     description:
       "A deals-and-discounts community with 74K members and daily organic activity. Admin rights and affiliate integrations transfer intact, with a documented moderation history to inherit.",
-    icon: "Facebook",
-    hue: 214,
   },
   {
     id: "p-014",
     slug: "founders-circle-linkedin-page-18k",
     name: "Founders Circle — LinkedIn Company Page, 18K",
     category: "linkedin",
+    brand: "linkedin",
     sellerId: "vantage",
     price: 2750,
     rating: 4.6,
@@ -556,14 +533,13 @@ export const products: Product[] = [
     ],
     description:
       "A founder-focused company page with senior followers across SaaS and finance. Admin access transfers cleanly, making it a turnkey distribution channel for B2B content programs.",
-    icon: "Linkedin",
-    hue: 205,
   },
   {
     id: "p-015",
     slug: "clutch-arena-twitch-partnered-42k",
     name: "Clutch Arena — Twitch Channel, 42K",
     category: "twitch",
+    brand: "twitch",
     sellerId: "northgate",
     price: 6900,
     rating: 4.8,
@@ -580,14 +556,13 @@ export const products: Product[] = [
     ],
     description:
       "A partnered FPS streaming channel with 42K followers and a loyal live audience. Partner status, emotes and panel assets transfer with the channel, along with a consistent streaming schedule history.",
-    icon: "Twitch",
-    hue: 270,
   },
   {
-    "id": "p-016",
+    id: "p-016",
     slug: "servercraft-discord-community-31k",
     name: "ServerCraft — Discord Community, 31K Members",
     category: "discord",
+    brand: "discord",
     sellerId: "meridian",
     price: 2600,
     rating: 4.7,
@@ -604,14 +579,13 @@ export const products: Product[] = [
     ],
     description:
       "A technology and design community with 31K members and daily conversation across specialist channels. Ownership, bots and role architecture transfer with documented moderation guidelines.",
-    icon: "Gamepad2",
-    hue: 235,
   },
   {
     id: "p-017",
     slug: "runway-beauty-tiktok-190k",
     name: "Runway Notes — TikTok Beauty Account, 190K",
     category: "tiktok",
+    brand: "tiktok",
     sellerId: "crescentrow",
     price: 4600,
     rating: 4.9,
@@ -628,14 +602,13 @@ export const products: Product[] = [
     ],
     description:
       "A beauty and skincare account with high save rates and two active brand contracts that transfer with the sale. The seller includes their content calendar and editing presets for continuity.",
-    icon: "Music2",
-    hue: 322,
   },
   {
     id: "p-018",
     slug: "globe-hoppers-travel-instagram-620k",
     name: "Globe Hoppers — Instagram Travel Page, 620K",
     category: "instagram",
+    brand: "instagram",
     sellerId: "lumenpath",
     price: 5600,
     rating: 4.3,
@@ -652,14 +625,13 @@ export const products: Product[] = [
     ],
     description:
       "A travel page with 620K followers across 60+ countries and strong hotel-tourism sponsorship demand. This listing comes from an unverified seller; identity verification is in progress.",
-    icon: "Instagram",
-    hue: 190,
   },
   {
     id: "p-019",
     slug: "hustle-hub-facebook-page-96k",
     name: "HustleHub — Facebook Business Page, 96K",
     category: "facebook",
+    brand: "facebook",
     sellerId: "lumenpath",
     price: 2250,
     rating: 4.4,
@@ -676,14 +648,13 @@ export const products: Product[] = [
     ],
     description:
       "An entrepreneurship page with 96K followers and consistent organic reach on link posts. This listing comes from an unverified seller; escrow protection still applies in full.",
-    icon: "Facebook",
-    hue: 210,
   },
   {
     id: "p-020",
     slug: "studio-nine-tv-youtube-shorts-120k",
     name: "Studio Nine — YouTube Shorts Channel, 120K",
     category: "youtube",
+    brand: "youtube",
     sellerId: "solstice",
     price: 7800,
     rating: 4.8,
@@ -700,8 +671,6 @@ export const products: Product[] = [
     ],
     description:
       "A shorts-first channel with 120K subscribers and a stable of repeatable formats. Revenue comes from Shorts monetization plus licensing deals, both documented in the handover pack.",
-    icon: "Youtube",
-    hue: 4,
   },
 ];
 
@@ -846,8 +815,7 @@ export function getCategory(slug: string): Category {
       slug: "other",
       name: "Other",
       description: "",
-      icon: "Package",
-      hue: 250,
+      brand: "other",
       productCount: 0,
     }
   );

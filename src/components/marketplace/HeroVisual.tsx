@@ -1,17 +1,19 @@
 import { motion } from "framer-motion";
-import {
-  BadgeCheck,
-  Instagram,
-  Music2,
-  ShieldCheck,
-  TrendingUp,
-  Twitter,
-  Youtube,
-} from "lucide-react";
+import { BadgeCheck, ShieldCheck } from "lucide-react";
+import { BrandIcon } from "@/components/marketplace/BrandIcon";
+import { getBrand } from "@/components/marketplace/icons";
+import { cn } from "@/lib/utils";
+
+const CHIPS = [
+  { brand: "instagram", pos: "left-[2%] top-[12%]", delay: 0.1 },
+  { brand: "tiktok", pos: "right-[0%] top-[24%]", delay: 0.18 },
+  { brand: "youtube", pos: "left-[6%] bottom-[16%]", delay: 0.26 },
+  { brand: "x", pos: "right-[8%] bottom-[10%]", delay: 0.34 },
+];
 
 /**
- * Abstract claymorphic "digital marketplace" artwork: layered clay tiles,
- * floating product chips and soft glows. Pure CSS/motion — no image assets.
+ * Clean hero artwork: a light platform panel with official brand marks,
+ * subtle float motion and no expensive blur layers.
  */
 export function HeroVisual() {
   return (
@@ -19,95 +21,102 @@ export function HeroVisual() {
       className="relative mx-auto aspect-square w-full max-w-130"
       aria-hidden="true"
     >
-      {/* backdrop glows */}
-      <div className="glow-blue absolute left-1/2 top-1/2 size-3/4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15 blur-3xl" />
-      <div className="absolute right-0 top-6 size-40 rounded-full bg-secondary/20 blur-3xl" />
-
-      {/* dotted grid backdrop */}
-      <div
-        className="absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "radial-gradient(oklch(1 0 0 / 10%) 1px, transparent 1.5px)",
-          backgroundSize: "22px 22px",
-          maskImage:
-            "radial-gradient(closest-side, black 55%, transparent 100%)",
-          WebkitMaskImage:
-            "radial-gradient(closest-side, black 55%, transparent 100%)",
-        }}
-      />
-
-      {/* central clay plate */}
+      {/* central panel */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.92 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="clay absolute left-1/2 top-1/2 flex size-56 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[2.5rem] sm:size-64"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="absolute left-1/2 top-1/2 w-[62%] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-border/70 bg-card/60 p-6"
       >
-        <div
-          className="flex size-36 items-center justify-center rounded-[1.9rem] sm:size-40"
-          style={{
-            background:
-              "linear-gradient(145deg, oklch(0.72 0.15 229 / 90%), oklch(0.63 0.16 293 / 90%))",
-            boxShadow:
-              "inset 0 3px 6px oklch(1 0 0 / 40%), inset 0 -5px 10px oklch(0.2 0.06 280 / 45%), 0 14px 30px -8px oklch(0.67 0.15 260 / 65%)",
-          }}
-        >
-          <TrendingUp className="size-16 text-white drop-shadow" strokeWidth={1.6} />
+        <div className="flex items-center justify-between border-b border-border/60 pb-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Portfolio value</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums">$128,400</p>
+          </div>
+          <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
+            +12.4%
+          </span>
         </div>
-        {/* orbit ring */}
-        <div className="pointer-events-none absolute inset-6 rounded-[2rem] border border-border/70" />
+
+        <div className="mt-4 space-y-3">
+          {["instagram", "youtube", "tiktok", "x"].map((brand) => {
+            const entry = getBrand(brand);
+            return (
+              <div key={brand} className="flex items-center gap-3">
+                <span className="flex size-9 items-center justify-center rounded-xl border border-border/60 bg-muted/40">
+                  <BrandIcon brand={brand} colored className="size-4.5" />
+                </span>
+                <span className="flex-1 text-sm font-medium">{entry.title}</span>
+                <span className="text-sm tabular-nums text-muted-foreground">
+                  {brand === "instagram"
+                    ? "890K"
+                    : brand === "youtube"
+                      ? "64K"
+                      : brand === "tiktok"
+                        ? "340K"
+                        : "95K"}
+                </span>
+                <span className="text-sm font-semibold tabular-nums text-emerald-400">
+                  {brand === "instagram"
+                    ? "$7.4K"
+                    : brand === "youtube"
+                      ? "$9.8K"
+                      : brand === "tiktok"
+                        ? "$3.9K"
+                        : "$4.2K"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </motion.div>
 
-      {/* floating chips */}
-      {[
-        { icon: Instagram, label: "Instagram", hue: 320, pos: "left-[2%] top-[10%]", delay: 0.15 },
-        { icon: Music2, label: "TikTok", hue: 350, pos: "right-[0%] top-[22%]", delay: 0.25 },
-        { icon: Youtube, label: "YouTube", hue: 0, pos: "left-[6%] bottom-[18%]", delay: 0.35 },
-        { icon: Twitter, label: "X", hue: 230, pos: "right-[8%] bottom-[8%]", delay: 0.45 },
-      ].map(({ icon: Icon, label, hue, pos, delay }) => {
-        return (
-          <motion.div
-            key={label}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay, ease: "easeOut" }}
-            className={`clay absolute flex items-center gap-2.5 rounded-2xl p-3 pr-4 ${pos}`}
-          >
-            <span
-              className="flex size-9 items-center justify-center rounded-xl"
-              style={{
-                background: `linear-gradient(145deg, oklch(0.75 0.12 ${hue} / 90%), oklch(0.5 0.15 ${hue + 25} / 92%))`,
-                boxShadow:
-                  "inset 0 2px 3px oklch(1 0 0 / 35%), inset 0 -2px 5px oklch(0.2 0.06 260 / 40%)",
-              }}
-            >
-              <Icon className="size-4.5 text-white" strokeWidth={2} />
-            </span>
-            <span className="text-sm font-semibold">{label}</span>
-          </motion.div>
-        );
-      })}
+      {/* floating platform chips */}
+      {CHIPS.map(({ brand, pos, delay }) => (
+        <motion.div
+          key={brand}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: [0, -6, 0] }}
+          transition={{
+            opacity: { duration: 0.4, delay },
+            y: {
+              duration: 4.5,
+              repeat: Infinity,
+              repeatType: "mirror",
+              ease: "easeInOut",
+              delay,
+            },
+            ease: "easeOut",
+          }}
+          className={cn(
+            "absolute flex items-center gap-2 rounded-2xl border border-border/70 bg-card/80 px-3 py-2.5",
+            pos,
+          )}
+        >
+          <BrandIcon brand={brand} colored className="size-4.5" />
+          <span className="text-xs font-semibold">{getBrand(brand).title}</span>
+        </motion.div>
+      ))}
 
-      {/* verified badge chip */}
+      {/* trust chips */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.55 }}
-        className="clay absolute bottom-[30%] left-[16%] flex items-center gap-2 rounded-full py-2 pl-3 pr-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.5 }}
+        className="absolute bottom-[30%] left-[14%] flex items-center gap-2 rounded-full border border-border/70 bg-card/80 py-2 pl-3 pr-4"
       >
         <BadgeCheck className="size-4 text-primary" />
         <span className="text-xs font-semibold">Verified sellers</span>
       </motion.div>
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.65 }}
-        className="clay absolute right-[14%] top-[6%] flex items-center gap-2 rounded-full py-2 pl-3 pr-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.6 }}
+        className="absolute right-[12%] top-[8%] flex items-center gap-2 rounded-full border border-border/70 bg-card/80 py-2 pl-3 pr-4"
       >
         <ShieldCheck className="size-4 text-emerald-400" />
-        <span className="text-xs font-semibold">Buyer protection</span>
+        <span className="text-xs font-semibold">Escrow protected</span>
       </motion.div>
     </div>
   );

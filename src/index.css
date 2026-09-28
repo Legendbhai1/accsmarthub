@@ -42,10 +42,10 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* CHANGE VALUES FOR THEME — AccSmart claymorphism (dark) */
+/* CHANGE VALUES FOR THEME — Digital Product Hub (dark, professional) */
 :root,
 .dark {
-  --radius: 1.375rem;
+  --radius: 1rem;
 
   /* Near-black clay background */
   --background: oklch(0.16 0.02 265);
@@ -95,9 +95,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     background-image:
-      radial-gradient(56rem 30rem at 12% -6%, oklch(0.72 0.15 229 / 9%), transparent 60%),
-      radial-gradient(48rem 28rem at 88% 0%, oklch(0.63 0.16 293 / 8%), transparent 62%);
-    background-attachment: fixed;
+      radial-gradient(56rem 30rem at 12% -6%, oklch(0.72 0.15 229 / 4%), transparent 60%),
+      radial-gradient(48rem 28rem at 88% 0%, oklch(0.63 0.16 293 / 3%), transparent 62%);
   }
   button:not([disabled]),
   [role="button"]:not([disabled]) {
@@ -109,65 +108,45 @@
 }
 
 @layer utilities {
-  /* Plush inflated clay surface */
+  /* Flat professional surface (kept for existing utility usage) */
   .clay {
-    background: linear-gradient(
-      155deg,
-      oklch(0.27 0.028 262 / 95%),
-      oklch(0.2 0.022 264 / 98%)
-    );
-    border: 1px solid oklch(1 0 0 / 9%);
+    background: oklch(0.22 0.02 264 / 92%);
+    border: 1px solid oklch(1 0 0 / 8%);
     border-radius: var(--radius-xl);
     box-shadow:
-      inset 0 2px 3px oklch(1 0 0 / 14%),
-      inset 0 -3px 7px oklch(0.1 0.03 260 / 55%),
-      0 10px 22px -8px oklch(0.05 0.02 260 / 70%),
-      0 24px 48px -18px oklch(0.05 0.02 260 / 75%);
+      0 1px 2px oklch(0.05 0.02 260 / 40%),
+      0 8px 24px -12px oklch(0.05 0.02 260 / 50%);
   }
 
-  /* Slightly lifted on hover, no layout shift */
+  /* Subtle border emphasis on hover, no lift */
   .clay-hover {
     transition:
-      transform 200ms ease,
-      box-shadow 200ms ease,
-      border-color 200ms ease;
+      border-color 200ms ease,
+      background-color 200ms ease;
   }
   .clay-hover:hover {
-    transform: translateY(-3px);
-    border-color: oklch(0.72 0.15 229 / 38%);
-    box-shadow:
-      inset 0 2px 3px oklch(1 0 0 / 14%),
-      inset 0 -3px 7px oklch(0.1 0.03 260 / 55%),
-      0 14px 28px -10px oklch(0.72 0.15 229 / 22%),
-      0 28px 56px -20px oklch(0.63 0.16 293 / 28%);
+    border-color: oklch(0.72 0.15 229 / 35%);
   }
 
-  /* Pressed-in clay well (inputs, icon plates, artworks) */
+  /* Pressed-in well (inputs, icon plates) */
   .clay-inset {
-    background: linear-gradient(
-      180deg,
-      oklch(0.17 0.024 264 / 92%),
-      oklch(0.23 0.026 263 / 92%)
-    );
-    border: 1px solid oklch(1 0 0 / 8%);
-    box-shadow:
-      inset 0 4px 8px oklch(0.05 0.02 260 / 55%),
-      inset 0 -1px 2px oklch(1 0 0 / 7%);
+    background: oklch(0.19 0.022 264 / 85%);
+    border: 1px solid oklch(1 0 0 / 7%);
+    box-shadow: inset 0 1px 2px oklch(0.05 0.02 260 / 40%);
   }
 
-  /* Raised clay button sheen */
+  /* Button sheen */
   .clay-btn {
     box-shadow:
-      inset 0 2px 2px oklch(1 0 0 / 22%),
-      inset 0 -3px 5px oklch(0 0 0 / 22%),
-      0 8px 18px -6px oklch(0.72 0.15 229 / 35%);
+      inset 0 1px 1px oklch(1 0 0 / 18%),
+      0 1px 3px oklch(0.05 0.02 260 / 35%);
   }
 
   .glow-blue {
-    box-shadow: 0 0 32px -6px oklch(0.72 0.15 229 / 45%);
+    box-shadow: 0 0 24px -8px oklch(0.72 0.15 229 / 35%);
   }
   .glow-purple {
-    box-shadow: 0 0 32px -6px oklch(0.63 0.16 293 / 45%);
+    box-shadow: 0 0 24px -8px oklch(0.63 0.16 293 / 35%);
   }
 
   .text-gradient {

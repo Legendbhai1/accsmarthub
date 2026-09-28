@@ -66,7 +66,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40">
-      <div className="border-b border-border/70 bg-background/80 backdrop-blur-md">
+      <div className="border-b border-border/70 bg-background">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
           <Logo />
 
