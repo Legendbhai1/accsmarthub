@@ -10,12 +10,11 @@ import {
   MapPin,
   MessageSquare,
   Minus,
+  Lock,
   PackageCheck,
   Plus,
   ShieldCheck,
   ShoppingBag,
-  Undo2,
-  Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,7 +67,7 @@ function ProductPageContent({ slug }: { slug?: string }) {
         <main className="flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center">
           <div className="clay flex flex-col items-center px-10 py-12">
             <PackageCheck className="size-10 text-muted-foreground" />
-            <h1 className="mt-4 text-xl font-semibold">Product not found</h1>
+            <h1 className="mt-4 text-xl font-semibold">Listing not found</h1>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
               This listing doesn't exist or may have been removed by our
               moderation team.
@@ -232,8 +231,8 @@ function ProductPageContent({ slug }: { slug?: string }) {
                       </p>
                       <div className="mt-6 grid gap-3 sm:grid-cols-2">
                         <DetailRow
-                          icon={Zap}
-                          label="Delivery method"
+                          icon={ShieldCheck}
+                          label="Transfer method"
                           value={product.delivery}
                         />
                         <DetailRow
@@ -241,10 +240,10 @@ function ProductPageContent({ slug }: { slug?: string }) {
                           label="Availability"
                           value={
                             outOfStock
-                              ? "Out of stock"
+                              ? "No longer available"
                               : lowStock
-                                ? `Low stock — ${product.stock} left`
-                                : `In stock (${product.stock >= 999 ? "unlimited" : `${product.stock} available`})`
+                                ? "Exclusive listing — currently reserved"
+                                : "Available — exclusive listing"
                           }
                         />
                       </div>
@@ -271,33 +270,32 @@ function ProductPageContent({ slug }: { slug?: string }) {
                           after purchase.
                         </p>
                       ) : (
-                        <ul className="max-w-2xl space-y-3">
-                          {productReviews.map((review) => (
-                            <li key={review.author} className="clay p-5">
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-3">
-                                  <span className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
-                                    {review.author.charAt(0)}
-                                  </span>
-                                  <div>
-                                    <p className="text-sm font-medium">
-                                      {review.author}
-                                    </p>
-                                    <Stars rating={review.rating} />
-                                  </div>
+                        <ul className="max-w-2xl space-y-3">                        {productReviews.map((review) => (
+                          <li key={review.author} className="clay p-5">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <span className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                                  {review.author.charAt(0)}
+                                </span>
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {review.author}
+                                  </p>
+                                  <Stars rating={review.rating} />
                                 </div>
-                                <time className="text-xs text-muted-foreground">
-                                  {new Date(review.date).toLocaleDateString(
-                                    "en-US",
-                                    { month: "short", day: "numeric" },
-                                  )}
-                                </time>
                               </div>
-                              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                                {review.text}
-                              </p>
-                            </li>
-                          ))}
+                              <time className="text-xs text-muted-foreground">
+                                {new Date(review.date).toLocaleDateString(
+                                  "en-US",
+                                  { month: "short", day: "numeric" },
+                                )}
+                              </time>
+                            </div>
+                            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                              {review.text}
+                            </p>
+                          </li>
+                        ))}
                         </ul>
                       )}
                     </TabsContent>
@@ -360,7 +358,7 @@ function ProductPageContent({ slug }: { slug?: string }) {
                           </p>
                         </div>
                         <div>
-                          <p className="font-bold">On AccSmart since</p>
+                          <p className="font-bold">On the hub since</p>
                           <p className="text-xs text-muted-foreground">
                             {seller.joined}
                           </p>
@@ -396,16 +394,16 @@ function ProductPageContent({ slug }: { slug?: string }) {
                     <div className="mt-3 text-sm">
                       {outOfStock ? (
                         <span className="font-medium text-destructive">
-                          Out of stock
+                          No longer available
                         </span>
                       ) : lowStock ? (
                         <span className="font-medium text-amber-400">
-                          Only {product.stock} left — order soon
+                          Reserved — currently under offer
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 text-emerald-400/90">
                           <span className="size-1.5 rounded-full bg-emerald-400" />
-                          In stock — delivered in seconds
+                          Available — exclusive listing
                         </span>
                       )}
                     </div>
@@ -435,10 +433,8 @@ function ProductPageContent({ slug }: { slug?: string }) {
                           size="icon-sm"
                           className="size-8 rounded-lg"
                           aria-label="Increase quantity"
-                          disabled={outOfStock || quantity >= Math.min(10, product.stock)}
-                          onClick={() =>
-                            setQuantity((q) => Math.min(10, product.stock, q + 1))
-                          }
+                          disabled={outOfStock || product.stock <= 1}
+                          onClick={() => setQuantity((q) => Math.min(product.stock || 1, q + 1))}
                         >
                           <Plus className="size-3.5" />
                         </Button>
@@ -461,8 +457,8 @@ function ProductPageContent({ slug }: { slug?: string }) {
                         disabled={outOfStock}
                         onClick={buyNow}
                       >
-                        <Zap className="size-4" />
-                        Buy now
+                        <Lock className="size-4" />
+                        Buy with escrow
                       </Button>
                     </div>
 
@@ -471,32 +467,32 @@ function ProductPageContent({ slug }: { slug?: string }) {
                     {/* Trust blocks */}
                     <div className="space-y-3 text-sm">
                       <div className="flex gap-3">
-                        <ShieldCheck className="mt-0.5 size-4.5 shrink-0 text-emerald-400" />
+                        <Lock className="mt-0.5 size-4.5 shrink-0 text-emerald-400" />
                         <div>
-                          <p className="font-medium">Buyer protection</p>
+                          <p className="font-medium">Escrow-protected payment</p>
                           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                            Covered for 30 days. If it doesn't arrive or doesn't
-                            match the listing, you get a refund.
+                            Your funds are held securely and released to the
+                            seller only after you confirm the transfer.
                           </p>
                         </div>
                       </div>
                       <div className="flex gap-3">
-                        <Undo2 className="mt-0.5 size-4.5 shrink-0 text-primary" />
+                        <ShieldCheck className="mt-0.5 size-4.5 shrink-0 text-primary" />
                         <div>
-                          <p className="font-medium">Refund policy</p>
+                          <p className="font-medium">Transfer guarantee</p>
                           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                            Undelivered or misdescribed digital goods are fully
-                            refundable. Open a dispute from your orders page.
+                            If the account doesn't match its listing or the
+                            transfer fails, you're refunded in full.
                           </p>
                         </div>
                       </div>
                       <div className="flex gap-3">
                         <CalendarClock className="mt-0.5 size-4.5 shrink-0 text-secondary" />
                         <div>
-                          <p className="font-medium">Delivery</p>
+                          <p className="font-medium">Secure handover</p>
                           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                            {product.delivery} — sent to your email right after
-                            checkout.
+                            {product.delivery} — guided by our transfer team and
+                            typically completed within 24 hours.
                           </p>
                         </div>
                       </div>
@@ -506,9 +502,9 @@ function ProductPageContent({ slug }: { slug?: string }) {
               </div>
 
               {/* Related */}
-              <section className="mt-16" aria-label="Related products">
+              <section className="mt-16" aria-label="Related accounts">
                 <h2 className="text-xl font-bold tracking-tight">
-                  You may also like
+                  Comparable accounts
                 </h2>
                 <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {related.map((p) => (

@@ -1,12 +1,12 @@
 import { motion } from "framer-motion";
 import {
   BadgeCheck,
-  Gamepad2,
-  GraduationCap,
-  KeyRound,
-  Palette,
+  Instagram,
+  Music2,
   ShieldCheck,
-  ShoppingBag,
+  TrendingUp,
+  Twitter,
+  Youtube,
 } from "lucide-react";
 
 /**
@@ -53,7 +53,7 @@ export function HeroVisual() {
               "inset 0 3px 6px oklch(1 0 0 / 40%), inset 0 -5px 10px oklch(0.2 0.06 280 / 45%), 0 14px 30px -8px oklch(0.67 0.15 260 / 65%)",
           }}
         >
-          <ShoppingBag className="size-16 text-white drop-shadow" strokeWidth={1.6} />
+          <TrendingUp className="size-16 text-white drop-shadow" strokeWidth={1.6} />
         </div>
         {/* orbit ring */}
         <div className="pointer-events-none absolute inset-6 rounded-[2rem] border border-border/70" />
@@ -61,10 +61,10 @@ export function HeroVisual() {
 
       {/* floating chips */}
       {[
-        { icon: KeyRound, label: "Licenses", hue: 222, pos: "left-[2%] top-[10%]", delay: 0.15 },
-        { icon: Gamepad2, label: "Games", hue: 285, pos: "right-[0%] top-[22%]", delay: 0.25 },
-        { icon: Palette, label: "Design", hue: 310, pos: "left-[6%] bottom-[18%]", delay: 0.35 },
-        { icon: GraduationCap, label: "Courses", hue: 168, pos: "right-[8%] bottom-[8%]", delay: 0.45 },
+        { icon: Instagram, label: "Instagram", hue: 320, pos: "left-[2%] top-[10%]", delay: 0.15 },
+        { icon: Music2, label: "TikTok", hue: 350, pos: "right-[0%] top-[22%]", delay: 0.25 },
+        { icon: Youtube, label: "YouTube", hue: 0, pos: "left-[6%] bottom-[18%]", delay: 0.35 },
+        { icon: Twitter, label: "X", hue: 230, pos: "right-[8%] bottom-[8%]", delay: 0.45 },
       ].map(({ icon: Icon, label, hue, pos, delay }) => {
         return (
           <motion.div

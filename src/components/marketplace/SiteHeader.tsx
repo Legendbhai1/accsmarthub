@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { label: "Marketplace", to: "/marketplace" },
-  { label: "Categories", to: "/#categories" },
+  { label: "Platforms", to: "/#categories" },
   { label: "How It Works", to: "/#how-it-works" },
   { label: "FAQ", to: "/#faq" },
 ];
@@ -108,14 +108,14 @@ export function SiteHeader() {
             className="ml-auto hidden md:block"
           >
             <label htmlFor="site-search" className="sr-only">
-              Search products
+              Search account listings
             </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 id="site-search"
                 type="search"
-                placeholder="Search products…"
+                placeholder="Search account listings…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="clay-inset h-10 w-44 rounded-2xl pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:w-56 focus:ring-2 focus:ring-ring/60 lg:w-52 lg:focus:w-64"
@@ -218,7 +218,7 @@ export function SiteHeader() {
           <div className="mt-auto flex flex-col gap-2 p-4">
             <form onSubmit={submitSearch} role="search">
               <label htmlFor="mobile-search" className="sr-only">
-                Search products
+                Search account listings
               </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -227,7 +227,7 @@ export function SiteHeader() {
                   type="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search products…"
+                  placeholder="Search account listings…"
                   className="clay-inset h-10 w-full rounded-2xl pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/60"
                 />
               </div>

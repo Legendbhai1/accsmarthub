@@ -5,17 +5,15 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   BadgeCheck,
-  Clock,
-  CreditCard,
-  Headset,
+  FileCheck,
+  Landmark,
   LayoutGrid,
-  MousePointerClick,
+  Lock,
   PackageCheck,
-  Percent,
-  Search,
   ShieldCheck,
   Sparkles,
   Store,
+  UserCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,84 +39,84 @@ const fadeUp = {
 
 const WHY_ITEMS = [
   {
-    icon: BadgeCheck,
+    icon: UserCheck,
     title: "Verified sellers",
-    body: "Every seller passes identity checks and a review of their catalog before their first sale.",
+    body: "Every seller completes identity verification (KYC) and proves ownership of each account before it can be listed.",
+  },
+  {
+    icon: Lock,
+    title: "Escrow-held funds",
+    body: "Your payment is held in escrow and only released to the seller once the transfer is confirmed complete.",
   },
   {
     icon: ShieldCheck,
-    title: "Secure checkout",
-    body: "Payments run through a compliant processor. Card details never touch AccSmart servers.",
-  },
-  {
-    icon: PackageCheck,
     title: "Buyer protection",
-    body: "If an order doesn't arrive as described, our dispute process makes it right.",
+    body: "If a transfer doesn't match the listing, our dispute team intervenes and eligible orders are refunded in full.",
   },
   {
-    icon: Clock,
-    title: "Fast delivery",
-    body: "Most digital products arrive in your inbox within seconds of payment.",
+    icon: FileCheck,
+    title: "Documented ownership",
+    body: "Listings include ownership documentation and transfer records, so provenance is verifiable before you commit.",
   },
   {
-    icon: Percent,
-    title: "Transparent pricing",
-    body: "The price you see is the price you pay — fees shown clearly before checkout.",
+    icon: Landmark,
+    title: "Transparent economics",
+    body: "The price you see is the price you pay. Escrow and service fees are shown in full before checkout.",
   },
   {
-    icon: Headset,
-    title: "24/7 support",
-    body: "Real humans around the clock for order issues, disputes and account help.",
+    icon: BadgeCheck,
+    title: "Discreet, expert support",
+    body: "A specialist team handles every order — from preliminary questions through post-transfer follow-up.",
   },
 ];
 
 const STEPS = [
   {
-    icon: Search,
-    title: "Browse",
-    body: "Explore categories or search thousands of digital products from verified sellers.",
+    icon: ShieldCheck,
+    title: "Browse verified listings",
+    body: "Explore accounts by platform, audience size and price. Every listing has been vetted before publication.",
   },
   {
-    icon: MousePointerClick,
-    title: "Choose a product",
-    body: "Check ratings, what's included and the seller's track record before you commit.",
+    icon: UserCheck,
+    title: "Review the evidence",
+    body: "Study analytics, ownership documents and the seller's track record before committing to anything.",
   },
   {
-    icon: CreditCard,
-    title: "Pay securely",
-    body: "Check out with encrypted payments and buyer protection applied automatically.",
+    icon: Lock,
+    title: "Pay into escrow",
+    body: "Checkout through our secure escrow flow. Your funds are protected — not released — until you confirm the transfer.",
   },
   {
     icon: PackageCheck,
-    title: "Receive your product",
-    body: "Keys, files and access land in your inbox — usually within seconds.",
+    title: "Confirm the transfer",
+    body: "Receive full credentials and ownership documents, verify everything matches the listing, then release escrow.",
   },
 ];
 
 const FAQS = [
   {
-    q: "How fast will I receive my digital product?",
-    a: "Most orders are delivered instantly — license keys, download links and codes are emailed within seconds of a successful payment. Scheduled services are booked directly with the seller.",
+    q: "How does an account transfer actually work?",
+    a: "Once your payment clears, it sits in escrow while the seller hands over full credentials and ownership documentation. You confirm the account is exactly as described, then escrow releases the funds to the seller. If anything is wrong, you open a dispute and the funds stay protected.",
   },
   {
-    q: "What does 'verified seller' mean?",
-    a: "Verified sellers have completed identity verification (KYC), maintained a strong delivery record, and keep dispute rates below our thresholds. Look for the badge next to their name.",
+    q: "What does “verified seller” mean here?",
+    a: "Verified sellers have completed identity verification (KYC), proven ownership of every account they list, and maintained a clean dispute record across previous transfers. Look for the badge next to their name.",
   },
   {
     q: "How does buyer protection work?",
-    a: "Every purchase is covered. If an item doesn't arrive or doesn't match its listing, open a dispute from your orders page within 30 days. Our team reviews the evidence and refunds eligible orders.",
+    a: "Every purchase is covered. If an account doesn't match its listing or the transfer fails, open a dispute from your orders page within 30 days. Our team reviews the evidence from both sides, and eligible orders are refunded in full from escrow.",
   },
   {
-    q: "What payment methods are supported?",
-    a: "Checkout supports major cards and regional methods through our compliant payment provider. AccSmart never sees or stores your raw card details.",
+    q: "Is buying or selling accounts allowed by the platforms?",
+    a: "Most major platforms restrict the transfer of accounts in their terms of service, and policies change over time. We require sellers to disclose platform standing and transfer history, and we recommend you review the relevant platform terms and seek your own advice before purchasing.",
   },
   {
-    q: "What products are not allowed on AccSmart?",
-    a: "Stolen accounts, compromised credentials, phishing materials, malware, unauthorized access tools, and anything violating third-party platform terms are strictly prohibited and removed on sight.",
+    q: "What is never allowed on Digital Product Hub?",
+    a: "Stolen accounts, compromised credentials, phishing materials, malware, unauthorized access tools, and anything violating third-party platform terms are strictly prohibited and removed on sight. Only authorized transfers backed by proof of ownership are permitted.",
   },
   {
-    q: "How do I become a seller?",
-    a: "Create an account, complete seller onboarding with identity verification, and publish your first product for review. Approved products go live after a moderation check.",
+    q: "How do I sell an account?",
+    a: "Create an account, complete seller onboarding with identity verification, and submit your listing with proof of ownership. Every listing passes a moderation review before it goes live, and payouts release only after the buyer confirms the transfer.",
   },
 ];
 
@@ -156,15 +154,16 @@ export default function Landing() {
                 className="clay-inset mb-6 gap-1.5 rounded-full border-border/60 px-3 py-1.5 text-xs font-medium text-muted-foreground"
               >
                 <Sparkles className="size-3.5 text-primary" />
-                {products.length * 137}+ products · 10 categories · verified sellers
+                {products.length * 137}+ accounts transferred · 10 platforms · escrow on every order
               </Badge>
               <h1 className="text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.4rem]">
-                Your Smart Marketplace for{" "}
-                <span className="text-gradient">Digital Products</span>
+                The Professional Marketplace for{" "}
+                <span className="text-gradient">Social Media Accounts</span>
               </h1>
               <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Discover verified digital products and authorized services from
-                trusted sellers — delivered instantly, protected on every order.
+                Buy and sell established accounts with confidence. Every seller
+                is verified, every transfer is documented, and your funds stay
+                in escrow until the deal is done.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button
@@ -174,7 +173,7 @@ export default function Landing() {
                   asChild
                 >
                   <Link to="/marketplace">
-                    Browse Marketplace
+                    Browse Listings
                     <ArrowRight className="size-4" />
                   </Link>
                 </Button>
@@ -194,16 +193,16 @@ export default function Landing() {
                     }}
                   >
                     <Store className="size-4" />
-                    Become a Seller
+                    Sell an Account
                   </a>
                 </Button>
               </div>
 
               <dl className="mt-10 grid max-w-md grid-cols-3 gap-4">
                 {[
-                  { value: "18k+", label: "Orders delivered" },
-                  { value: "4.8/5", label: "Average rating" },
-                  { value: "<60s", label: "Median delivery" },
+                  { value: "18k+", label: "Accounts transferred" },
+                  { value: "4.8/5", label: "Average seller rating" },
+                  { value: "100%", label: "Escrow-protected" },
                 ].map((stat) => (
                   <div key={stat.label} className="clay-inset rounded-2xl p-3.5">
                     <dt className="sr-only">{stat.label}</dt>
@@ -228,10 +227,11 @@ export default function Landing() {
             <motion.div {...fadeUp} className="flex items-end justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                  Browse by category
+                  Browse by platform
                 </h2>
                 <p className="mt-2 text-muted-foreground">
-                  Ten curated aisles of legitimate digital products.
+                  Ten established platforms, each with a vetted roster of
+                  account listings.
                 </p>
               </div>
               <Button variant="ghost" className="hidden rounded-xl sm:inline-flex" asChild>
@@ -254,10 +254,11 @@ export default function Landing() {
             <motion.div {...fadeUp} className="flex items-end justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                  Featured products
+                  Featured accounts
                 </h2>
                 <p className="mt-2 text-muted-foreground">
-                  Hand-picked deals and top-rated picks from our sellers.
+                  Exceptional listings with strong audiences and proven
+                  performance.
                 </p>
               </div>
               <Button variant="ghost" className="hidden rounded-xl sm:inline-flex" asChild>
@@ -274,12 +275,12 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ---------------- Why AccSmart ---------------- */}
+        {/* ---------------- Why Digital Product Hub ---------------- */}
         <section id="why" className="mt-24 scroll-mt-24">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
             <motion.div {...fadeUp} className="mx-auto max-w-2xl text-center">
               <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Why buyers choose AccSmart
+                Why buyers choose Digital Product Hub
               </h2>
               <p className="mt-2 text-muted-foreground">
                 A trust layer under every transaction — not an afterthought.
@@ -309,7 +310,7 @@ export default function Landing() {
                 How it works
               </h2>
               <p className="mt-2 text-muted-foreground">
-                From browsing to delivery in four short steps.
+                From discovery to a completed transfer in four steps.
               </p>
             </motion.div>
             <ol className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -367,17 +368,18 @@ export default function Landing() {
                     Seller Center
                   </Badge>
                   <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                    Turn your digital products into a business.
+                    Sell your account to a serious buyer.
                   </h2>
                   <p className="mt-3 max-w-xl leading-relaxed text-muted-foreground">
-                    List software, assets, courses and services in minutes. Keep
-                    92% of every sale, get paid weekly, and let our verification
-                    and moderation handle the trust side.
+                    List your established account in front of qualified buyers.
+                    Keep 92% of the sale price, get paid the moment the transfer
+                    is confirmed, and let our verification and moderation teams
+                    handle the trust side.
                   </p>
                   <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                     <Button variant="clay" className="clay-btn rounded-2xl" asChild>
                       <Link to="/auth">
-                        Start Selling
+                        List Your Account
                         <ArrowRight className="size-4" />
                       </Link>
                     </Button>
@@ -398,10 +400,10 @@ export default function Landing() {
                 </div>
                 <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                   {[
-                    "92% revenue share, paid weekly",
-                    "Fraud & chargeback shielding",
-                    "Verification badge for trusted sellers",
-                    "Analytics for every listing",
+                    "Keep 92% of the sale price",
+                    "Escrow releases only after buyer confirmation",
+                    "KYC badge that serious buyers trust",
+                    "Valuation guidance for every listing",
                   ].map((point) => (
                     <li
                       key={point}
@@ -425,7 +427,7 @@ export default function Landing() {
                 Frequently asked questions
               </h2>
               <p className="mt-2 text-muted-foreground">
-                Everything buyers and sellers ask before their first order.
+                Everything buyers and sellers ask before their first transfer.
               </p>
             </motion.div>
             <motion.div {...fadeUp} className="clay mt-8 px-6 py-2">

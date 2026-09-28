@@ -33,32 +33,33 @@ export default function OrderConfirmed() {
             <PackageCheck className="size-8 text-white" />
           </div>
           <h1 className="mt-6 text-2xl font-bold tracking-tight">
-            Order confirmed!
+            Order confirmed
           </h1>
           <p className="mt-3 leading-relaxed text-muted-foreground">
-            Thank you for your purchase. Your digital products are on their way
-            to your inbox — most orders arrive within seconds.
+            Your payment is now held in escrow. The seller has been notified and
+            will begin the secure transfer — you'll receive credentials and
+            ownership documents by email shortly.
           </p>
 
           <ul className="mx-auto mt-7 max-w-sm space-y-2.5 text-left text-sm">
             <li className="clay-inset flex items-center gap-3 rounded-2xl px-4 py-3">
               <MailCheck className="size-4.5 shrink-0 text-primary" />
-              Delivery email sent with keys, codes and download links
+              Escrow confirmation sent — the seller has been notified to begin
             </li>
             <li className="clay-inset flex items-center gap-3 rounded-2xl px-4 py-3">
               <ShieldCheck className="size-4.5 shrink-0 text-emerald-400" />
-              30-day buyer protection active on this order
+              Funds stay protected until you confirm the transfer
             </li>
           </ul>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button variant="clay" className="rounded-2xl" asChild>
               <Link to="/marketplace">
-                Keep browsing <ArrowRight className="size-4" />
+                Continue browsing <ArrowRight className="size-4" />
               </Link>
             </Button>
             <Button variant="outline" className="rounded-2xl" asChild>
-              <Link to="/dashboard">View my orders</Link>
+              <Link to="/dashboard">Track this transfer</Link>
             </Button>
           </div>
         </motion.div>

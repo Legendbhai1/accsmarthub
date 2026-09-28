@@ -33,7 +33,7 @@ import { formatPrice, useCart } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 
 const PROMO_CODES: Record<string, number> = {
-  CLAY15: 0.15,
+  ESCROW15: 0.15,
   WELCOME10: 0.1,
 };
 
@@ -89,8 +89,8 @@ export default function Checkout() {
           <div className="clay flex flex-col items-center px-10 py-14">
             <h1 className="text-xl font-semibold">Your cart is empty</h1>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-              Add a few digital products and come back to complete a secure
-              checkout.
+              Browse the marketplace and add an account to get started — every
+              purchase is protected by escrow.
             </p>
             <Button variant="clay" className="mt-6 rounded-xl" asChild>
               <Link to="/marketplace">Browse marketplace</Link>
@@ -110,7 +110,8 @@ export default function Checkout() {
         <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
           <h1 className="text-3xl font-bold tracking-tight">Checkout</h1>
           <p className="mt-2 text-muted-foreground">
-            Encrypted, compliant payment — card details never touch our servers.
+            Your payment is held in escrow and released to the seller only after
+            you confirm the transfer.
           </p>
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_24rem]">
@@ -118,7 +119,7 @@ export default function Checkout() {
             <div className="min-w-0 space-y-6">
               {/* Cart items */}
               <section className="clay p-6" aria-label="Cart items">
-                <h2 className="font-semibold">Your items</h2>
+                <h2 className="font-semibold">Your accounts</h2>
                 <ul className="mt-4 space-y-3">
                   {items.map((item) => (
                     <li
@@ -218,7 +219,8 @@ export default function Checkout() {
                   </div>
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground">
-                  Keys, codes and download links are sent to this email address.
+                  Transfer coordination and escrow updates are sent to this
+                  email address.
                 </p>
               </section>
 
@@ -240,7 +242,7 @@ export default function Checkout() {
                       },
                       {
                         value: "wallet",
-                        label: "AccSmart Wallet",
+                        label: "Hub Wallet",
                         icon: Wallet,
                         hint: "Balance: $42.00 (demo)",
                       },
@@ -278,7 +280,7 @@ export default function Checkout() {
                     <Lock className="size-3.5 shrink-0" />
                     Demo checkout — no card form is shown because real payments
                     require a connected provider. Raw card data is never stored
-                    by AccSmart.
+                    by our platform.
                   </p>
                 )}
               </section>
@@ -301,7 +303,7 @@ export default function Checkout() {
                         id="promo"
                         value={promoInput}
                         onChange={(e) => setPromoInput(e.target.value)}
-                        placeholder="CLAY15"
+                        placeholder="ESCROW15"
                         className="clay-inset rounded-2xl border-border/60 pl-9 uppercase"
                       />
                     </div>
@@ -357,7 +359,7 @@ export default function Checkout() {
                   />
                   <span>
                     I agree to the Terms of Service, Privacy Policy and Refund
-                    Policy.
+                    Policy, and I understand the escrow and dispute process.
                   </span>
                 </label>
 
@@ -368,12 +370,12 @@ export default function Checkout() {
                   onClick={() => setConfirmOpen(true)}
                 >
                   <Lock className="size-4" />
-                  {placing ? "Processing…" : `Pay ${formatPrice(grandTotal)}`}
+                  {placing ? "Processing…" : `Fund escrow · ${formatPrice(grandTotal)}`}
                 </Button>
 
                 <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-emerald-400/90">
                   <ShieldCheck className="size-3.5" />
-                  Secure checkout · Buyer protection included
+                  Funds held in escrow · Buyer protection included
                 </p>
               </div>
             </aside>
@@ -387,9 +389,8 @@ export default function Checkout() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm your order</AlertDialogTitle>
             <AlertDialogDescription>
-              {items.reduce((n, i) => n + i.quantity, 0)} digital item
-              {items.reduce((n, i) => n + i.quantity, 0) === 1 ? "" : "s"} for{" "}
-              {formatPrice(grandTotal)} will be delivered to{" "}
+              Your payment of {formatPrice(grandTotal)} will be held in escrow
+              while the transfer is completed. Coordination begins at{" "}
               <span className="font-medium text-foreground">{form.email}</span>{" "}
               immediately after payment.
             </AlertDialogDescription>

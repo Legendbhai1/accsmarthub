@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { BadgeCheck, ShoppingBag, Timer } from "lucide-react";
+import { BadgeCheck, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,7 +16,6 @@ export function ProductCard({ product }: { product: Product }) {
   const seller = getSeller(product.sellerId);
   const { add } = useCart();
   const outOfStock = product.stock === 0;
-  const lowStock = product.stock > 0 && product.stock <= 20;
 
   return (
     <article className="clay clay-hover group flex h-full flex-col p-5">
@@ -55,15 +54,11 @@ export function ProductCard({ product }: { product: Product }) {
 
       <div className="mt-3 flex items-center gap-1.5 text-xs">
         {outOfStock ? (
-          <span className="text-destructive">Out of stock</span>
-        ) : lowStock ? (
-          <span className="inline-flex items-center gap-1 text-amber-400">
-            <Timer className="size-3.5" /> Only {product.stock} left
-          </span>
+          <span className="text-destructive">No longer available</span>
         ) : (
           <span className="inline-flex items-center gap-1 text-emerald-400/90">
-            <span className="size-1.5 rounded-full bg-emerald-400" /> In stock —
-            {product.stock >= 999 ? " unlimited" : ` ${product.stock} available`}
+            <span className="size-1.5 rounded-full bg-emerald-400" /> Available
+            now
           </span>
         )}
       </div>
@@ -98,7 +93,7 @@ export function ProductCard({ product }: { product: Product }) {
             <ShoppingBag className="size-4" />
           </Button>
           <Button variant="clay" size="sm" className="rounded-xl" asChild>
-            <Link to={`/product/${product.slug}`}>View</Link>
+            <Link to={`/product/${product.slug}`}>Details</Link>
           </Button>
         </div>
       </div>

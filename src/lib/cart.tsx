@@ -30,7 +30,7 @@ type CartContextValue = {
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
-const STORAGE_KEY = "accsmart.cart.v1";
+const STORAGE_KEY = "digital-product-hub.cart.v1";
 
 function readStorage(): CartItem[] {
   try {

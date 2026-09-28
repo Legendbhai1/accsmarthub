@@ -31,7 +31,8 @@ export function CartDrawer() {
             </span>
           </SheetTitle>
           <SheetDescription className="text-xs">
-            Digital items — delivered to your inbox after checkout.
+            Account listings — funds are held in escrow until each transfer
+            completes.
           </SheetDescription>
         </SheetHeader>
 
@@ -42,7 +43,7 @@ export function CartDrawer() {
             </div>
             <p className="text-sm font-medium">Your cart is empty</p>
             <p className="max-w-56 text-xs text-muted-foreground">
-              Browse the marketplace and add digital products to get started.
+              Browse the marketplace and add an account to get started.
             </p>
             <Button variant="clay" className="mt-2 rounded-xl" asChild>
               <Link to="/marketplace" onClick={() => setOpen(false)}>

@@ -41,10 +41,10 @@ type SortValue = (typeof SORTS)[number]["value"];
 
 const PRICE_RANGES = [
   { value: "all", label: "Any price", min: 0, max: Infinity },
-  { value: "under-20", label: "Under $20", min: 0, max: 20 },
-  { value: "20-50", label: "$20 – $50", min: 20, max: 50 },
-  { value: "50-100", label: "$50 – $100", min: 50, max: 100 },
-  { value: "over-100", label: "Over $100", min: 100, max: Infinity },
+  { value: "under-2k", label: "Under $2,000", min: 0, max: 2000 },
+  { value: "2k-5k", label: "$2,000 – $5,000", min: 2000, max: 5000 },
+  { value: "5k-10k", label: "$5,000 – $10,000", min: 5000, max: 10000 },
+  { value: "over-10k", label: "Over $10,000", min: 10000, max: Infinity },
 ] as const;
 
 const RATINGS = [
@@ -147,7 +147,7 @@ export default function Marketplace() {
       {/* Category */}
       <div>
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Category
+          Platform
         </Label>
         <div className="mt-3 flex flex-wrap gap-2">
           <FilterChip
@@ -240,8 +240,8 @@ export default function Marketplace() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Marketplace</h1>
               <p className="mt-2 text-muted-foreground">
-                {filtered.length} product{filtered.length === 1 ? "" : "s"}
-                {q ? ` matching “${q}”` : " from verified sellers"}
+                {filtered.length} account listing{filtered.length === 1 ? "" : "s"}
+                {q ? ` matching “${q}”` : " from vetted resellers"}
               </p>
             </div>
 
@@ -258,8 +258,8 @@ export default function Marketplace() {
                 <Input
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search software, games, assets, courses…"
-                  aria-label="Search products"
+                  placeholder="Search platforms, niches, audience sizes…"
+                  aria-label="Search account listings"
                   className="clay-inset h-11 rounded-2xl border-border/60 pl-10"
                 />
               </div>
@@ -303,7 +303,7 @@ export default function Marketplace() {
             </aside>
 
             {/* Results */}
-            <section aria-label="Products" className="min-w-0">
+            <section aria-label="Account listings" className="min-w-0">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
                   Sort by
@@ -338,11 +338,11 @@ export default function Marketplace() {
                     <PackageSearch className="size-7 text-muted-foreground" />
                   </div>
                   <h2 className="mt-5 text-lg font-semibold">
-                    No products found
+                    No accounts found
                   </h2>
                   <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-                    Try a different search term or loosen a filter — new products
-                    are added every day.
+                    Try a different search term or loosen a filter — new
+                    listings are added every day.
                   </p>
                   <Button
                     variant="clay"
