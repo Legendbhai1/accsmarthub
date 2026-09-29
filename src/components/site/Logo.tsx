@@ -9,9 +9,9 @@ export function Logo({ className }: { className?: string }) {
       aria-label="AccsMartHub home"
     >
       <span
-        className="flex size-9 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105"
+        className="flex size-9 items-center justify-center rounded-xl shadow-md transition-transform duration-200 group-hover:scale-105"
         style={{
-          background: "linear-gradient(145deg, oklch(0.78 0.12 230), oklch(0.66 0.14 295))",
+          background: "linear-gradient(145deg, oklch(0.3 0.08 265), oklch(0.36 0.1 292))",
         }}
       >
         <svg viewBox="0 0 24 24" className="size-5 text-white" fill="currentColor" aria-hidden="true">

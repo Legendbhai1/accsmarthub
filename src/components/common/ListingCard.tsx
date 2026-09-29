@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { formatPrice } from "@/lib/format";
 import { Link } from "react-router";
 import { BadgeCheck, Clock, ShieldCheck } from "lucide-react";
@@ -10,11 +11,13 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const available = listing.status === "active" && listing.stock > 0;
 
   return (
-    <article className="glass glass-hover flex h-full flex-col p-5">
+    <motion.article
+      whileHover={{ y: -4 }}
+      transition={{ type: "spring", stiffness: 320, damping: 24 }}
+      className="glass glass-hover flex h-full flex-col p-5"
+    >
       <div className="flex items-start justify-between gap-3">
-        <span className="flex size-11 items-center justify-center rounded-xl border border-border/70 bg-muted/40">
-          <BrandMark brand={listing.brand} colored className="size-5.5" />
-        </span>
+        <BrandMark brand={listing.brand} block className="size-11" />
         <div className="flex flex-col items-end gap-1.5">
           {listing.oldPrice && (
             <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
@@ -71,7 +74,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
           View Details
         </Link>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
