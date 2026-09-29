@@ -1,9 +1,6 @@
 import { v } from "convex/values";
-import { action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { action, httpAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { httpAction } from "./_generated/server";
-import { internalMutation } from "./_generated/server";
 
 /**
  * OxaPay crypto deposits (buyers only).
@@ -12,7 +9,8 @@ import { internalMutation } from "./_generated/server";
  *  1. `createDeposit` — creates an OxaPay invoice server-side and records a
  *     pending deposit row. The client redirects the buyer to `paymentUrl`.
  *  2. OxaPay POSTs the payment result to our webhook (`/oxapay-webhook`,
- *     registered in http.ts) — production path for crediting the wallet.
+ *     registered in http.ts) with an HMAC-SHA512 signature (secret = merchant
+ *     key). Statuses arrive as "paying" first, then "paid".
  *  3. `verifyDeposit` — the return page can also actively poll OxaPay's
  *     Payment Information endpoint for authoritative status and credit then.
  */
@@ -46,13 +44,40 @@ async function oxaFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+/** Constant-time hex comparison so webhook timing cannot leak the signature. */
+function safeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function verifyHmac(rawBody: string, received: string, secret: string) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-512" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(rawBody));
+  const hex = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return safeEqualHex(hex, received.trim().toLowerCase());
+}
+
 export const createDeposit = action({
   args: {
     amountUsd: v.number(),
     email: v.optional(v.string()),
     userId: v.optional(v.string()),
   },
-  handler: async (ctx, { amountUsd, email, userId }): Promise<{ paymentUrl: string; trackId: string }> => {
+  handler: async (
+    ctx,
+    { amountUsd, email, userId },
+  ): Promise<{ paymentUrl: string; trackId: string }> => {
     if (!(amountUsd >= 1)) throw new Error("Minimum deposit is $1");
     const merchantKey = process.env.OXAPAY_MERCHANT_API_KEY;
     if (!merchantKey) {
@@ -118,23 +143,22 @@ export const verifyDeposit = action({
 export const oxaPayWebhook = httpAction(async (ctx, request) => {
   const merchantKey = process.env.OXAPAY_MERCHANT_API_KEY;
   try {
-    const body = (await request.json()) as Record<string, unknown>;
-    const apiKey = String(body["merchant"] ?? body["merchant_api_key"] ?? "");
-    if (merchantKey && apiKey !== merchantKey) {
-      return new Response(JSON.stringify({ ok: false }), { status: 401 });
+    const raw = await request.text();
+    const signature = request.headers.get("HMAC") ?? "";
+    if (merchantKey && !(await verifyHmac(raw, signature, merchantKey))) {
+      return new Response("invalid signature", { status: 401 });
     }
+    const body = JSON.parse(raw) as Record<string, unknown>;
     const trackId = String(body["track_id"] ?? "");
     const status = String(body["status"] ?? "").toLowerCase();
     if (trackId && PAID_STATUSES.has(status)) {
       await ctx.runMutation(internal.payments.markDepositPaid, { trackId });
     }
   } catch {
-    // Always answer 200 so OxaPay does not retry a malformed ping forever.
+    // Always answer "ok" so OxaPay does not retry a malformed ping forever.
   }
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+  // OxaPay requires an HTTP 200 with body "ok".
+  return new Response("ok", { status: 200 });
 });
 
 export const markDepositPaid = internalMutation({
