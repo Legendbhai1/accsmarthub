@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
+import { ArrowRightLeft, ShoppingBag, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/site/Logo";
 import { useSession } from "@/lib/session";
@@ -24,6 +25,31 @@ export function DashLayout({
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  // Cross-role navigation: buyers can jump to their seller dashboard (after
+  // approval) and sellers back to their buyer account, from the same shell.
+  const area = nav[0]?.to.startsWith("/seller")
+    ? "seller"
+    : nav[0]?.to.startsWith("/admin")
+      ? "admin"
+      : "buyer";
+  const canSell =
+    user?.role === "seller" ||
+    user?.role === "admin" ||
+    user?.sellerStatus === "approved";
+  const switchItems: NavItem[] =
+    area === "buyer"
+      ? canSell
+        ? [{ label: "Seller dashboard", to: "/seller", icon: ArrowRightLeft }]
+        : [{ label: "Become a seller", to: "/seller/apply", icon: Store }]
+      : area === "seller"
+        ? [{ label: "Buyer account", to: "/account", icon: ShoppingBag }]
+        : [
+            { label: "Seller dashboard", to: "/seller", icon: ArrowRightLeft },
+            { label: "Buyer account", to: "/account", icon: ShoppingBag },
+          ];
+  const fullNav: NavItem[] = [...nav, ...switchItems];
+  const mobileNav: NavItem[] = [...nav.slice(0, 4), ...switchItems.slice(0, 1)];
+
   return (
     <div className="flex min-h-screen">
       {/* Sidebar (desktop) */}
@@ -32,7 +58,7 @@ export function DashLayout({
           <Logo />
         </div>
         <nav aria-label="Dashboard" className="flex-1 space-y-1 overflow-y-auto p-3">
-          {nav.map(({ label, to, icon: Icon }) => (
+          {fullNav.map(({ label, to, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
@@ -89,7 +115,7 @@ export function DashLayout({
       </div>
 
       {/* Mobile bottom nav */}
-      <MobileDashNav nav={nav} badge={badge} />
+      <MobileDashNav nav={mobileNav} badge={badge} />
     </div>
   );
 }
@@ -101,7 +127,7 @@ function MobileDashNav({ nav, badge }: { nav: NavItem[]; badge?: string }) {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/90 backdrop-blur-xl lg:hidden"
     >
       <div className="flex overflow-x-auto">
-        {nav.slice(0, 5).map(({ label, to, icon: Icon }) => (
+        {nav.map(({ label, to, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

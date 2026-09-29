@@ -1,5 +1,6 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
+import { ConvexClientProvider } from "@/lib/convex";
 import { SessionProvider } from "@/lib/session";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
@@ -26,6 +27,7 @@ const BuyerWallet = lazy(() => import("./pages/buyer/BuyerWallet.tsx"));
 const BuyerNotifications = lazy(() => import("./pages/buyer/BuyerNotifications.tsx"));
 const BuyerSupport = lazy(() => import("./pages/buyer/BuyerSupport.tsx"));
 const BuyerProfile = lazy(() => import("./pages/buyer/BuyerProfile.tsx"));
+const SellerApply = lazy(() => import("./pages/seller/SellerApply.tsx"));
 const SellerDashboard = lazy(() => import("./pages/seller/SellerDashboard.tsx"));
 const SellerListings = lazy(() => import("./pages/seller/SellerListings.tsx"));
 const SellerOrders = lazy(() => import("./pages/seller/SellerOrders.tsx"));
@@ -139,8 +141,9 @@ createRoot(document.getElementById("root")!).render(
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>
-      <SessionProvider>
-        <BrowserRouter>
+      <ConvexClientProvider>
+        <SessionProvider>
+          <BrowserRouter>
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
             <Routes>
@@ -169,6 +172,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/account/profile" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerProfile /></RequireRole>} />
 
               {/* Seller area */}
+              <Route path="/seller/apply" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerApply /></RequireRole>} />
               <Route path="/seller" element={<RequireRole roles={["seller", "admin"]}><SellerDashboard /></RequireRole>} />
               <Route path="/seller/listings" element={<RequireRole roles={["seller", "admin"]}><SellerListings /></RequireRole>} />
               <Route path="/seller/orders" element={<RequireRole roles={["seller", "admin"]}><SellerOrders /></RequireRole>} />
@@ -193,7 +197,8 @@ createRoot(document.getElementById("root")!).render(
             </Routes>
           </Suspense>
         </BrowserRouter>
-      </SessionProvider>
+        </SessionProvider>
+      </ConvexClientProvider>
       <Toaster />
     </RootErrorBoundary>
   </StrictMode>,

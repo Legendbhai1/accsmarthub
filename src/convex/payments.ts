@@ -73,10 +73,11 @@ export const createDeposit = action({
     amountUsd: v.number(),
     email: v.optional(v.string()),
     userId: v.optional(v.string()),
+    returnUrl: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { amountUsd, email, userId },
+    { amountUsd, email, userId, returnUrl },
   ): Promise<{ paymentUrl: string; trackId: string }> => {
     if (!(amountUsd >= 1)) throw new Error("Minimum deposit is $1");
     const merchantKey = process.env.OXAPAY_MERCHANT_API_KEY;
@@ -99,7 +100,10 @@ export const createDeposit = action({
         email,
         order_id: userId ? `dep_${userId}_${Date.now()}` : `dep_${Date.now()}`,
         description: "AccsMartHub wallet top-up",
-        callback_url: `${process.env.CONVEX_SITE_URL ?? ""}/oxapay-webhook`,
+        callback_url: `${
+          process.env.CONVEX_SITE_URL ?? "https://aware-alligator-968.convex.cloud"
+        }/oxapay-webhook`,
+        return_url: returnUrl,
         thanks_message: "Your AccsMartHub wallet has been topped up.",
       }),
     });
@@ -121,7 +125,10 @@ export const createDeposit = action({
 
 export const verifyDeposit = action({
   args: { trackId: v.string() },
-  handler: async (ctx, { trackId }): Promise<{ status: string; credited: boolean }> => {
+  handler: async (
+    ctx,
+    { trackId },
+  ): Promise<{ status: string; credited: boolean; amountUsd?: number }> => {
     const merchantKey = process.env.OXAPAY_MERCHANT_API_KEY;
     if (!merchantKey) throw new Error("OxaPay is not configured");
 
@@ -131,11 +138,19 @@ export const verifyDeposit = action({
     const status = info.data?.status ?? "unknown";
     const paid = PAID_STATUSES.has(status);
 
+    let credited = false;
+    let amountUsd: number | undefined;
     if (paid) {
-      await ctx.runMutation(internal.payments.markDepositPaid, { trackId });
+      const marked = await ctx.runMutation(internal.payments.markDepositPaid, {
+        trackId,
+      });
+      if (marked.amountUsd != null) {
+        credited = true;
+        amountUsd = marked.amountUsd;
+      }
     }
 
-    return { status, credited: paid };
+    return { status, credited, amountUsd };
   },
 });
 
@@ -163,16 +178,19 @@ export const oxaPayWebhook = httpAction(async (ctx, request) => {
 
 export const markDepositPaid = internalMutation({
   args: { trackId: v.string() },
-  handler: async (ctx, { trackId }) => {
+  handler: async (ctx, { trackId }): Promise<{ amountUsd: number | null }> => {
     const deposit = await ctx.db
       .query("deposits")
       .withIndex("by_track", (q) => q.eq("trackId", trackId))
       .unique();
-    if (!deposit || deposit.status === "paid") return;
-    await ctx.db.patch(deposit._id, {
-      status: "paid",
-      paidAt: Date.now(),
-    });
+    if (!deposit) return { amountUsd: null };
+    if (deposit.status !== "paid") {
+      await ctx.db.patch(deposit._id, {
+        status: "paid",
+        paidAt: Date.now(),
+      });
+    }
+    return { amountUsd: deposit.amountUsd };
   },
 });
 

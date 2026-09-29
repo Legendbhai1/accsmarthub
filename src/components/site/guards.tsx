@@ -27,7 +27,11 @@ export function RequireRole({ roles, children }: { roles: Role[]; children: Reac
     return <Navigate to={`/auth?returnTo=${encodeURIComponent(returnTo)}`} replace />;
   }
 
-  if (!roles.includes(user.role)) {
+  // An approved store application also unlocks the seller area.
+  const allowed =
+    roles.includes(user.role) ||
+    (roles.includes("seller") && user.sellerStatus === "approved");
+  if (!allowed) {
     return <Navigate to={roleHome[user.role]} replace />;
   }
 

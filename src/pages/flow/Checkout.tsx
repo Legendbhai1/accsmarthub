@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { CreditCard, Landmark, Loader2, Lock, ShieldCheck, Wallet } from "lucide-react";
+import { CreditCard, Landmark, Loader2, Lock, ShieldCheck, Wallet, ArrowRightLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
 import { api, getSeller, useDb } from "@/lib/db";
 import { useSession } from "@/lib/session";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type PaymentMethod = "card" | "wallet" | "bank";
@@ -17,7 +18,7 @@ type PaymentMethod = "card" | "wallet" | "bank";
 export default function Checkout() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useSession();
+  const { user, debitBalance } = useSession();
   const { listings } = useDb();
 
   const listing = listings.find((l) => l.id === params.get("listing"));
@@ -46,12 +47,27 @@ export default function Checkout() {
   const escrowFee = Math.round(subtotal * 0.03);
   const total = subtotal + escrowFee;
 
+  const canPlace = agreed && !!user && !(payment === "wallet" && (user?.balance ?? 0) < total);
+
+  const walletShort = payment === "wallet" && !!user && user.balance < total;
+
   const placeOrder = () => {
+    if (payment === "wallet") {
+      if (!user || user.balance < total) {
+        toast.error("Insufficient wallet balance.", {
+          description: "Top up with crypto from your wallet page.",
+        });
+        return;
+      }
+    }
     setPlacing(true);
     // In production this is a server call; price and stock are re-validated
     // server-side before payment is captured.
     window.setTimeout(() => {
       try {
+        if (payment === "wallet" && user) {
+          debitBalance(user.id, total);
+        }
         const order = api.placeOrder({
           listingId: listing.id,
           listingTitle: listing.title,
@@ -66,8 +82,6 @@ export default function Checkout() {
       }
     }, 1200);
   };
-
-  const canPlace = agreed && !!user;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -120,7 +134,7 @@ export default function Checkout() {
               {(
                 [
                   { value: "card", label: "Card", icon: CreditCard, hint: "Visa, Mastercard, Amex" },
-                  { value: "wallet", label: "Hub Wallet", icon: Wallet, hint: user ? `Balance ${formatPrice(user.balance)}` : "Sign in required" },
+                  { value: "wallet", label: "Hub Wallet", icon: Wallet, hint: user ? (user.balance >= total ? `Balance ${formatPrice(user.balance)}` : `Need ${formatPrice(total - user.balance)} more`) : "Sign in required" },
                   { value: "bank", label: "Bank transfer", icon: Landmark, hint: "Where supported" },
                 ] as const
               ).map(({ value, label, icon: Icon, hint }) => (
@@ -148,6 +162,18 @@ export default function Checkout() {
               Demo checkout — no real payment is processed and card data is
               never collected or stored.
             </p>
+            {walletShort && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
+                <span className="flex-1">
+                  Your wallet is {formatPrice((user?.balance ?? 0) - total)} short. Top
+                  up with crypto to complete this purchase.
+                </span>
+                <Link to="/account/wallet" className="inline-flex items-center gap-1 font-medium underline">
+                  <ArrowRightLeft className="size-3.5" />
+                  Top up wallet
+                </Link>
+              </div>
+            )}
           </section>
         </div>
 

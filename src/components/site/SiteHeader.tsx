@@ -8,7 +8,9 @@ import {
   LogOut,
   Menu,
   Search,
+  ShoppingBag,
   ShoppingCart,
+  Store,
   UserPlus,
 } from "lucide-react";
 import {
@@ -38,6 +40,11 @@ export function SiteHeader() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const canSell =
+    user?.role === "seller" ||
+    user?.role === "admin" ||
+    user?.sellerStatus === "approved";
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +133,25 @@ export function SiteHeader() {
                         ? "Seller dashboard"
                         : "My account"}
                   </DropdownMenuItem>
+                  {/* Cross-role shortcuts: every account can reach both sides. */}
+                  {user.role === "buyer" &&
+                    (canSell ? (
+                      <DropdownMenuItem onClick={() => navigate("/seller")}>
+                        <Store className="size-4" />
+                        Seller dashboard
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => navigate("/seller/apply")}>
+                        <Store className="size-4" />
+                        Become a seller
+                      </DropdownMenuItem>
+                    ))}
+                  {user.role !== "buyer" && (
+                    <DropdownMenuItem onClick={() => navigate("/account")}>
+                      <ShoppingBag className="size-4" />
+                      Buyer account
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => navigate("/account/profile")}>
                     Profile
                   </DropdownMenuItem>
@@ -186,14 +212,47 @@ export function SiteHeader() {
               </Link>
             ))}
             {user && (
-              <Link
-                to={roleHome[user.role]}
-                onClick={() => setMobileOpen(false)}
-                className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors hover:bg-accent"
-              >
-                <LayoutDashboard className="mr-2 inline size-4" />
-                Dashboard
-              </Link>
+              <>
+                <Link
+                  to={roleHome[user.role]}
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors hover:bg-accent"
+                >
+                  <LayoutDashboard className="mr-2 inline size-4" />
+                  Dashboard
+                </Link>
+                {/* Cross-role shortcut in the hamburger menu. */}
+                {user.role === "buyer" &&
+                  (canSell ? (
+                    <Link
+                      to="/seller"
+                      onClick={() => setMobileOpen(false)}
+                      className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors hover:bg-accent"
+                    >
+                      <Store className="mr-2 inline size-4" />
+                      Seller dashboard
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/seller/apply"
+                      onClick={() => setMobileOpen(false)}
+                      className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors hover:bg-accent"
+                    >
+                      <Store className="mr-2 inline size-4" />
+                      Become a seller
+                    </Link>
+                  ))}
+                {user.role !== "buyer" && (
+                  <Link
+                    to="/account"
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors hover:bg-accent"
+                  >
+                    <ShoppingBag className="mr-2 inline size-4" />
+                    Buyer account
+                  </Link>
+                )}
+              </>
             )}
           </nav>
           <div className="mt-auto flex flex-col gap-2 p-4">

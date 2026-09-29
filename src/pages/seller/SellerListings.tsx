@@ -80,6 +80,7 @@ export default function SellerListings() {
         followers,
         niche: draft.niche.trim() || editing.niche,
         description: draft.description.trim() || editing.description,
+        status: "pending",
       });
       toast.success("Listing updated — pending re-approval.");
     } else {

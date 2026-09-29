@@ -127,6 +127,21 @@ export type AuditEntry = {
   date: string;
 };
 
+export type SellerApplicationStatus = "pending" | "approved" | "rejected";
+
+export type SellerApplication = {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  storeName: string;
+  platformFocus: string;
+  experience: string;
+  reason: string;
+  status: SellerApplicationStatus;
+  createdAt: string;
+};
+
 /* ------------------------------- demo data -------------------------------- */
 
 const sellers: Seller[] = [
@@ -335,6 +350,21 @@ const auditLog: AuditEntry[] = [
   { id: "a-04", action: "seller.verify", actor: "admin", target: "s-6 · NorthGate Trading", date: "2026-08-14T10:05:00Z" },
 ];
 
+const sellerApplications: SellerApplication[] = [
+  {
+    id: "sa-01",
+    userId: "u-1001",
+    name: "Jordan Ellis",
+    email: "jordan@example.com",
+    storeName: "Ellis Growth Media",
+    platformFocus: "Instagram & TikTok theme pages",
+    experience: "Ran two niche pages to 100k+ followers; 3 years selling digital assets on forums.",
+    reason: "I want to list verified Instagram theme pages with documented analytics.",
+    status: "pending",
+    createdAt: "2026-09-27T09:30:00Z",
+  },
+];
+
 /* --------------------------------- store ---------------------------------- */
 
 export type UserRow = {
@@ -386,6 +416,7 @@ type State = {
   withdrawals: Withdrawal[];
   notifications: Notification[];
   tickets: Ticket[];
+  sellerApplications: SellerApplication[];
 };
 
 let state: State = {
@@ -395,6 +426,7 @@ let state: State = {
   withdrawals: [...withdrawals],
   notifications: [...notifications],
   tickets: [...tickets],
+  sellerApplications: [...sellerApplications],
 };
 
 const listeners = new Set<() => void>();
@@ -585,6 +617,40 @@ export const api = {
     state = { ...state, tickets: [t, ...state.tickets] };
     emit();
     return t;
+  },
+
+  applyForStore(input: {
+    userId: string;
+    name: string;
+    email: string;
+    storeName: string;
+    platformFocus: string;
+    experience: string;
+    reason: string;
+  }): SellerApplication {
+    const existing = state.sellerApplications.find(
+      (a) => a.userId === input.userId && a.status === "pending",
+    );
+    if (existing) return existing;
+    const application: SellerApplication = {
+      ...input,
+      id: `sa-${Math.random().toString(36).slice(2, 6)}`,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+    state = { ...state, sellerApplications: [application, ...state.sellerApplications] };
+    emit();
+    return application;
+  },
+
+  setApplicationStatus(applicationId: string, status: SellerApplicationStatus): void {
+    state = {
+      ...state,
+      sellerApplications: state.sellerApplications.map((a) =>
+        a.id === applicationId ? { ...a, status } : a,
+      ),
+    };
+    emit();
   },
 
   markNotificationsRead(userId: string): void {

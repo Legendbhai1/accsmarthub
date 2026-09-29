@@ -39,6 +39,8 @@ type SessionContextValue = {
   lockBalance: (userId: string, amount: number) => void;
   /** Unlocks previously locked funds back into balance. */
   unlockBalance: (userId: string, amount: number) => void;
+  /** Spends funds from the wallet balance (checkout payment). */
+  debitBalance: (userId: string, amount: number) => void;
   /** Submits/updates the signed-in user's store application. */
   applyAsSeller: (userId: string) => void;
   /** Demo admin action: approves the given user's store application. */
@@ -150,6 +152,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [patch],
   );
 
+  const debitBalance = useCallback(
+    (userId: string, amount: number) =>
+      patch(userId, (u) => ({
+        ...u,
+        balance: Math.max(0, Math.round((u.balance - amount) * 100) / 100),
+      })),
+    [patch],
+  );
+
   const applyAsSeller = useCallback(
     (userId: string) => patch(userId, (u) => ({ ...u, sellerStatus: "pending" })),
     [patch],
@@ -178,6 +189,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       creditBalance,
       lockBalance,
       unlockBalance,
+      debitBalance,
       applyAsSeller,
       approveSellerApplication,
       rejectSellerApplication,
@@ -190,6 +202,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       creditBalance,
       lockBalance,
       unlockBalance,
+      debitBalance,
       applyAsSeller,
       approveSellerApplication,
       rejectSellerApplication,
