@@ -32,6 +32,17 @@ const schema = defineSchema(
       role: v.optional(roleValidator), // role of the user. do not remove
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
+    // OxaPay wallet top-ups (buyers only)
+    deposits: defineTable({
+      trackId: v.string(), // OxaPay track id
+      userId: v.string(),
+      amountUsd: v.number(),
+      email: v.optional(v.string()),
+      status: v.union(v.literal("pending"), v.literal("paid")),
+      createdAt: v.number(),
+      paidAt: v.optional(v.number()),
+    }).index("by_track", ["trackId"]),
+
     // add other tables here
 
     // tableName: defineTable({
