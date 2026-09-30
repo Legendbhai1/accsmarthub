@@ -9,17 +9,19 @@ import { ListingCard } from "@/components/common/ListingCard";
 import { SectionHeading } from "@/components/common/Primitives";
 import { categories, useDb } from "@/lib/db";
 
-const stagger = {
+const containerVariants = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
+  visible: {
+    transition: { staggerChildren: 0.07 },
+  },
 };
 
-const rise = {
-  hidden: { opacity: 0, y: 26 },
-  show: {
+const cardVariants = {
+  hidden: { opacity: 0, y: 22 },
+  visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const },
   },
 };
 
@@ -50,11 +52,13 @@ export default function Home() {
 
         <motion.section
           initial="hidden"
-          animate="show"
-          variants={stagger}
+          animate="visible"
+          variants={containerVariants}
           className="mx-auto w-full max-w-3xl px-4 pb-16 pt-20 text-center sm:px-6 sm:pt-28"
         >
-          <motion.div variants={rise}>
+          <motion.div
+            variants={cardVariants}
+          >
             <Badge
               variant="secondary"
               className="mb-6 gap-1.5 rounded-full border-border/60 bg-background/70 px-3.5 py-1.5 text-xs font-medium text-foreground/80 shadow-sm backdrop-blur"
@@ -65,7 +69,7 @@ export default function Home() {
           </motion.div>
 
           <motion.h1
-            variants={rise}
+            variants={cardVariants}
             className="text-4xl font-bold leading-[1.06] tracking-tight sm:text-6xl"
           >
             Buy &amp; sell social media accounts,{" "}
@@ -73,7 +77,7 @@ export default function Home() {
           </motion.h1>
 
           <motion.p
-            variants={rise}
+            variants={cardVariants}
             className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg"
           >
             Verified sellers, documented ownership, and escrow that releases
@@ -81,7 +85,7 @@ export default function Home() {
           </motion.p>
 
           <motion.form
-            variants={rise}
+            variants={cardVariants}
             onSubmit={submitSearch}
             role="search"
             className="mx-auto mt-9 max-w-xl"
@@ -112,12 +116,12 @@ export default function Home() {
       {/* --------------------------- Categories --------------------------- */}
       <motion.section
         initial="hidden"
-        whileInView="show"
+        whileInView="visible"
         viewport={{ once: true, margin: "-80px" }}
-        variants={stagger}
+        variants={containerVariants}
         className="mx-auto w-full max-w-7xl px-4 sm:px-6"
       >
-        <motion.div variants={rise}>
+        <motion.div variants={cardVariants}>
           <SectionHeading
             title="Browse by platform"
             subtitle="Each platform has a vetted roster of listings."
@@ -125,7 +129,7 @@ export default function Home() {
         </motion.div>
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {categories.map((category) => (
-            <motion.div key={category.slug} variants={rise}>
+            <motion.div key={category.slug} variants={cardVariants}>
               <Link
                 to={`/marketplace?category=${category.slug}`}
                 className="glass glass-hover group flex flex-col p-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
@@ -150,13 +154,13 @@ export default function Home() {
       {/* ------------------------- Featured listings ------------------------ */}
       <motion.section
         initial="hidden"
-        whileInView="show"
+        whileInView="visible"
         viewport={{ once: true, margin: "-80px" }}
-        variants={stagger}
+        variants={containerVariants}
         className="mt-20"
       >
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
-          <motion.div variants={rise}>
+          <motion.div variants={cardVariants}>
             <SectionHeading
               title="Featured listings"
               subtitle="Top-rated accounts with proven performance."
@@ -170,9 +174,9 @@ export default function Home() {
             />
           </motion.div>
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.map((l) => (
-              <motion.div key={l.id} variants={rise}>
-                <ListingCard listing={l} />
+            {featured.map((listing) => (
+              <motion.div key={listing.id} variants={cardVariants}>
+                <ListingCard listing={listing} />
               </motion.div>
             ))}
           </div>
