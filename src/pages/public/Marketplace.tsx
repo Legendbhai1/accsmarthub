@@ -1,151 +1,214 @@
-import { Link } from "react-router";
+import { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router";
+import { Search, Bell, ShoppingBag } from "lucide-react";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
-import { useDb, categories } from "@/lib/db";
+import { useDb, categories, type Listing } from "@/lib/db";
+import { cn } from "@/lib/utils";
+
+type CategoryTab = { slug: string; name: string; count: number };
+
+function formatFollowers(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return String(n);
+}
+
+function AccountCard({ listing }: { listing: Listing }) {
+  return (
+    <Link
+      to={`/listing/${listing.id}`}
+      className="group block rounded-2xl border border-gray-100 bg-white p-3 transition-shadow hover:shadow-sm"
+    >
+      <div className="relative flex aspect-square w-full items-center justify-center rounded-2xl bg-gray-50 overflow-hidden">
+        <BrandMark brand={listing.brand} block className="size-16 transition-transform duration-200 group-hover:scale-105" />
+        <span className="absolute left-2 top-2 flex size-6 items-center justify-center rounded-full bg-white/85 px-1 text-[10px] font-bold text-black shadow-sm backdrop-blur-sm">
+          {formatFollowers(listing.followers)}
+        </span>
+      </div>
+      <div className="mt-2.5">
+        <h3 className="block truncate text-[13px] font-semibold text-black transition-colors group-hover:text-[#5b3def]">
+          {listing.title}
+        </h3>
+        <div className="mt-1 flex items-center justify-between text-[10px] text-gray-500">
+          <span className="truncate">{listing.niche}</span>
+          <span className="shrink-0 font-semibold">★ {listing.rating.toFixed(1)}</span>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-[17px] font-bold text-black">
+          {formatPrice(listing.price)}
+          <span className="text-[9px] text-gray-400">.00</span>
+        </span>
+        <span className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-[11px] font-semibold text-black shadow-sm transition-colors hover:bg-black hover:text-white">
+          Buy
+        </span>
+      </div>
+    </Link>
+  );
+}
 
 export default function Marketplace() {
   const { listings } = useDb();
+  const navigate = useNavigate();
 
-  const items = listings.filter(
-    (listing) => listing.status === "active" && listing.stock > 0,
+  const active = listings.filter((l) => l.status === "active" && l.stock > 0);
+  const tabs: CategoryTab[] = useMemo(
+    () =>
+      categories
+        .filter((c) => c.listingCount > 0)
+        .map((c) => ({
+          slug: c.slug,
+          name: c.name,
+          count: c.listingCount,
+        })),
+    [],
   );
 
+  const [query, setQuery] = useState("");
+  const selectedCategory = new URLSearchParams(window.location.search).get("category") ?? tabs[0]?.slug ?? "";
+
+  const items = useMemo(() => {
+    if (!selectedCategory) return active;
+    return active.filter((l) => l.category === selectedCategory);
+  }, [active, selectedCategory]);
+
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    navigate(q ? `/marketplace?q=${encodeURIComponent(q)}` : "/marketplace");
+  };
+
   return (
-    <div className="relative bg-white">
-      <header className="sticky top-0 z-10 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
+    <div className="flex min-h-screen flex-col bg-white">
+      {/* Sticky app header */}
+      <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-[430px] items-center justify-between">
           <Link
             to="/"
-            className="flex items-center gap-2.5 text-[15px] font-bold tracking-tight"
+            className="flex items-center gap-2 text-[15px] font-bold tracking-tight"
           >
             <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#1e2777] to-[#3a2a8a] shadow-sm">
-              <svg
-                viewBox="0 0 24 24"
-                className="size-4.5 text-white"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  d="M4 5.5A2.5 2.5 0 0 1 6.5 3H14a1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 6V5.5ZM4 12a2.5 2.5 0 0 1 2.5-2.5H18a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 12.5V12ZM4 18.5A2.5 2.5 0 0 1 6.5 16H14a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18.5Z"
-                />
+              <svg viewBox="0 0 24 24" className="size-4.5 text-white" fill="currentColor" aria-hidden="true">
+                <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H14a1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 6V5.5ZM4 12a2.5 2.5 0 0 1 2.5-2.5H18a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 12.5V12ZM4 18.5A2.5 2.5 0 0 1 6.5 16H14a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18.5Z" />
               </svg>
             </div>
             Accs<span className="text-[#5b3def]">Mart</span>
           </Link>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600 transition-colors hover:bg-gray-100"
-            >
-              <svg
-                className="size-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
+          <div className="flex gap-1.5">
+            <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-100 bg-gray-50 text-gray-700 transition-colors hover:bg-gray-100" aria-label="Notifications">
+              <Bell className="size-4" />
+              <span className="absolute right-1.5 top-1.5 flex size-2 rounded-full bg-[#5b3def]" />
             </button>
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-600 transition-colors hover:bg-gray-100"
-            >
-              <svg
-                className="size-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="9" cy="21" r="1" />
-                <circle cx="20" cy="21" r="1" />
-                <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
-              </svg>
+            <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-100 bg-gray-50 text-gray-700 transition-colors hover:bg-gray-100" aria-label="Cart">
+              <ShoppingBag className="size-4" />
+              <span className="absolute right-1.5 top-1.5 flex size-2 rounded-full bg-black" />
             </button>
           </div>
         </div>
       </header>
 
-      <div className="sticky top-[56px] z-20 bg-white/95 border-b border-gray-100 px-4 backdrop-blur-sm">
-        <div
-          className="mx-auto flex max-w-[430px] gap-1.5 overflow-x-auto pb-3 pt-2 scrollbar-none"
-          style={{ scrollbarWidth: "none" }}
-        >
-          {categories
-            .filter((category) => category.listingCount > 0)
-            .map((category) => (
-              <span
-                key={category.slug}
-                className="shrink-0 px-4 h-8 text-[13px] font-semibold text-gray-800 whitespace-nowrap"
-              >
-                {category.name}
-              </span>
-            ))}
+      {/* Mobile search - compact */}
+      <div className="sticky top-[56px] z-20 border-b border-gray-100 bg-white px-4 py-2">
+        <div className="mx-auto max-w-[430px]">
+          <form onSubmit={submitSearch} role="search">
+            <label htmlFor="marketplace-search" className="sr-only">Search social media accounts</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-gray-400" />
+              <input
+                id="marketplace-search"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search accounts, niches, platforms…"
+                className="h-9 w-full rounded-xl border border-gray-200 bg-gray-50 py-1.5 pl-9 pr-3 text-sm text-black placeholder:text-gray-400 outline-none transition-colors focus:border-[#5b3def] focus:bg-white focus:ring-1 focus:ring-[#5b3def]/20"
+              />
+            </div>
+          </form>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[460px] px-1 pb-10">
-        <div className="grid grid-cols-2 gap-x-3 gap-y-5">
-          {items.map((item) => (
-            <Link
-              key={item.id}
-              to={`/listing/${item.id}`}
-              className="group flex gap-2 text-underline decoration-none"
+      {/* Category pill tabs */}
+      <div className="sticky top-[100px] z-20 border-b border-gray-100 bg-white px-4">
+        <div className="mx-auto flex max-w-[430px] gap-2 overflow-x-auto pb-3 pt-2 scrollbar-none" style={{ scrollbarWidth: "none" }}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.slug}
+              type="button"
+              onClick={() => {
+                const next = selectedCategory === tab.slug ? "" : tab.slug;
+                const url = next ? `/marketplace?category=${encodeURIComponent(next)}` : "/marketplace";
+                navigate(url, { replace: true });
+              }}
+              className={cn(
+                "shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors",
+                selectedCategory === tab.slug
+                  ? "border-[#5b3def] bg-[#5b3def] text-white"
+                  : "border-gray-200 bg-white text-black hover:border-gray-300",
+              )}
             >
-              <div className="relative flex aspect-square w-16 shrink-0 items-center rounded-2xl bg-gray-50 shadow-sm overflow-hidden">
-                <BrandMark
-                  brand={item.brand}
-                  block
-                  className="h-[92%] w-[92%] transition-transform duration-200 group-hover:scale-105"
-                />
-                <span className="absolute left-1.5 top-1.5 rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-bold text-gray-900 shadow-sm backdrop-blur">
-                  {item.followers >= 1000000
-                    ? `${(item.followers / 1000000).toFixed(1)}M`
-                    : item.followers >= 1000
-                      ? `${Math.round(item.followers / 1000)}K`
-                      : String(item.followers)}
-                </span>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <Link
-                  to={`/listing/${item.id}`}
-                  className="block truncate text-[14px] font-semibold text-gray-900 transition-colors group-hover:text-[#5b3def]"
-                >
-                  {item.title}
-                </Link>
-
-                <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500">
-                  <span>{item.niche}</span>
-                  <span className="shrink-0 text-[10px] font-semibold">★ {item.rating.toFixed(1)}</span>
-                </div>
-
-                <div className="mt-1.5 flex items-center justify-between">
-                  <div>
-                    <span className="text-[17px] font-bold text-black">
-                      {formatPrice(item.price)}
-                      <span className="ml-1 text-[9px] text-gray-400">.00</span>
-                    </span>
-                  </div>
-                  <span className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-gray-900 shadow-sm transition-colors group-hover:bg-black group-hover:text-white">
-                    Buy
-                  </span>
-                </div>
-              </div>
-            </Link>
+              {tab.name}
+            </button>
           ))}
         </div>
       </div>
 
-      <div className="h-14" />
+      {/* Grid — 4 columns on wide screens, 2 on narrow */}
+      <main className="flex-1 pb-16 px-2 sm:px-4">
+        <div className="mx-auto max-w-[430px] pb-4 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+          {selectedCategory ? `${tabs.find((t) => t.slug === selectedCategory)?.name}` : "All platforms"}
+          {" "}— {" "}
+          {items.length} {items.length === 1 ? "account" : "accounts"}
+        </div>
+
+        {items.length === 0 ? (
+          <div className="mx-auto mt-16 max-w-[430px] rounded-2xl border border-gray-100 bg-white px-6 py-12 text-center">
+            <p className="text-sm text-gray-600">No accounts in this category yet.</p>
+            <button
+              type="button"
+              onClick={() => navigate("/marketplace", { replace: true })}
+              className="mt-3 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-gray-50"
+            >
+              View all platforms
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4">
+            {items.map((item) => (
+              <AccountCard key={item.id} listing={item} />
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* Safe area for bottom nav / home indicator */}
+      <div className="h-2" />
+
+      {/* How to list an account — inline, short */}
+      <section className="border-t border-gray-100 bg-white py-5 px-4">
+        <div className="mx-auto max-w-[430px] rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
+          <h2 className="mb-1 text-center text-sm font-semibold text-gray-900">Want to sell an account?</h2>
+          <p className="mb-3 text-[12px] leading-relaxed text-gray-600">
+            Apply in the seller area — admin reviews a few details, then you can create listings that go live in the marketplace.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => navigate("/seller/apply")}
+              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-[12px] font-medium text-black transition-colors hover:bg-gray-100"
+            >
+              Apply to sell
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/seller/listings?new=1")}
+              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-[12px] font-medium text-black transition-colors hover:bg-gray-100"
+            >
+              Create a listing
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
