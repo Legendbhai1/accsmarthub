@@ -6,13 +6,14 @@ import { formatPrice } from "@/lib/format";
 import { useDb, categories, type Listing } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
-type CategoryTab = { slug: string; name: string; count: number };
-
 function formatFollowers(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
   return String(n);
 }
+
+const RATING_STARS =
+  "M9.833 3.75c.133-.155.217-.334.244-.53A8 8 0 0 0 8.574 2h-.01A9 9 0 0 0 4.136 4c-.027.196-.111.375-.244.53l-.612 1.318A9 9 0 0 1 .25 11.75v.004a8.01 8.01 0 0 0 3.045 6.46l.612-1.318c.133.155.217.334.244.53.033.23.061.46.085.69-.024-.23-.052-.46-.085-.69A9 9 0 0 1 .5 11.75V11.750000000000002a8.01 8.01 0 0 0 3.045-6.46L7.0 4.03c.133-.155.217-.334.244-.53A8 8 0 0 0 8.58 2h-.006A9 9 0 0 0 4.14 4c-.026.196-.11.375-.242.53L3.39 6.388A9 9 0 0 1 .275 11.75H.267A8.007 8.007 0 0 0 3.31 5.3A7.98 7.98 0 0 0 8.433 2h.015A8 8 0 0 0 8.58 2h.365A8 8 0 0 0 9.833 3.75Z";
 
 function AccountCard({ listing }: { listing: Listing }) {
   return (
@@ -20,12 +21,15 @@ function AccountCard({ listing }: { listing: Listing }) {
       to={`/listing/${listing.id}`}
       className="group block rounded-2xl border border-gray-100 bg-white p-3 transition-shadow hover:shadow-sm"
     >
-      <div className="relative flex aspect-square w-full items-center justify-center rounded-2xl bg-gray-50 overflow-hidden">
+      {/* cover image area — brand tile on a soft neutral fill */}
+      <div className="flex aspect-square w-full items-center justify-center rounded-2xl bg-[#f4f5f7] overflow-hidden">
         <BrandMark brand={listing.brand} block className="size-16 transition-transform duration-200 group-hover:scale-105" />
         <span className="absolute left-2 top-2 flex size-6 items-center justify-center rounded-full bg-white/85 px-1 text-[10px] font-bold text-black shadow-sm backdrop-blur-sm">
           {formatFollowers(listing.followers)}
         </span>
       </div>
+
+      {/* title + niche row */}
       <div className="mt-2.5">
         <h3 className="block truncate text-[13px] font-semibold text-black transition-colors group-hover:text-[#5b3def]">
           {listing.title}
@@ -35,6 +39,8 @@ function AccountCard({ listing }: { listing: Listing }) {
           <span className="shrink-0 font-semibold">★ {listing.rating.toFixed(1)}</span>
         </div>
       </div>
+
+      {/* price + Buy pill row */}
       <div className="mt-2 flex items-center justify-between">
         <span className="text-[17px] font-bold text-black">
           {formatPrice(listing.price)}
@@ -53,15 +59,11 @@ export default function Marketplace() {
   const navigate = useNavigate();
 
   const active = listings.filter((l) => l.status === "active" && l.stock > 0);
-  const tabs: CategoryTab[] = useMemo(
+  const tabs = useMemo(
     () =>
       categories
         .filter((c) => c.listingCount > 0)
-        .map((c) => ({
-          slug: c.slug,
-          name: c.name,
-          count: c.listingCount,
-        })),
+        .map((c) => ({ slug: c.slug, name: c.name, count: c.listingCount })),
     [],
   );
 
@@ -81,26 +83,28 @@ export default function Marketplace() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      {/* Sticky app header */}
+      {/* Sticky app header — white, rounded chip with grid icon + cart dot */}
       <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur-sm">
         <div className="mx-auto flex max-w-[430px] items-center justify-between">
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-[15px] font-bold tracking-tight"
-          >
-            <div className="flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#1e2777] to-[#3a2a8a] shadow-sm">
-              <svg viewBox="0 0 24 24" className="size-4.5 text-white" fill="currentColor" aria-hidden="true">
-                <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H14a1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 6V5.5ZM4 12a2.5 2.5 0 0 1 2.5-2.5H18a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 12.5V12ZM4 18.5A2.5 2.5 0 0 1 6.5 16H14a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18.5Z" />
-              </svg>
-            </div>
-            Accs<span className="text-[#5b3def]">Mart</span>
-          </Link>
+          <div className="flex size-9 items-center justify-center rounded-xl border border-gray-100 bg-black text-white shadow-sm" aria-hidden="true">
+            <svg viewBox="0 0 24 24" className="size-4.5" fill="currentColor">
+              <path d={RATING_STARS} />
+            </svg>
+          </div>
           <div className="flex gap-1.5">
-            <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-100 bg-gray-50 text-gray-700 transition-colors hover:bg-gray-100" aria-label="Notifications">
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-100 bg-gray-50 text-gray-700 transition-colors hover:bg-gray-100"
+              aria-label="Notifications"
+            >
               <Bell className="size-4" />
-              <span className="absolute right-1.5 top-1.5 flex size-2 rounded-full bg-[#5b3def]" />
+              <span className="absolute right-1.5 top-1.5 flex size-2 rounded-full bg-black" />
             </button>
-            <button type="button" className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-100 bg-gray-50 text-gray-700 transition-colors hover:bg-gray-100" aria-label="Cart">
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-100 bg-gray-50 text-gray-700 transition-colors hover:bg-gray-100"
+              aria-label="Cart"
+            >
               <ShoppingBag className="size-4" />
               <span className="absolute right-1.5 top-1.5 flex size-2 rounded-full bg-black" />
             </button>
@@ -108,7 +112,7 @@ export default function Marketplace() {
         </div>
       </header>
 
-      {/* Mobile search - compact */}
+      {/* Compact search */}
       <div className="sticky top-[56px] z-20 border-b border-gray-100 bg-white px-4 py-2">
         <div className="mx-auto max-w-[430px]">
           <form onSubmit={submitSearch} role="search">
@@ -128,7 +132,7 @@ export default function Marketplace() {
         </div>
       </div>
 
-      {/* Category pill tabs */}
+      {/* Pill category tabs */}
       <div className="sticky top-[100px] z-20 border-b border-gray-100 bg-white px-4">
         <div className="mx-auto flex max-w-[430px] gap-2 overflow-x-auto pb-3 pt-2 scrollbar-none" style={{ scrollbarWidth: "none" }}>
           {tabs.map((tab) => (
@@ -153,7 +157,7 @@ export default function Marketplace() {
         </div>
       </div>
 
-      {/* Grid — 4 columns on wide screens, 2 on narrow */}
+      {/* Grid */}
       <main className="flex-1 pb-16 px-2 sm:px-4">
         <div className="mx-auto max-w-[430px] pb-4 text-center text-[11px] font-semibold uppercase tracking-wide text-gray-400">
           {selectedCategory ? `${tabs.find((t) => t.slug === selectedCategory)?.name}` : "All platforms"}
@@ -181,10 +185,10 @@ export default function Marketplace() {
         )}
       </main>
 
-      {/* Safe area for bottom nav / home indicator */}
+      {/* Safe area */}
       <div className="h-2" />
 
-      {/* How to list an account — inline, short */}
+      {/* Sell CTA */}
       <section className="border-t border-gray-100 bg-white py-5 px-4">
         <div className="mx-auto max-w-[430px] rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
           <h2 className="mb-1 text-center text-sm font-semibold text-gray-900">Want to sell an account?</h2>
