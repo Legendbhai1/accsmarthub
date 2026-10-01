@@ -150,11 +150,14 @@ createRoot(document.getElementById("root")!).render(
               {/* Public site */}
               <Route element={<SiteLayout />}>
                 <Route path="/" element={<Home />} />
-                <Route path="/marketplace" element={<Marketplace />} />
+                
                 <Route path="/listing/:id" element={<ListingDetail />} />
                 <Route path="/trust" element={<Trust />} />
                 <Route path="/faq" element={<Faq />} />
               </Route>
+
+              {/* Marketplace renders its own mobile app shell */}
+              <Route path="/marketplace" element={<Marketplace />} />
 
               {/* Auth & purchase flow */}
               <Route path="/auth" element={<Auth />} />
