@@ -17,7 +17,7 @@ export default function AdminDashboard() {
     <DashLayout title="Admin overview" nav={adminNav}>
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Platform statistics</h2>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Platform statistics</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
             Live snapshot of marketplace activity (demo data).
           </p>
@@ -25,7 +25,7 @@ export default function AdminDashboard() {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Payment volume" value={formatPrice(volume)} icon={Receipt} hint={`Fees ${formatPrice(fees)}`} />
-          <StatCard label="Held in escrow" value={formatPrice(held)} icon={Receipt} />
+          <StatCard label="Held in escrow" value={formatPrice(held)} icon={ShieldAlert} />
           <StatCard label="Users" value={String(users.length)} icon={Users} hint={`${users.filter((u) => u.status === "suspended").length} suspended`} />
           <StatCard label="Open disputes" value={String(openDisputes)} icon={ShieldAlert} />
         </div>
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
           <StatCard label="Transfers completed" value={String(orders.filter((o) => o.status === "completed").length)} icon={Receipt} />
         </div>
 
-        <section className="glass p-6">
+        <section className="glass p-6 sm:p-7">
           <SectionHeading title="Latest orders" />
           <ul className="mt-4 divide-y divide-border/60">
             {orders.slice(0, 5).map((order) => (

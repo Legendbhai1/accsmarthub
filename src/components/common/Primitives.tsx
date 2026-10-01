@@ -20,7 +20,7 @@ export function StatusBadge({ status }: { status: string }) {
     released: "bg-emerald-500/10 text-emerald-600",
     resolved: "bg-emerald-500/10 text-emerald-600",
     answered: "bg-emerald-500/10 text-emerald-600",
-    in_escrow: "bg-primary/10 text-primary",
+    in_escrow: "bg-muted text-foreground",
     transferring: "bg-amber-500/10 text-amber-600",
     pending: "bg-amber-500/10 text-amber-600",
     under_review: "bg-amber-500/10 text-amber-600",
@@ -28,7 +28,7 @@ export function StatusBadge({ status }: { status: string }) {
     open: "bg-red-500/10 text-red-600",
     disputed: "bg-red-500/10 text-red-600",
     suspended: "bg-red-500/10 text-red-600",
-    refunded: "bg-violet-500/10 text-violet-600",
+    refunded: "bg-slate-500/10 text-slate-600",
     closed: "bg-muted text-muted-foreground",
     paused: "bg-muted text-muted-foreground",
     sold: "bg-muted text-muted-foreground",
@@ -36,7 +36,7 @@ export function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize",
+        "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium capitalize",
         styles[status] ?? "bg-muted text-muted-foreground",
       )}
     >
@@ -57,14 +57,14 @@ export function StatCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="glass p-5">
-      <div className="flex items-center justify-between">
+    <div className="rounded-3xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(21,23,43,0.04)]">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{label}</p>
-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
-          <Icon className="size-4 text-primary" />
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#15172b]">
+          <Icon className="size-4 text-white" />
         </span>
       </div>
-      <p className="mt-3 text-2xl font-bold tabular-nums tracking-tight">{value}</p>
+      <p className="mt-4 text-2xl font-bold tabular-nums tracking-tight">{value}</p>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
@@ -100,8 +100,8 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="glass flex flex-col items-center px-6 py-16 text-center">
-      <span className="flex size-12 items-center justify-center rounded-2xl bg-muted/60">
+    <div className="flex flex-col items-center rounded-3xl border border-border bg-white px-6 py-16 text-center">
+      <span className="flex size-14 items-center justify-center rounded-full bg-muted">
         <Inbox className="size-5 text-muted-foreground" />
       </span>
       <h3 className="mt-4 font-semibold">{title}</h3>
@@ -132,19 +132,19 @@ export function ConfirmDialog({
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="glass border-border/70">
+      <AlertDialogContent className="rounded-3xl border-border bg-white">
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+          <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
           <AlertDialogAction
             className={cn(
-              "rounded-xl",
+              "rounded-full",
               destructive
                 ? "bg-destructive text-white hover:bg-destructive/90"
-                : "bg-primary text-primary-foreground hover:bg-primary/90",
+                : "bg-[#15172b] text-white hover:bg-[#15172b]/90",
             )}
             onClick={(e) => {
               e.preventDefault();

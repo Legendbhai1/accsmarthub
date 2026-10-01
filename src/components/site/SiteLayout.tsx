@@ -22,7 +22,7 @@ export function SiteLayout({ children }: { children?: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="flex-1 pb-20 md:pb-0">
+      <main className="flex-1 pb-28 md:pb-0">
         {children ?? <Outlet />}
       </main>
       <SiteFooter />
@@ -30,9 +30,9 @@ export function SiteLayout({ children }: { children?: ReactNode }) {
       {/* Mobile bottom navigation */}
       <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/90 backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4 md:hidden"
       >
-        <div className="mx-auto grid max-w-md grid-cols-4">
+        <div className="grid w-full max-w-md grid-cols-4 gap-1 rounded-full border border-border bg-white p-1.5 shadow-[0_10px_30px_-12px_rgba(21,23,43,0.35)]">
           {MOBILE_TABS.map(({ label, to, icon: Icon }) => (
             <NavLink
               key={label}
@@ -40,13 +40,13 @@ export function SiteLayout({ children }: { children?: ReactNode }) {
               end={to === "/"}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium text-muted-foreground transition-colors",
-                  isActive && "text-primary",
+                  "flex flex-col items-center gap-1 rounded-full px-1 py-2 text-[10px] font-medium text-muted-foreground transition-colors",
+                  isActive && "bg-[#15172b] text-white",
                 )
               }
             >
-              <Icon className="size-5" />
-              {label}
+              <Icon className="size-4.5" />
+              <span className="truncate">{label}</span>
             </NavLink>
           ))}
         </div>

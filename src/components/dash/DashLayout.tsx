@@ -52,12 +52,12 @@ export function DashLayout({
 
   return (
     <div className="flex min-h-screen">
-      {/* Sidebar (desktop) */}
-      <aside className="panel fixed inset-y-0 left-0 z-40 hidden w-60 flex-col rounded-none border-y-0 border-l-0 lg:flex">
-        <div className="flex h-16 items-center border-b border-border/70 px-5">
+      {/* Sidebar (desktop) — flat white sheet with hairline separators */}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-white lg:flex">
+        <div className="flex h-20 items-center px-6">
           <Logo />
         </div>
-        <nav aria-label="Dashboard" className="flex-1 space-y-1 overflow-y-auto p-3">
+        <nav aria-label="Dashboard" className="flex-1 space-y-1 overflow-y-auto px-4 py-2">
           {fullNav.map(({ label, to, icon: Icon }) => (
             <NavLink
               key={to}
@@ -65,28 +65,35 @@ export function DashLayout({
               end={to === "/account" || to === "/seller" || to === "/admin"}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-                  isActive && "bg-primary/12 text-primary",
+                  "flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                  isActive && "bg-[#15172b] text-white hover:bg-[#15172b] hover:text-white",
                 )
               }
             >
               <Icon className="size-4.5" />
               {label}
               {badge === label && (
-                <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-red-500/15 text-[10px] font-bold text-red-600">
+                <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
                   1
-              </span>
+                </span>
               )}
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-border/70 p-4">
-          <p className="truncate text-sm font-medium">{user?.name}</p>
-          <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+        <div className="border-t border-border p-5">
+          <div className="flex items-center gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
+              {(user?.name ?? "?").charAt(0).toUpperCase()}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">{user?.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{user?.email}</span>
+            </span>
+          </div>
           <button
             type="button"
             onClick={signOut}
-            className="mt-3 w-full rounded-xl border border-border/70 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="mt-4 w-full rounded-full bg-[#15172b] py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-85"
           >
             Sign out
           </button>
@@ -94,22 +101,21 @@ export function DashLayout({
       </aside>
 
       {/* Main column */}
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-60">
-        <header className="sticky top-0 z-30 border-b border-border/70 bg-background/70 backdrop-blur-xl">
-          <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
-            {/* Mobile: horizontal nav */}
-            <div className="flex items-center gap-2 overflow-x-auto lg:hidden">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+        <header className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur-xl">
+          <div className="flex h-20 items-center gap-3 px-4 sm:px-6">
+            <div className="lg:hidden">
               <Logo />
             </div>
             <h1 className="ml-auto text-sm font-medium text-muted-foreground lg:ml-0">
               {title}
             </h1>
-            <span className="hidden rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary sm:inline">
+            <span className="rounded-full bg-[#15172b] px-3 py-1.5 text-xs font-semibold capitalize text-white">
               {user?.role}
             </span>
           </div>
         </header>
-        <main className="flex-1 p-4 pb-24 sm:p-6 lg:pb-6">
+        <main className="flex-1 px-4 pb-32 pt-6 sm:px-6 lg:px-8 lg:pb-8">
           {children ?? <Outlet />}
         </main>
       </div>
@@ -120,13 +126,14 @@ export function DashLayout({
   );
 }
 
+/** Floating rounded-full bottom pill, matching the app shell navigation. */
 function MobileDashNav({ nav, badge }: { nav: NavItem[]; badge?: string }) {
   return (
     <nav
       aria-label="Dashboard mobile navigation"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/90 backdrop-blur-xl lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4 lg:hidden"
     >
-      <div className="flex overflow-x-auto">
+      <div className="flex w-full max-w-md items-center gap-1 overflow-x-auto rounded-full border border-border bg-white p-1.5 shadow-[0_10px_30px_-12px_rgba(21,23,43,0.35)]">
         {nav.map(({ label, to, icon: Icon }) => (
           <NavLink
             key={to}
@@ -134,18 +141,18 @@ function MobileDashNav({ nav, badge }: { nav: NavItem[]; badge?: string }) {
             end={to === "/account" || to === "/seller" || to === "/admin"}
             className={({ isActive }) =>
               cn(
-                "flex min-w-20 flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted-foreground",
-                isActive && "text-primary",
+                "relative flex min-w-[4.25rem] flex-1 shrink-0 flex-col items-center gap-0.5 rounded-full px-1 py-2 text-[9px] font-medium text-muted-foreground transition-colors",
+                isActive && "bg-[#15172b] text-white",
               )
             }
           >
             <span className="relative">
-              <Icon className="size-5" />
+              <Icon className="size-4.5" />
               {badge === label && (
-                <span className="absolute -right-1 -top-0.5 size-2 rounded-full bg-red-500" />
+                <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-destructive" />
               )}
             </span>
-            {label}
+            <span className="truncate">{label}</span>
           </NavLink>
         ))}
       </div>

@@ -56,7 +56,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40">
-      <div className="border-b border-border/70 bg-background/70 backdrop-blur-xl">
+      <div className="border-b border-border bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
           <Logo />
 
@@ -68,8 +68,8 @@ export function SiteHeader() {
                 end={link.to === "/"}
                 className={({ isActive }) =>
                   cn(
-                    "rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-                    isActive && "bg-accent text-foreground",
+                    "rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                    isActive && "bg-[#15172b] text-white hover:bg-[#15172b] hover:text-white",
                   )
                 }
               >
@@ -90,7 +90,7 @@ export function SiteHeader() {
                 placeholder="Search accounts, niches, platforms…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="inset-well h-10 w-56 rounded-xl pl-9 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:w-72 focus:ring-2 focus:ring-ring/60"
+                className="inset-well h-10 w-56 rounded-full pl-9 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:w-72 focus:ring-2 focus:ring-ring/60"
               />
             </div>
           </form>
@@ -100,20 +100,20 @@ export function SiteHeader() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative rounded-xl"
+                className="relative rounded-full"
                 aria-label="Notifications"
                 onClick={() => navigate("/account/notifications")}
               >
                 <Bell className="size-4.5" />
-                <span className="absolute right-2 top-2 size-2 rounded-full bg-primary" />
+                <span className="absolute right-2 top-2 size-2 rounded-full bg-destructive" />
               </Button>
             )}
 
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="rounded-xl">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                  <Button variant="outline" className="rounded-full">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-[#15172b] text-xs font-bold text-white">
                       {user.name.charAt(0)}
                     </span>
                     <span className="hidden max-w-24 truncate sm:inline">{user.name}</span>
@@ -164,13 +164,13 @@ export function SiteHeader() {
               </DropdownMenu>
             ) : (
               <>
-                <Button variant="ghost" className="rounded-xl" asChild>
+                <Button variant="ghost" className="rounded-full" asChild>
                   <Link to="/auth">
                     <LogIn className="size-4" />
                     Log in
                   </Link>
                 </Button>
-                <Button className="rounded-xl" asChild>
+                <Button className="rounded-full" asChild>
                   <Link to="/auth?mode=register">
                     <UserPlus className="size-4" />
                     <span className="hidden sm:inline">Create account</span>
@@ -183,7 +183,7 @@ export function SiteHeader() {
             <Button
               variant="outline"
               size="icon"
-              className="rounded-xl lg:hidden"
+              className="rounded-full lg:hidden"
               aria-label="Open menu"
               onClick={() => setMobileOpen(true)}
             >
@@ -268,12 +268,12 @@ export function SiteHeader() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search listings…"
-                  className="inset-well h-10 w-full rounded-xl pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/60"
+                  className="inset-well h-10 w-full rounded-full pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/60"
                 />
               </div>
             </form>
             {!user && (
-              <Button variant="outline" className="rounded-xl" asChild>
+              <Button variant="outline" className="rounded-full" asChild>
                 <Link to="/auth" onClick={() => setMobileOpen(false)}>
                   <ShoppingCart className="size-4" />
                   Sign in to buy or sell
