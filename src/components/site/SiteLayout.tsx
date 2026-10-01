@@ -16,7 +16,10 @@ export function SiteLayout({ children }: { children?: ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // `instant` matters: index.css sets `scroll-behavior: smooth` on <html>,
+    // which would otherwise animate a long glide to the top on every route
+    // change and read as laggy.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [location.pathname]);
 
   return (

@@ -8,6 +8,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import "./index.css";
 import { RequireRole } from "@/components/site/guards";
+import { PageTransition } from "@/components/site/PageTransition";
 
 // Lazy load route components for better code splitting
 const SiteLayout = lazy(() => import("@/components/site/SiteLayout").then((m) => ({ default: m.SiteLayout })));
@@ -146,6 +147,7 @@ createRoot(document.getElementById("root")!).render(
           <BrowserRouter>
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
+            <PageTransition>
             <Routes>
               {/* Public site */}
               <Route element={<SiteLayout />}>
@@ -198,6 +200,7 @@ createRoot(document.getElementById("root")!).render(
 
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </PageTransition>
           </Suspense>
         </BrowserRouter>
         </SessionProvider>

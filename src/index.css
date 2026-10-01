@@ -136,16 +136,22 @@
     border-radius: 1.5rem;
   }
 
-  /* Card with hover transition */
+  /* Card with hover transition — subtle lift, matching the app-shell feel */
   .glass-hover {
     transition:
       border-color 0.2s ease,
-      box-shadow 0.2s ease,
-      transform 0.2s ease;
+      box-shadow 0.25s ease,
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .glass-hover:hover {
     border-color: oklch(0 0 0 / 14%);
-    box-shadow: 0 12px 28px -18px oklch(0 0 0 / 40%);
+    box-shadow: 0 14px 30px -20px oklch(0 0 0 / 45%);
+    transform: translateY(-2px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .glass-hover:hover {
+      transform: none;
+    }
   }
 
   /* Raised panel (sidebar shells, drawers) */

@@ -22,7 +22,9 @@ export function DashLayout({
   const location = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // `instant` overrides the global `scroll-behavior: smooth` so switching
+    // dashboard pages jumps straight to the top instead of gliding.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [location.pathname]);
 
   // Cross-role navigation: buyers can jump to their seller dashboard (after
