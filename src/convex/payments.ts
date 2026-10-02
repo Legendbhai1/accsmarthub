@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { action, httpAction, internalMutation } from "./_generated/server";
+import { action, httpAction, internalMutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { creditWallet, requireAuthId } from "./lib";
+import { creditWallet, requireAuthId, requireAccount } from "./lib";
 
 /**
  * OxaPay crypto deposits (buyers only).
@@ -118,6 +118,23 @@ export const createDeposit = action({
     });
 
     return { paymentUrl: res.data.payment_url, trackId: res.data.track_id };
+  },
+});
+
+/**
+ * The buyer's deposit history, live. Because the webhook credits the wallet
+ * the moment OxaPay confirms, this list and the balance above it update on
+ * their own — no refresh needed.
+ */
+export const myDeposits = query({
+  args: {},
+  handler: async (ctx) => {
+    const account = await requireAccount(ctx);
+    const rows = await ctx.db
+      .query("deposits")
+      .withIndex("by_user", (q) => q.eq("userId", account.id))
+      .collect();
+    return rows.sort((a, b) => b.createdAt - a.createdAt).slice(0, 20);
   },
 });
 

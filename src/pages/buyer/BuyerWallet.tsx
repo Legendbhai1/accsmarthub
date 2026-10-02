@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
   ArrowDownToLine,
@@ -10,7 +10,7 @@ import {
   RefreshCw,
   Wallet,
 } from "lucide-react";
-import { useAction } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +36,9 @@ type DepositState =
   | { phase: "creating" }
   | { phase: "awaiting"; trackId: string; paymentUrl: string; amount: number };
 
+/** Survives the redirect out to OxaPay and back. */
+const PENDING_TRACK_KEY = "accsmarthub.pendingDeposit.v1";
+
 export default function BuyerWallet() {
   const { user } = useSession();
   const { orders } = useDb();
@@ -47,6 +50,28 @@ export default function BuyerWallet() {
 
   const createDeposit = useAction(api.payments.createDeposit);
   const verifyDeposit = useAction(api.payments.verifyDeposit);
+  const deposits = useQuery(api.payments.myDeposits, {});
+
+  // The webhook credits the wallet on its own; this only re-checks the
+  // authoritative status once, in case the webhook was slow or blocked.
+  const autoVerified = useRef(false);
+  useEffect(() => {
+    if (autoVerified.current) return;
+    const trackId = sessionStorage.getItem(PENDING_TRACK_KEY);
+    if (!trackId) return;
+    autoVerified.current = true;
+    void (async () => {
+      try {
+        const res = await verifyDeposit({ trackId });
+        if (res.credited) {
+          sessionStorage.removeItem(PENDING_TRACK_KEY);
+          toast.success(`Deposit confirmed — ${formatPrice(res.amountUsd ?? 0)} added.`);
+        }
+      } catch {
+        // Leave the marker so the next visit retries; the webhook still credits.
+      }
+    })();
+  }, [verifyDeposit]);
 
   const mine = orders.filter((o) => o.buyerId === "u-me");
 
@@ -63,6 +88,11 @@ export default function BuyerWallet() {
         returnUrl: `${window.location.origin}/account/wallet`,
       });
       setDepositState({ phase: "awaiting", trackId: res.trackId, paymentUrl: res.paymentUrl, amount });
+      try {
+        sessionStorage.setItem(PENDING_TRACK_KEY, res.trackId);
+      } catch {
+        // storage unavailable — the manual check still works
+      }
       window.open(res.paymentUrl, "_blank", "noopener,noreferrer");
       toast.info("Complete the payment in the OxaPay window", {
         description: "We'll verify your deposit when you return.",
@@ -86,6 +116,7 @@ export default function BuyerWallet() {
         // balance shown above the moment this returns.
         const creditedAmount = res.amountUsd ?? amount;
         toast.success(`Deposit confirmed — ${formatPrice(creditedAmount)} added to your wallet.`);
+        sessionStorage.removeItem(PENDING_TRACK_KEY);
         setDepositState({ phase: "idle" });
         setDialogOpen(false);
       } else {
@@ -142,6 +173,43 @@ export default function BuyerWallet() {
             <code className="font-mono">OXAPAY_MERCHANT_API_KEY</code> in the
             Keys tab to switch the crypto gateway on.
           </p>
+        </div>
+
+        {/* Live deposit status — the webhook flips these in real time. */}
+        <div className="glass p-6">
+          <h3 className="font-semibold">Deposits</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Every top-up is confirmed by OxaPay and credited to your wallet
+            automatically.
+          </p>
+          {!deposits || deposits.length === 0 ? (
+            <p className="mt-4 rounded-xl bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+              No deposits yet.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y divide-border/60 text-sm">
+              {deposits.map((d) => (
+                <li key={d._id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="font-medium">{formatPrice(d.amountUsd)}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {new Date(d.createdAt).toLocaleString()} ·{" "}
+                      <span className="font-mono">{d.trackId}</span>
+                    </p>
+                  </div>
+                  <span
+                    className={
+                      d.status === "paid"
+                        ? "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-700"
+                        : "rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-700"
+                    }
+                  >
+                    {d.status === "paid" ? "Credited" : "Awaiting payment"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="glass p-6">

@@ -48,7 +48,9 @@ const schema = defineSchema(
       status: v.union(v.literal("pending"), v.literal("paid")),
       createdAt: v.number(),
       paidAt: v.optional(v.number()),
-    }).index("by_track", ["trackId"]),
+    })
+      .index("by_track", ["trackId"])
+      .index("by_user", ["userId"]),
 
     /* ------------------------------------------------------------------ *
      * Marketplace core. Everything below is server-authoritative: the
