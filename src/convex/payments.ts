@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { action, httpAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { creditWallet, requireAuthId } from "./lib";
 
 /**
  * OxaPay crypto deposits (buyers only).
@@ -71,14 +72,13 @@ async function verifyHmac(rawBody: string, received: string, secret: string) {
 export const createDeposit = action({
   args: {
     amountUsd: v.number(),
-    email: v.optional(v.string()),
-    userId: v.optional(v.string()),
     returnUrl: v.optional(v.string()),
   },
   handler: async (
     ctx,
-    { amountUsd, email, userId, returnUrl },
+    { amountUsd, returnUrl },
   ): Promise<{ paymentUrl: string; trackId: string }> => {
+    const accountId = await requireAuthId(ctx);
     if (!(amountUsd >= 1)) throw new Error("Minimum deposit is $1");
     const merchantKey = process.env.OXAPAY_MERCHANT_API_KEY;
     if (!merchantKey) {
@@ -97,8 +97,7 @@ export const createDeposit = action({
         amount: amountUsd,
         currency: "USD",
         lifetime: 60,
-        email,
-        order_id: userId ? `dep_${userId}_${Date.now()}` : `dep_${Date.now()}`,
+        order_id: `dep_${accountId}_${Date.now()}`,
         description: "AccsMartHub wallet top-up",
         callback_url: `${
           process.env.CONVEX_SITE_URL ?? "https://aware-alligator-968.convex.cloud"
@@ -114,9 +113,8 @@ export const createDeposit = action({
 
     await ctx.runMutation(internal.payments.insertDeposit, {
       trackId: res.data.track_id,
-      userId: userId ?? "u-me",
+      userId: accountId,
       amountUsd,
-      email,
     });
 
     return { paymentUrl: res.data.payment_url, trackId: res.data.track_id };
@@ -129,6 +127,7 @@ export const verifyDeposit = action({
     ctx,
     { trackId },
   ): Promise<{ status: string; credited: boolean; amountUsd?: number }> => {
+    const accountId = await requireAuthId(ctx);
     const merchantKey = process.env.OXAPAY_MERCHANT_API_KEY;
     if (!merchantKey) throw new Error("OxaPay is not configured");
 
@@ -143,6 +142,7 @@ export const verifyDeposit = action({
     if (paid) {
       const marked = await ctx.runMutation(internal.payments.markDepositPaid, {
         trackId,
+        userId: accountId,
       });
       if (marked.amountUsd != null) {
         credited = true;
@@ -177,8 +177,8 @@ export const oxaPayWebhook = httpAction(async (ctx, request) => {
 });
 
 export const markDepositPaid = internalMutation({
-  args: { trackId: v.string() },
-  handler: async (ctx, { trackId }): Promise<{ amountUsd: number | null }> => {
+  args: { trackId: v.string(), userId: v.optional(v.string()) },
+  handler: async (ctx, { trackId, userId }): Promise<{ amountUsd: number | null }> => {
     const deposit = await ctx.db
       .query("deposits")
       .withIndex("by_track", (q) => q.eq("trackId", trackId))
@@ -189,6 +189,8 @@ export const markDepositPaid = internalMutation({
         status: "paid",
         paidAt: Date.now(),
       });
+      // Credit the wallet so the balance updates reactively, in real time.
+      await creditWallet(ctx, userId ?? deposit.userId, deposit.amountUsd);
     }
     return { amountUsd: deposit.amountUsd };
   },

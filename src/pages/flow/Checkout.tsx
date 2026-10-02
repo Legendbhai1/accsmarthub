@@ -1,30 +1,33 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { CreditCard, Landmark, Loader2, Lock, ShieldCheck, Wallet, ArrowRightLeft } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { Loader2, Lock, ShieldCheck, Wallet, ArrowRightLeft, BadgeCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { BrandMark } from "@/components/site/BrandMark";
 import { QuantityStepper, StockBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { api, getSeller, useDb } from "@/lib/db";
+import { getSeller, useDb } from "@/lib/db";
+import { api } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-
-type PaymentMethod = "card" | "wallet" | "bank";
 
 export default function Checkout() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { user, debitBalance } = useSession();
+  const { user } = useSession();
   const { listings } = useDb();
 
-  const listing = listings.find((l) => l.id === params.get("listing"));
+  const listingId = params.get("listing");
+  const listing = listings.find((l) => l.id === listingId);
+  // Live stock and price come from the server ledger, not the catalogue copy.
+  const live = useQuery(
+    api.marketplace.liveStock,
+    listingId ? { listingIds: [listingId] } : "skip",
+  );
+  const placeOrder = useMutation(api.marketplace.placeOrder);
 
-  const [payment, setPayment] = useState<PaymentMethod>("card");
   const [agreed, setAgreed] = useState(false);
   const [placing, setPlacing] = useState(false);
   // Seed from ?qty= but never let the URL exceed what is actually in stock —
@@ -51,55 +54,56 @@ export default function Checkout() {
   }
 
   const seller = getSeller(listing.sellerId);
-  const available = listing.stock;
+  const ledger = live?.[listing.id];
+  const available = ledger?.stock ?? listing.stock;
+  const unitPrice = ledger?.priceUsd ?? listing.price;
   const soldOut = available <= 0;
-  const subtotal = listing.price * qty;
+  const subtotal = unitPrice * qty;
   const escrowFee = Math.round(subtotal * 0.03);
   const total = subtotal + escrowFee;
+  // What the seller keeps after the 10% platform commission.
+  const commission = Math.round(subtotal * 0.1);
+  const sellerNet = subtotal - commission;
 
-  const canPlace =
-    agreed && !!user && !soldOut && !(payment === "wallet" && (user?.balance ?? 0) < total);
+  // One real payment path: funds move server-side from the wallet into escrow,
+// so there is no simulated card charge anywhere in the flow.
+  const canPlace = agreed && !!user && !soldOut && user.balance >= total;
 
-  const walletShort = payment === "wallet" && !!user && user.balance < total;
+  const walletShort = !!user && user.balance < total;
 
-  const placeOrder = () => {
-    if (payment === "wallet") {
-      if (!user || user.balance < total) {
-        toast.error("Insufficient wallet balance.", {
-          description: "Top up with crypto from your wallet page.",
-        });
-        return;
-      }
+  const submitOrder = async () => {
+    if (!user) return;
+    if (user.balance < total) {
+      toast.error("Insufficient wallet balance.", {
+        description: "Top up with crypto from your wallet page.",
+      });
+      return;
+    }
+    if (!user.emailVerified) {
+      toast.error("Verify your email before paying.", {
+        description: "Sign out and sign in again to get a fresh verification code.",
+      });
+      return;
     }
     setPlacing(true);
-    // In production this is a server call; price and stock are re-validated
-    // server-side before payment is captured.
-    window.setTimeout(() => {
-      try {
-        if (payment === "wallet" && user) {
-          debitBalance(user.id, total);
-        }
-        const order = api.placeOrder({
-          listingId: listing.id,
-          listingTitle: listing.title,
-          brand: listing.brand,
-          sellerId: listing.sellerId,
-          quantity: qty,
-          unitPrice: listing.price,
-        });
-        navigate(`/order/${order.id}/confirmed`);
-      } catch (err) {
-        // placeOrder throws when stock ran out between render and submit.
-        // Without this the buyer is left on a dead button with no feedback.
-        toast.error("Could not complete this purchase.", {
-          description: err instanceof Error ? err.message : "Please try again.",
-        });
-        // The available quantity may have changed, so re-read from the store.
-        setQty((prev) => Math.max(1, Math.min(prev, available)));
-      } finally {
-        setPlacing(false);
-      }
-    }, 1200);
+    try {
+      // The server re-reads the price and stock, locks the funds, decrements
+      // inventory and applies the 10% commission in one transaction.
+      const order = await placeOrder({
+        listingId: listing.id,
+        quantity: qty,
+        paymentMethod: "wallet",
+      });
+      navigate(`/order/${encodeURIComponent(order.orderNo)}/confirmed`);
+    } catch (err) {
+      toast.error("Could not complete this purchase.", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+      // Stock may have changed server-side, so clamp to what is still there.
+      setQty((prev) => Math.max(1, Math.min(prev, available)));
+    } finally {
+      setPlacing(false);
+    }
   };
 
   return (
@@ -131,7 +135,7 @@ export default function Checkout() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold tabular-nums">{formatPrice(subtotal)}</p>
+                <p className="text-sm font-bold tabular-nums">{formatPrice(unitPrice)}</p>
                 <p className="text-xs text-muted-foreground">Qty {qty}</p>
               </div>
             </div>
@@ -161,42 +165,31 @@ export default function Checkout() {
           {/* Payment */}
           <section className="glass p-6" aria-label="Payment method">
             <h2 className="font-semibold">Payment method</h2>
-            <RadioGroup
-              value={payment}
-              onValueChange={(v) => setPayment(v as PaymentMethod)}
-              className="mt-4 grid gap-3 sm:grid-cols-3"
-            >
-              {(
-                [
-                  { value: "card", label: "Card", icon: CreditCard, hint: "Visa, Mastercard, Amex" },
-                  { value: "wallet", label: "Hub Wallet", icon: Wallet, hint: user ? (user.balance >= total ? `Balance ${formatPrice(user.balance)}` : `Need ${formatPrice(total - user.balance)} more`) : "Sign in required" },
-                  { value: "bank", label: "Bank transfer", icon: Landmark, hint: "Where supported" },
-                ] as const
-              ).map(({ value, label, icon: Icon, hint }) => (
-                <Label
-                  key={value}
-                  htmlFor={`pay-${value}`}
-                  className={cn(
-                    "flex cursor-pointer flex-col gap-1.5 rounded-xl border p-4 transition-colors",
-                    payment === value
-                      ? "border-primary/60 bg-primary/10"
-                      : "border-border/60 hover:bg-accent/40",
-                  )}
-                >
-                  <span className="flex items-center gap-2">
-                    <RadioGroupItem id={`pay-${value}`} value={value} />
-                    <Icon className="size-4 text-primary" />
-                    <span className="text-sm font-medium">{label}</span>
-                  </span>
-                  <span className="text-xs text-muted-foreground">{hint}</span>
-                </Label>
-              ))}
-            </RadioGroup>
-            <p className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-xs text-emerald-700">
-              <Lock className="size-3.5 shrink-0" />
-              Demo checkout — no real payment is processed and card data is
-              never collected or stored.
+            <div className="mt-4 flex flex-col gap-1.5 rounded-xl border border-primary/60 bg-primary/10 p-4">
+              <span className="flex items-center gap-2">
+                <Wallet className="size-4 text-primary" />
+                <span className="text-sm font-medium">AccsMartHub wallet</span>
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {user
+                  ? user.balance >= total
+                    ? `Balance ${formatPrice(user.balance)} · ${formatPrice(total)} needed`
+                    : `Need ${formatPrice(total - user.balance)} more`
+                  : "Sign in required"}
+              </span>
+            </div>
+            <p className="mt-4 flex items-start gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-xs text-emerald-700">
+              <Lock className="mt-px size-3.5 shrink-0" />
+              No card details are ever collected. Top up the wallet with crypto
+              and pay from it — funds move from your balance into escrow on the
+              server in a single transaction the moment you confirm.
             </p>
+            {user?.emailVerified === false && (
+              <p className="mt-3 flex items-start gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
+                <BadgeCheck className="mt-px size-3.5 shrink-0" />
+                Verify your email address before paying.
+              </p>
+            )}
             {walletShort && (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
                 <span className="flex-1">
@@ -220,7 +213,7 @@ export default function Checkout() {
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">
                   Subtotal{" "}
-                  <span className="text-xs">({formatPrice(listing.price)} × {qty})</span>
+                  <span className="text-xs">({formatPrice(unitPrice)} × {qty})</span>
                 </dt>
                 <dd className="tabular-nums">{formatPrice(subtotal)}</dd>
               </div>
@@ -234,6 +227,12 @@ export default function Checkout() {
                 <dd className="tabular-nums">{formatPrice(total)}</dd>
               </div>
             </dl>
+            <p className="mt-3 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+              The seller receives {formatPrice(sellerNet)} of your{" "}
+              {formatPrice(subtotal)} subtotal. AccsMartHub retains a 10%
+              platform commission ({formatPrice(commission)}); escrow covers
+              transfers and disputes.
+            </p>
 
             <label className="mt-5 flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-muted-foreground">
               <input
@@ -252,7 +251,7 @@ export default function Checkout() {
             <Button
               className="mt-4 h-11 w-full rounded-xl"
               disabled={!canPlace || placing}
-              onClick={placeOrder}
+              onClick={submitOrder}
             >
               {placing ? (
                 <>
@@ -274,7 +273,8 @@ export default function Checkout() {
               Funds held until you approve the transfer
             </p>
             <Badge variant="secondary" className="mt-3 w-full justify-center rounded-lg bg-muted/60 text-[11px] font-normal text-muted-foreground">
-              Prices are verified server-side before payment capture.
+              Price, stock and commission are all re-verified on the server
+              before funds are taken.
             </Badge>
           </div>
         </aside>

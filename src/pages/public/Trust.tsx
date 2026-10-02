@@ -4,6 +4,7 @@ import {
   FileCheck,
   Gavel,
   Lock,
+  ShieldAlert,
   ShieldCheck,
   UserCheck,
 } from "lucide-react";
@@ -52,6 +53,24 @@ const PROHIBITED = [
   "Anything violating third-party platform terms",
 ];
 
+/**
+ * Off-platform contact voids the escrow that protects both sides, so it is
+ * treated as a listing-blocking offence rather than a style issue.
+ */
+const NO_OFF_PLATFORM = [
+  "Sharing or asking for a phone number, personal email, Telegram or WhatsApp handle.",
+  "Requesting or accepting payment outside escrow, including partial deposits.",
+  "Moving a transfer to another platform or site before the order is complete.",
+  "Delivering credentials through any channel other than the AccsMartHub order flow.",
+];
+
+const ENFORCEMENT = [
+  "Every listing and store profile is scanned for contact details and external links.",
+  "Buyers can report off-platform contact from any order in one click.",
+  "Confirmed reports pause the seller's listings and hold their pending payout.",
+  "Buyers who pay off-platform receive a full refund from the order's escrow.",
+];
+
 export default function Trust() {
   return (
     <SiteLayout>
@@ -89,6 +108,36 @@ export default function Trust() {
             {PROHIBITED.map((item) => (
               <li key={item} className="flex items-center gap-2.5 text-sm">
                 <span className="size-1.5 rounded-full bg-destructive" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="glass mt-10 border-amber-500/30 p-8">
+          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+            <ShieldAlert className="size-5 text-amber-600" />
+            Off-platform contact is absolutely prohibited
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Every deal must happen on AccsMartHub so escrow, disputes and
+            refunds keep working. Sharing contact details or moving payment
+            off-platform is not allowed for anyone:
+          </p>
+          <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
+            {NO_OFF_PLATFORM.map((item) => (
+              <li key={item} className="flex items-start gap-2.5 text-sm">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-amber-500" />
+                {item}
+              </li>
+            ))}
+          </ul>
+
+          <h3 className="mt-8 font-semibold tracking-tight">How it is enforced</h3>
+          <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
+            {ENFORCEMENT.map((item) => (
+              <li key={item} className="flex items-start gap-2.5 text-sm">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
                 {item}
               </li>
             ))}

@@ -1,12 +1,28 @@
-import { CircleDollarSign, RotateCcw, Percent } from "lucide-react";
+import { useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { CircleDollarSign, RotateCcw, Percent, ShieldAlert } from "lucide-react";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
-import { SectionHeading, StatCard } from "@/components/common/Primitives";
+import { EmptyState, SectionHeading, StatCard, StatusBadge } from "@/components/common/Primitives";
+import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/format";
 import { categories, payments, useDb } from "@/lib/db";
+import { api as convexApi } from "@/convex/_generated/api";
+import { toast } from "sonner";
+
+const REPORT_LABELS: Record<string, string> = {
+  shared_contact: "Shared contact details",
+  payment_offsite: "Payment moved off-platform",
+  refused_escrow: "Refused escrow",
+  impersonation: "Impersonated staff",
+  other: "Other breach",
+};
 
 export default function AdminReports() {
   const { orders, listings } = useDb();
+  const [filter, setFilter] = useState<string>("open");
+  const reports = useQuery(convexApi.reports.openReports, { status: filter });
+  const resolveReport = useMutation(convexApi.reports.resolveReport);
 
   const volume = payments.reduce((s, p) => s + p.amount, 0);
   const refunded = payments
@@ -32,6 +48,106 @@ export default function AdminReports() {
           <StatCard label="Refunded" value={formatPrice(refunded)} icon={RotateCcw} />
           <StatCard label="Dispute rate" value="2.1%" icon={Percent} hint="Of completed orders" />
         </div>
+
+        {/* Off-platform contact enforcement queue */}
+        <section className="glass p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <SectionHeading
+              title="Off-platform contact reports"
+              subtitle="Sharing contact details or moving payment off AccsMartHub is prohibited and can pause a seller's listings."
+            />
+            <div className="flex gap-1.5">
+              {(["open", "reviewing", "resolved", "dismissed"] as const).map((f) => (
+                <Button
+                  key={f}
+                  variant={filter === f ? "default" : "outline"}
+                  size="sm"
+                  className="rounded-lg capitalize"
+                  onClick={() => setFilter(f)}
+                >
+                  {f}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {!reports || reports.length === 0 ? (
+            <EmptyState
+              title="Nothing in this queue"
+              description="Buyer reports of off-platform contact land here."
+            />
+          ) : (
+            <ul className="mt-4 divide-y divide-border/60">
+              {reports.map((r) => (
+                <li key={r._id} className="flex flex-col gap-3 py-4 lg:flex-row lg:items-start">
+                  <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium">
+                        {REPORT_LABELS[r.reason] ?? r.reason}
+                      </p>
+                      <StatusBadge status={r.status} />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {new Date(r.createdAt).toLocaleString()}
+                      {r.orderId && ` · order ${r.orderId}`}
+                      {r.penalty && ` · penalty: ${r.penalty}`}
+                    </p>
+                    <p className="mt-2 text-sm text-muted-foreground">{r.detail}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      size="sm"
+                      className="rounded-lg"
+                      onClick={async () => {
+                        try {
+                          await resolveReport({
+                            reportId: r._id,
+                            outcome: "resolved",
+                            suspendSellerListings: true,
+                            penalty: "Listings paused and payout held pending review",
+                          });
+                          toast.success("Report actioned", {
+                            description: "The seller's listings were paused.",
+                          });
+                        } catch (err) {
+                          toast.error("Could not resolve", {
+                            description:
+                              err instanceof Error ? err.message : "Please try again.",
+                          });
+                        }
+                      }}
+                    >
+                      Uphold &amp; pause listings
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-lg"
+                      onClick={async () => {
+                        try {
+                          await resolveReport({
+                            reportId: r._id,
+                            outcome: "dismissed",
+                            suspendSellerListings: false,
+                          });
+                          toast("Report dismissed");
+                        } catch (err) {
+                          toast.error("Could not dismiss", {
+                            description:
+                              err instanceof Error ? err.message : "Please try again.",
+                          });
+                        }
+                      }}
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <section className="glass p-6">
           <SectionHeading

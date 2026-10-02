@@ -37,7 +37,7 @@ type DepositState =
   | { phase: "awaiting"; trackId: string; paymentUrl: string; amount: number };
 
 export default function BuyerWallet() {
-  const { user, creditBalance } = useSession();
+  const { user } = useSession();
   const { orders } = useDb();
 
   const [depositState, setDepositState] = useState<DepositState>({ phase: "idle" });
@@ -60,8 +60,6 @@ export default function BuyerWallet() {
     try {
       const res = await createDeposit({
         amountUsd: amount,
-        email: user?.email,
-        userId: user?.id,
         returnUrl: `${window.location.origin}/account/wallet`,
       });
       setDepositState({ phase: "awaiting", trackId: res.trackId, paymentUrl: res.paymentUrl, amount });
@@ -84,8 +82,9 @@ export default function BuyerWallet() {
     try {
       const res = await verifyDeposit({ trackId });
       if (res.credited) {
+        // The wallet is credited server-side; the reactive query updates the
+        // balance shown above the moment this returns.
         const creditedAmount = res.amountUsd ?? amount;
-        creditBalance(user?.id ?? "u-me", creditedAmount);
         toast.success(`Deposit confirmed — ${formatPrice(creditedAmount)} added to your wallet.`);
         setDepositState({ phase: "idle" });
         setDialogOpen(false);
@@ -112,13 +111,9 @@ export default function BuyerWallet() {
           <StatCard label="Available balance" value={formatPrice(user?.balance ?? 0)} icon={Wallet} hint="Usable at checkout" />
           <StatCard
             label="Held in escrow"
-            value={formatPrice(
-              mine
-                .filter((o) => o.status === "in_escrow" || o.status === "transferring")
-                .reduce((s, o) => s + o.total, 0),
-            )}
+            value={formatPrice(user?.lockedBalance ?? 0)}
             icon={ArrowDownToLine}
-            hint="Released on your confirmation"
+            hint="Released to the seller on your confirmation"
           />
         </div>
 
@@ -141,6 +136,12 @@ export default function BuyerWallet() {
             Funds appear in your wallet as soon as OxaPay confirms the
             payment — the balance is spendable immediately at checkout.
           </div>
+          <p className="mt-3 rounded-xl bg-muted/60 px-4 py-3 text-xs text-muted-foreground">
+            Deposits are credited by the server the moment the payment
+            provider confirms. Add{" "}
+            <code className="font-mono">OXAPAY_MERCHANT_API_KEY</code> in the
+            Keys tab to switch the crypto gateway on.
+          </p>
         </div>
 
         <div className="glass p-6">

@@ -1,63 +1,88 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { ArrowLeft, ArrowRight, Loader2, Mail, MailCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Mail, MailCheck, ShieldCheck } from "lucide-react";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/site/Logo";
-import { useSession, type Role } from "@/lib/session";
 import { roleHome } from "@/components/site/guards";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-type Mode = "login" | "register" | "otp" | "forgot";
+type Mode = "email" | "otp";
 
+/**
+ * One account buys and sells — there is no role picker. Signing in sends a
+ * six-digit code to the address; entering a correct code both verifies the
+ * email and creates the account if it is new.
+ */
 export default function Auth() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { signIn } = useSession();
+  const { signIn } = useAuthActions();
 
-  const [mode, setMode] = useState<Mode>(params.get("mode") === "register" ? "register" : "login");
+  const [mode, setMode] = useState<Mode>("email");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState<Role>("buyer");
   const [otp, setOtp] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const returnTo = params.get("returnTo");
+  const destination = returnTo?.startsWith("/") ? returnTo : roleHome.buyer;
 
-  const finish = (chosenRole: Role) => {
-    // Demo only: role is chosen at sign-in. In production this comes from the
-    // server session after real authentication.
-    const demoRole: Role =
-      email.toLowerCase().startsWith("admin") ? "admin" : chosenRole;
-    signIn(email, demoRole);
-    navigate(returnTo?.startsWith("/") ? returnTo : roleHome[demoRole], { replace: true });
-  };
-
-  const submitCredentials = (e: React.FormEvent) => {
+  const sendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    // Simulated network latency for realism in the demo.
-    window.setTimeout(() => {
-      setBusy(false);
+    setError(null);
+    try {
+      await signIn("email-otp", { email: email.trim().toLowerCase() });
       setMode("otp");
-    }, 500);
-  };
-
-  const submitOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    window.setTimeout(() => finish(role), 500);
-  };
-
-  const submitForgot = (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    window.setTimeout(() => {
+      toast.success("Verification code sent", {
+        description: `Check ${email} for a 6-digit code. It expires in 15 minutes.`,
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "We could not send the code. Try again.",
+      );
+    } finally {
       setBusy(false);
-      setMode("login");
-    }, 600);
+    }
+  };
+
+  const verify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await signIn("email-otp", {
+        email: email.trim().toLowerCase(),
+        code: otp.trim(),
+      });
+      if (!res.signingIn) {
+        setError("That code is not valid. Check it and try again.");
+        return;
+      }
+      navigate(destination, { replace: true });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "That code is not valid. Try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resend = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await signIn("email-otp", { email: email.trim().toLowerCase() });
+      toast.info("New code sent.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not resend the code.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -68,13 +93,17 @@ export default function Auth() {
 
       <main className="flex flex-1 items-start justify-center px-4 pb-16">
         <div className="glass w-full max-w-md p-8">
-          {mode === "login" && (
+          {mode === "email" && (
             <>
-              <h1 className="text-xl font-bold tracking-tight">Welcome back</h1>
+              <h1 className="text-xl font-bold tracking-tight">
+                Sign in or create your account
+              </h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                Sign in to buy, sell and manage your transfers.
+                One account buys and sells. We&apos;ll email you a verification
+                code — no password to remember.
               </p>
-              <form onSubmit={submitCredentials} className="mt-6 space-y-4">
+
+              <form onSubmit={sendCode} className="mt-6 space-y-4">
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
@@ -83,6 +112,7 @@ export default function Auth() {
                       id="email"
                       type="email"
                       required
+                      autoFocus
                       className="inset-well rounded-xl border-border/60 pl-9"
                       placeholder="you@example.com"
                       value={email}
@@ -91,133 +121,37 @@ export default function Auth() {
                     />
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <button
-                      type="button"
-                      className="text-xs text-primary hover:underline"
-                      onClick={() => setMode("forgot")}
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    minLength={8}
-                    className="inset-well rounded-xl border-border/60"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                  />
-                </div>
-                <Button type="submit" className="w-full rounded-xl" disabled={busy}>
-                  {busy ? <Loader2 className="size-4 animate-spin" /> : "Continue"}
-                  <ArrowRight className="size-4" />
-                </Button>
-              </form>
-              <p className="mt-5 text-center text-sm text-muted-foreground">
-                New to AccsMartHub?{" "}
-                <button className="font-medium text-primary hover:underline" onClick={() => setMode("register")}>
-                  Create an account
-                </button>
-              </p>
-            </>
-          )}
 
-          {mode === "register" && (
-            <>
-              <h1 className="text-xl font-bold tracking-tight">Create your account</h1>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Join as a buyer, a seller — or both.
-              </p>
-              <form onSubmit={submitCredentials} className="mt-6 space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Full name</Label>
-                  <Input
-                    id="name"
-                    required
-                    className="inset-well rounded-xl border-border/60"
-                    placeholder="Alex Morgan"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    autoComplete="name"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="reg-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="reg-email"
-                      type="email"
-                      required
-                      className="inset-well rounded-xl border-border/60 pl-9"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="reg-password">Password</Label>
-                  <Input
-                    id="reg-password"
-                    type="password"
-                    required
-                    minLength={8}
-                    className="inset-well rounded-xl border-border/60"
-                    placeholder="At least 8 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="new-password"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>I want to</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(
-                      [
-                        { value: "buyer", label: "Buy accounts" },
-                        { value: "seller", label: "Sell accounts" },
-                      ] as const
-                    ).map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setRole(option.value)}
-                        aria-pressed={role === option.value}
-                        className={cn(
-                          "rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
-                          role === option.value
-                            ? "border-primary/50 bg-primary/10 text-primary"
-                            : "border-border/70 text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {error && (
+                  <p
+                    role="alert"
+                    className="rounded-xl bg-destructive/10 px-4 py-3 text-xs text-destructive"
+                  >
+                    {error}
+                  </p>
+                )}
+
                 <Button type="submit" className="w-full rounded-xl" disabled={busy}>
-                  {busy ? <Loader2 className="size-4 animate-spin" /> : "Create account"}
-                  <ArrowRight className="size-4" />
+                  {busy ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <ArrowRight className="size-4" />
+                  )}
+                  Email me a code
                 </Button>
-                <p className="text-center text-xs text-muted-foreground">
-                  By continuing you agree to the Terms of Service and Privacy
-                  Policy.
-                </p>
               </form>
-              <p className="mt-5 text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <button className="font-medium text-primary hover:underline" onClick={() => setMode("login")}>
-                  Sign in
-                </button>
-              </p>
+
+              <div className="mt-5 grid gap-2 rounded-xl bg-muted/50 px-4 py-3.5 text-xs text-muted-foreground">
+                <p className="flex items-start gap-2">
+                  <ShieldCheck className="mt-px size-3.5 shrink-0 text-primary" />
+                  Your email must be verified before you can pay or open a store.
+                </p>
+                <p className="flex items-start gap-2">
+                  <ShieldCheck className="mt-px size-3.5 shrink-0 text-primary" />
+                  Want to sell? Set up your store after signing in and wait for
+                  admin approval.
+                </p>
+              </div>
             </>
           )}
 
@@ -228,73 +162,66 @@ export default function Auth() {
               </div>
               <h1 className="mt-4 text-xl font-bold tracking-tight">Check your email</h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                We sent a 6-digit code to {email || "your email"}. Enter it
-                below to verify your address.
+                We sent a 6-digit verification code to {email}. Enter it below
+                to verify your address and continue.
               </p>
-              <form onSubmit={submitOtp} className="mt-6 space-y-4">
+
+              <form onSubmit={verify} className="mt-6 space-y-4">
                 <Input
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={6}
                   required
+                  autoFocus
                   className="inset-well rounded-xl border-border/60 text-center text-lg font-semibold tracking-[0.5em]"
                   placeholder="000000"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                   aria-label="Verification code"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Demo tip: any 6 digits will work.
-                </p>
-                <Button type="submit" className="w-full rounded-xl" disabled={busy || otp.length !== 6}>
-                  {busy ? <Loader2 className="size-4 animate-spin" /> : "Verify & continue"}
-                  <ArrowRight className="size-4" />
+
+                {error && (
+                  <p
+                    role="alert"
+                    className="rounded-xl bg-destructive/10 px-4 py-3 text-xs text-destructive"
+                  >
+                    {error}
+                  </p>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full rounded-xl"
+                  disabled={busy || otp.length !== 6}
+                >
+                  {busy ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <ArrowRight className="size-4" />
+                  )}
+                  Verify &amp; continue
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
                   className="w-full rounded-xl"
-                  onClick={() => setMode("login")}
+                  disabled={busy}
+                  onClick={resend}
+                >
+                  Resend code
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full rounded-xl"
+                  disabled={busy}
+                  onClick={() => {
+                    setMode("email");
+                    setOtp("");
+                    setError(null);
+                  }}
                 >
                   <ArrowLeft className="size-4" /> Use a different email
-                </Button>
-              </form>
-            </>
-          )}
-
-          {mode === "forgot" && (
-            <>
-              <h1 className="text-xl font-bold tracking-tight">Reset your password</h1>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Enter your email and we'll send a reset link.
-              </p>
-              <form onSubmit={submitForgot} className="mt-6 space-y-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="forgot-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="forgot-email"
-                      type="email"
-                      required
-                      className="inset-well rounded-xl border-border/60 pl-9"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                    />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full rounded-xl" disabled={busy}>
-                  {busy ? <Loader2 className="size-4 animate-spin" /> : "Send reset link"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full rounded-xl"
-                  onClick={() => setMode("login")}
-                >
-                  <ArrowLeft className="size-4" /> Back to sign in
                 </Button>
               </form>
             </>

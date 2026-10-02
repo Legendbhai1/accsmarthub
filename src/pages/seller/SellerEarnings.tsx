@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Wallet } from "lucide-react";
+import { useQuery } from "convex/react";
+import { Percent, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ import { sellerNav } from "@/components/dash/navs";
 import { StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { api, useDb } from "@/lib/db";
+import { api as convexApi } from "@/convex/_generated/api";
 import { DEMO_SELLER_ID } from "@/pages/seller/SellerDashboard";
 import { toast } from "sonner";
 
@@ -33,15 +35,22 @@ export default function SellerEarnings() {
   const [method, setMethod] = useState("Bank transfer");
   const [open, setOpen] = useState(false);
 
-  const completed = orders
+  // Authoritative figures come from the order ledger on the server.
+  const summary = useQuery(
+    convexApi.marketplace.earningsSummary,
+    {},
+  );
+  const localCompleted = orders
     .filter((o) => o.sellerId === DEMO_SELLER_ID && o.status === "completed")
     .reduce((s, o) => s + o.total, 0);
-  const escrow = orders
-    .filter((o) => o.sellerId === DEMO_SELLER_ID && ["in_escrow", "transferring"].includes(o.status))
-    .reduce((s, o) => s + o.total, 0);
-  const available = Math.round(completed * 0.92);
+  const completed = summary?.grossUsd || localCompleted;
+  const commission = summary?.commissionUsd ?? Math.round(completed * 0.1);
+  const escrow = summary?.escrowUsd ?? 0;
+  const available = summary?.netUsd ?? Math.round(completed - commission);
   const myWithdrawals = withdrawals.filter((w) => w.sellerId === DEMO_SELLER_ID);
-  const paidOut = myWithdrawals.filter((w) => w.status === "paid").reduce((s, w) => s + w.amount, 0);
+  const paidOut = myWithdrawals
+    .filter((w) => w.status === "paid")
+    .reduce((s, w) => s + w.amount, 0);
 
   const request = () => {
     const value = Number(amount);
@@ -62,10 +71,57 @@ export default function SellerEarnings() {
   return (
     <DashLayout title="Earnings" nav={sellerNav}>
       <div className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard label="Available to withdraw" value={formatPrice(available)} icon={Wallet} hint="After 8% platform fee" />
-          <StatCard label="In escrow" value={formatPrice(escrow)} hint="Releases after transfer" icon={Wallet} />
-          <StatCard label="Paid out" value={formatPrice(paidOut)} hint="Lifetime" icon={Wallet} />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            label="Gross sales"
+            value={formatPrice(completed)}
+            icon={Wallet}
+            hint="Before platform commission"
+          />
+          <StatCard
+            label="Platform commission (10%)"
+            value={`−${formatPrice(commission)}`}
+            icon={Percent}
+            hint="Deducted from every completed sale"
+          />
+          <StatCard
+            label="Available to withdraw"
+            value={formatPrice(available)}
+            icon={Wallet}
+            hint="After the 10% fee"
+          />
+          <StatCard
+            label="In escrow"
+            value={formatPrice(escrow)}
+            hint="Releases after transfer"
+            icon={Wallet}
+          />
+        </div>
+
+        <div className="glass p-6">
+          <h3 className="font-semibold">How your payout is calculated</h3>
+          <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+            <div className="inset-well rounded-xl px-4 py-3">
+              <dt className="text-xs text-muted-foreground">Item price</dt>
+              <dd className="text-lg font-bold tabular-nums">{formatPrice(completed)}</dd>
+            </div>
+            <div className="inset-well rounded-xl px-4 py-3">
+              <dt className="text-xs text-muted-foreground">AccsMartHub fee (10%)</dt>
+              <dd className="text-lg font-bold tabular-nums text-destructive">
+                −{formatPrice(commission)}
+              </dd>
+            </div>
+            <div className="inset-well rounded-xl px-4 py-3">
+              <dt className="text-xs text-muted-foreground">You receive</dt>
+              <dd className="text-lg font-bold tabular-nums text-emerald-600">
+                {formatPrice(available)}
+              </dd>
+            </div>
+          </dl>
+          <p className="mt-3 text-xs text-muted-foreground">
+            The 10% commission is calculated on the server for every order and
+            recorded on the order itself, so your statements always reconcile.
+          </p>
         </div>
 
         <div className="glass p-6">
@@ -73,7 +129,8 @@ export default function SellerEarnings() {
             <div>
               <h3 className="font-semibold">Withdraw funds</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Payouts are processed within one business day.
+                {formatPrice(paidOut)} paid out so far · payouts are processed
+                within one business day.
               </p>
             </div>
             <Dialog open={open} onOpenChange={setOpen}>

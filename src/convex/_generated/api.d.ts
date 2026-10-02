@@ -11,8 +11,13 @@
 import type * as auth from "../auth.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
 import type * as http from "../http.js";
+import type * as lib from "../lib.js";
+import type * as marketplace from "../marketplace.js";
 import type * as payments from "../payments.js";
+import type * as reports from "../reports.js";
+import type * as stores from "../stores.js";
 import type * as users from "../users.js";
+import type * as wallet from "../wallet.js";
 
 import type {
   ApiFromModules,
@@ -24,8 +29,13 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   "auth/emailOtp": typeof auth_emailOtp;
   http: typeof http;
+  lib: typeof lib;
+  marketplace: typeof marketplace;
   payments: typeof payments;
+  reports: typeof reports;
+  stores: typeof stores;
   users: typeof users;
+  wallet: typeof wallet;
 }>;
 
 /**

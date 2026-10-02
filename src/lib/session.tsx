@@ -1,14 +1,20 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { useQuery } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { api } from "@/convex/_generated/api";
+import { formatPrice } from "@/lib/format";
+
+/**
+ * The account session.
+ *
+ * Identity comes from Convex Auth (a real, verified email session) and the
+ * balance from the server-side wallet. There is no localStorage copy and no
+ * client-side role picker: a single account both buys and sells, and selling
+ * unlocks only after an admin approves the seller's store.
+ */
 
 export type Role = "buyer" | "seller" | "admin";
-/** Store application lifecycle: not applied → pending review → approved (seller) / rejected. */
+/** Store application lifecycle: not applied → pending review → approved / rejected. */
 export type SellerStatus = "none" | "pending" | "approved" | "rejected";
 
 export type SessionUser = {
@@ -22,192 +28,50 @@ export type SessionUser = {
   lockedBalance: number;
   /** Store application state. "approved" means the account can also sell. */
   sellerStatus: SellerStatus;
+  /** False until the emailed one-time code has been entered. */
+  emailVerified: boolean;
+  storeName: string | null;
 };
 
 type SessionContextValue = {
   user: SessionUser | null;
   isLoading: boolean;
-  signIn: (
-    email: string,
-    role?: Role,
-    opts?: { name?: string; sellerStatus?: SellerStatus },
-  ) => SessionUser;
-  signOut: () => void;
-  /** Adds a credited deposit to the wallet balance. */
-  creditBalance: (userId: string, amount: number) => void;
-  /** Moves funds from balance to lockedBalance (escrow / holds). */
-  lockBalance: (userId: string, amount: number) => void;
-  /** Unlocks previously locked funds back into balance. */
-  unlockBalance: (userId: string, amount: number) => void;
-  /** Spends funds from the wallet balance (checkout payment). */
-  debitBalance: (userId: string, amount: number) => void;
-  /** Submits/updates the signed-in user's store application. */
-  applyAsSeller: (userId: string) => void;
-  /** Demo admin action: approves the given user's store application. */
-  approveSellerApplication: (userId: string) => void;
-  /** Demo admin action: rejects the given user's store application. */
-  rejectSellerApplication: (userId: string) => void;
+  signOut: () => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-const STORAGE_KEY = "accsmarthub.session.v2";
-
-/**
- * Demo session store backed by localStorage. This is the seam where a real
- * backend session (httpOnly cookie / JWT) will plug in — the UI only ever
- * talks to this context.
- */
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SessionUser | null>(() => {
-    // Lazy initializer: restore persisted session without an effect.
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? (JSON.parse(raw) as SessionUser) : null;
-    } catch {
-      return null;
+  const { signOut } = useAuthActions();
+  // `undefined` means the query is still in flight — guards must wait for it
+  // instead of bouncing a signed-in user to /auth.
+  const identity = useQuery(api.users.me);
+  const wallet = useQuery(api.wallet.me);
+
+  const value = useMemo<SessionContextValue>(() => {
+    const isLoading = identity === undefined;
+    if (!identity) {
+      return { user: null, isLoading, signOut };
     }
-  });
-  const isLoading = false;
-
-  const persist = useCallback((next: SessionUser | null) => {
-    try {
-      if (next) localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      else localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // storage unavailable — session stays in memory
-    }
-  }, []);
-
-  const patch = useCallback(
-    (userId: string, updater: (u: SessionUser) => SessionUser) => {
-      setUser((prev) => {
-        if (!prev || prev.id !== userId) return prev;
-        const next = updater(prev);
-        persist(next);
-        return next;
-      });
-    },
-    [persist],
-  );
-
-  const signIn = useCallback(
-    (
-      email: string,
-      role: Role = "buyer",
-      opts?: { name?: string; sellerStatus?: SellerStatus },
-    ) => {
-      const name =
-        opts?.name ??
-        email
-          .split("@")[0]
-          .replace(/[._-]+/g, " ")
-          .replace(/\b\w/g, (c) => c.toUpperCase());
-      const isAdmin = email.toLowerCase().startsWith("admin");
-      const next: SessionUser = {
-        id: isAdmin ? "u-admin" : `u-${email.toLowerCase()}`,
-        name: name || "Member",
-        email,
-        role: isAdmin ? "admin" : role,
-        balance: 250,
-        lockedBalance: 0,
-        // Admins are trusted by default; new accounts must apply for a store.
-        sellerStatus: isAdmin ? "approved" : (opts?.sellerStatus ?? "none"),
-      };
-      setUser(next);
-      persist(next);
-      return next;
-    },
-    [persist],
-  );
-
-  const signOut = useCallback(() => {
-    setUser(null);
-    persist(null);
-  }, [persist]);
-
-  const creditBalance = useCallback(
-    (userId: string, amount: number) =>
-      patch(userId, (u) => ({ ...u, balance: Math.round((u.balance + amount) * 100) / 100 })),
-    [patch],
-  );
-
-  const lockBalance = useCallback(
-    (userId: string, amount: number) =>
-      patch(userId, (u) => ({
-        ...u,
-        balance: Math.round((u.balance - amount) * 100) / 100,
-        lockedBalance: Math.round((u.lockedBalance + amount) * 100) / 100,
-      })),
-    [patch],
-  );
-
-  const unlockBalance = useCallback(
-    (userId: string, amount: number) =>
-      patch(userId, (u) => ({
-        ...u,
-        balance: Math.round((u.balance + amount) * 100) / 100,
-        lockedBalance: Math.round((u.lockedBalance - amount) * 100) / 100,
-      })),
-    [patch],
-  );
-
-  const debitBalance = useCallback(
-    (userId: string, amount: number) =>
-      patch(userId, (u) => ({
-        ...u,
-        balance: Math.max(0, Math.round((u.balance - amount) * 100) / 100),
-      })),
-    [patch],
-  );
-
-  const applyAsSeller = useCallback(
-    (userId: string) => patch(userId, (u) => ({ ...u, sellerStatus: "pending" })),
-    [patch],
-  );
-
-  const approveSellerApplication = useCallback(
-    (userId: string) =>
-      patch(userId, (u) => {
-        const next = { ...u, sellerStatus: "approved" as const, role: "seller" as Role };
-        return next;
-      }),
-    [patch],
-  );
-
-  const rejectSellerApplication = useCallback(
-    (userId: string) => patch(userId, (u) => ({ ...u, sellerStatus: "rejected" as const })),
-    [patch],
-  );
-
-  const value = useMemo<SessionContextValue>(
-    () => ({
-      user,
-      isLoading,
-      signIn,
-      signOut,
-      creditBalance,
-      lockBalance,
-      unlockBalance,
-      debitBalance,
-      applyAsSeller,
-      approveSellerApplication,
-      rejectSellerApplication,
-    }),
-    [
-      user,
-      isLoading,
-      signIn,
-      signOut,
-      creditBalance,
-      lockBalance,
-      unlockBalance,
-      debitBalance,
-      applyAsSeller,
-      approveSellerApplication,
-      rejectSellerApplication,
-    ],
-  );
+    const sellerStatus: SellerStatus = identity.storeStatus ?? "none";
+    const role: Role = identity.isAdmin
+      ? "admin"
+      : sellerStatus === "approved"
+        ? "seller"
+        : "buyer";
+    const user: SessionUser = {
+      id: identity.id,
+      name: identity.name,
+      email: identity.email,
+      role,
+      balance: wallet?.balanceUsd ?? 0,
+      lockedBalance: wallet?.lockedUsd ?? 0,
+      sellerStatus,
+      emailVerified: identity.emailVerified,
+      storeName: identity.storeName,
+    };
+    return { user, isLoading, signOut };
+  }, [identity, wallet, signOut]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
@@ -216,4 +80,18 @@ export function useSession(): SessionContextValue {
   const ctx = useContext(SessionContext);
   if (!ctx) throw new Error("useSession must be used within SessionProvider");
   return ctx;
+}
+
+/** The platform commission taken from every completed sale. */
+export const PLATFORM_COMMISSION_RATE = 0.1;
+
+/** Human-readable split used by the checkout and earnings screens. */
+export function splitGross(gross: number) {
+  const commission = Math.round(gross * PLATFORM_COMMISSION_RATE * 100) / 100;
+  return {
+    gross,
+    commission,
+    net: Math.round((gross - commission) * 100) / 100,
+    commissionLabel: `${Math.round(PLATFORM_COMMISSION_RATE * 100)}% platform fee (${formatPrice(commission)})`,
+  };
 }

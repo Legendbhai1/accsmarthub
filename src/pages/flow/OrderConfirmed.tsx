@@ -1,15 +1,36 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router";
+import { useMutation, useQuery } from "convex/react";
 import { motion } from "framer-motion";
-import { ArrowRight, MailCheck, PackageCheck, ShieldCheck } from "lucide-react";
+import { ArrowRight, Loader2, MailCheck, PackageCheck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { useDb } from "@/lib/db";
+import { api } from "@/convex/_generated/api";
+import { toast } from "sonner";
 
 export default function OrderConfirmed() {
   const { orderId } = useParams<{ orderId: string }>();
-  const { orders } = useDb();
-  const order = orders.find((o) => o.id === orderId);
+  const orderNo = orderId ? decodeURIComponent(orderId) : "";
+  const order = useQuery(api.marketplace.getOrder, orderNo ? { orderNo } : "skip");
+  const completeOrder = useMutation(api.marketplace.completeOrder);
+  const [confirming, setConfirming] = useState(false);
+
+  const confirm = async () => {
+    setConfirming(true);
+    try {
+      await completeOrder({ orderNo });
+      toast.success("Transfer confirmed", {
+        description: "Escrow has been released to the seller, minus our 10% commission.",
+      });
+    } catch (err) {
+      toast.error("Could not confirm the transfer", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col items-center px-4 py-20 text-center">
@@ -23,14 +44,17 @@ export default function OrderConfirmed() {
           <PackageCheck className="size-7 text-emerald-600" />
         </div>
         <h1 className="mt-6 text-2xl font-bold tracking-tight">
-          {order ? `Order ${order.id} confirmed` : "Order confirmed"}
+          {order ? `Order ${order.orderNo} confirmed` : "Order confirmed"}
         </h1>
         <p className="mt-3 leading-relaxed text-muted-foreground">
           {order ? (
             <>
-              Your payment of <span className="font-semibold text-foreground">{formatPrice(order.total)}</span> is
-              now held in escrow. The seller has been notified and will begin
-              the secure transfer.
+              Your payment of{" "}
+              <span className="font-semibold text-foreground">
+                {formatPrice(order.totalUsd)}
+              </span>{" "}
+              is now held in escrow. The seller has been notified and will
+              begin the secure transfer.
             </>
           ) : (
             "Your payment is held in escrow and the seller has been notified to begin the transfer."
@@ -38,10 +62,26 @@ export default function OrderConfirmed() {
         </p>
 
         {order && (
-          <div className="mt-5 flex items-center justify-center gap-2 text-sm">
-            <StatusBadge status={order.status} />
-            <span className="text-muted-foreground">· {order.listingTitle}</span>
-          </div>
+          <>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm">
+              <StatusBadge status={order.status} />
+              <span className="text-muted-foreground">· {order.listingTitle}</span>
+            </div>
+
+            <dl className="mt-5 divide-y divide-border/60 rounded-xl border border-border/60 text-left text-sm">
+              {[
+                ["Quantity", String(order.quantity)],
+                ["Subtotal", formatPrice(order.grossAmount)],
+                ["Escrow & protection", formatPrice(order.escrowFeeUsd)],
+                ["Paid", formatPrice(order.totalUsd)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between px-4 py-2.5">
+                  <dt className="text-muted-foreground">{label}</dt>
+                  <dd className="font-medium tabular-nums">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </>
         )}
 
         <ul className="mx-auto mt-7 max-w-sm space-y-2.5 text-left text-sm">
@@ -56,8 +96,18 @@ export default function OrderConfirmed() {
         </ul>
 
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <Button className="rounded-xl" asChild>
-            <Link to={order ? `/account/orders/${order.id}` : "/account/orders"}>
+          {order && order.status !== "completed" && (
+            <Button className="rounded-xl" onClick={confirm}>
+              {confirming ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <PackageCheck className="size-4" />
+              )}
+              Confirm I received the account
+            </Button>
+          )}
+          <Button variant="outline" className="rounded-xl" asChild>
+            <Link to="/account/orders">
               Track this order <ArrowRight className="size-4" />
             </Link>
           </Button>

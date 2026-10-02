@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
+import { useMutation } from "convex/react";
 import {
   ArrowLeft,
   CheckCircle2,
   Circle,
   Loader2,
   MessageSquareWarning,
+  ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,8 @@ import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Prim
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
 import { api, getSeller, useDb } from "@/lib/db";
+import { api as convexApi } from "@/convex/_generated/api";
+import { toast } from "sonner";
 
 const TIMELINE: { key: string; label: string }[] = [
   { key: "pending", label: "Order placed" },
@@ -35,6 +39,15 @@ const TIMELINE: { key: string; label: string }[] = [
 ];
 
 const DISPUTE_REASONS = ["Not as described", "Transfer failed", "Seller unresponsive", "Other"];
+
+/** Off-platform contact is a policy breach, not a payment problem. */
+const REPORT_REASONS = [
+  { value: "shared_contact", label: "Seller shared phone/email/chat handle" },
+  { value: "payment_offsite", label: "Asked me to pay outside AccsMartHub" },
+  { value: "refused_escrow", label: "Refused to use escrow" },
+  { value: "impersonation", label: "Impersonating AccsMartHub staff" },
+  { value: "other", label: "Other policy breach" },
+] as const;
 
 export default function BuyerOrderDetail() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -46,6 +59,10 @@ export default function BuyerOrderDetail() {
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [reason, setReason] = useState(DISPUTE_REASONS[0]);
   const [detail, setDetail] = useState("");
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<string>("shared_contact");
+  const [reportDetail, setReportDetail] = useState("");
+  const reportOffPlatform = useMutation(convexApi.reports.reportOffPlatform);
 
   if (!order) {
     return (
@@ -200,6 +217,30 @@ export default function BuyerOrderDetail() {
           </div>
         </div>
 
+        {/* Off-platform contact is prohibited on AccsMartHub. Reporting it triggers a
+   trust-team review and can pause the seller's listings. */}
+        <div className="glass border-amber-500/30 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="font-semibold">Policy: stay on AccsMartHub</h3>
+              <p className="mt-1 max-w-md text-xs text-muted-foreground">
+                Sellers must never share a phone number, personal email or chat
+                handle, and must never ask you to pay outside escrow. Deals moved
+                off-platform lose escrow protection and are fully refundable.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl"
+              onClick={() => setReportOpen(true)}
+            >
+              <ShieldAlert className="size-4" />
+              Report off-platform contact
+            </Button>
+          </div>
+        </div>
+
         {/* Dispute section */}
         <div className="glass p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -286,6 +327,82 @@ export default function BuyerOrderDetail() {
             </p>
           )}
         </div>
+
+        {/* Off-platform contact report */}
+        <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+          <DialogContent className="glass border-border/70 sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Report off-platform contact</DialogTitle>
+              <DialogDescription>
+                Our trust team reviews every report. Confirmed breaches can
+                pause a seller's listings and hold their balance.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="report-reason">What happened?</Label>
+                <select
+                  id="report-reason"
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="inset-well h-10 rounded-xl px-3 text-sm outline-none"
+                >
+                  {REPORT_REASONS.map((r) => (
+                    <option key={r.value} value={r.value} className="bg-popover">
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="report-detail">Details</Label>
+                <Textarea
+                  id="report-detail"
+                  value={reportDetail}
+                  onChange={(e) => setReportDetail(e.target.value)}
+                  placeholder="Describe what the seller said or did, and when…"
+                  className="inset-well min-h-24 rounded-xl border-border/60"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                className="rounded-xl"
+                onClick={() => setReportOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="rounded-xl"
+                disabled={reportDetail.trim().length < 10}
+                onClick={async () => {
+                  try {
+                    await reportOffPlatform({
+                      orderNo: order.id,
+                      reportedUserId: order.sellerId,
+                      reason: reportReason as (typeof REPORT_REASONS)[number]["value"],
+                      detail: reportDetail.trim(),
+                    });
+                    toast.success("Report submitted", {
+                      description: "Our trust team will review it shortly.",
+                    });
+                    setReportOpen(false);
+                    setReportDetail("");
+                  } catch (err) {
+                    toast.error("Could not submit the report", {
+                      description:
+                        err instanceof Error ? err.message : "Please try again.",
+                    });
+                  }
+                }}
+              >
+                Submit report
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <ConfirmDialog
           open={confirmOpen}
