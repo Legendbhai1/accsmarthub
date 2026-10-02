@@ -204,28 +204,28 @@ const L = (
 });
 
 export const listings: Listing[] = [
-  L("l-001", "Aurora Lifestyle Theme Page", "instagram", "instagram", "s-1", 7400, 892000, "Lifestyle", 4.8, 214, 2, 1, "active", 8900),
-  L("l-002", "FitFuel Daily Fitness Account", "tiktok", "tiktok", "s-2", 3900, 340000, "Fitness", 4.6, 143, 1, 1, "active", 4600),
-  L("l-003", "The Workshop Tool Reviews", "youtube", "youtube", "s-5", 9800, 64000, "DIY & Tools", 4.9, 241, 4, 1, "active", 11500),
-  L("l-004", "UrbanX Finance Commentary", "x", "x", "s-4", 4200, 95000, "Finance", 4.5, 88, 3, 1, "active"),
-  L("l-005", "Atlas Advisory Authority Profile", "linkedin", "linkedin", "s-1", 6200, 24000, "B2B Consulting", 4.9, 133, 6, 1, "active"),
-  L("l-006", "Kitchen & Craft Traffic Account", "pinterest", "pinterest", "s-5", 1850, 45000, "Home & Recipes", 4.8, 121, 5, 1, "active"),
-  L("l-007", "MarketPulse Investing Channel", "telegram", "telegram", "s-4", 3400, 58000, "Markets", 4.7, 97, 8, 1, "active"),
-  L("l-008", "GridIron Gaming Highlights", "tiktok", "tiktok", "s-6", 8200, 510000, "Gaming", 4.9, 264, 9, 1, "active", 9900),
-  L("l-009", "DealStream Bargain Community", "facebook", "facebook", "s-7", 4100, 74000, "Deals", 4.5, 156, 11, 1, "active"),
-  L("l-010", "Clutch Arena Partnered Channel", "twitch", "twitch", "s-6", 6900, 42000, "FPS Streaming", 4.8, 117, 12, 1, "active"),
-  L("l-011", "Runway Notes Beauty Account", "tiktok", "tiktok", "s-3", 4600, 190000, "Beauty", 4.9, 178, 7, 1, "active"),
-  L("l-012", "Studio Nine Shorts Channel", "youtube", "youtube", "s-7", 7800, 120000, "Entertainment", 4.8, 149, 14, 1, "active"),
-  L("l-013", "Globe Hoppers Travel Page", "instagram", "instagram", "s-8", 5600, 620000, "Travel", 4.3, 64, 10, 1, "active"),
-  L("l-014", "HomeFront Interior Design Page", "instagram", "instagram", "s-2", 3200, 130000, "Interior", 4.6, 108, 15, 1, "active"),
-  L("l-015", "ServerCraft Tech Community", "discord", "discord", "s-1", 2600, 31000, "Technology", 4.7, 71, 18, 1, "active"),
-  L("l-016", "Founders Circle Company Page", "linkedin", "linkedin", "s-5", 2750, 18000, "Startups", 4.6, 82, 20, 1, "active"),
-  L("l-017", "TechPrism News Handle", "x", "x", "s-7", 2900, 48000, "Technology", 4.5, 76, 22, 1, "active"),
-  L("l-018", "Quiet Focus Lofi Channel", "youtube", "youtube", "s-3", 5100, 31000, "Music", 4.8, 187, 25, 1, "active"),
-  L("l-019", "The Daily Plate Recipe Page", "instagram", "instagram", "s-3", 2350, 210000, "Food", 4.7, 162, 28, 1, "paused"),
-  L("l-020", "HustleHub Business Page", "facebook", "facebook", "s-8", 2250, 96000, "Entrepreneurship", 4.4, 52, 30, 1, "pending"),
-  L("l-021", "Prime Clips Highlight Hub", "youtube", "youtube", "s-2", 4300, 88000, "Sports", 4.7, 95, 6, 1, "sold"),
-  L("l-022", "Daily Grind Coffee Community", "instagram", "instagram", "s-6", 1950, 54000, "Food & Drink", 4.5, 77, 16, 1, "active"),
+  L("l-001", "Aurora Lifestyle Theme Page", "instagram", "instagram", "s-1", 7400, 892000, "Lifestyle", 4.8, 214, 2, 12, "active", 8900),
+  L("l-002", "FitFuel Daily Fitness Account", "tiktok", "tiktok", "s-2", 3900, 340000, "Fitness", 4.6, 143, 1, 25, "active", 4600),
+  L("l-003", "The Workshop Tool Reviews", "youtube", "youtube", "s-5", 9800, 64000, "DIY & Tools", 4.9, 241, 4, 6, "active", 11500),
+  L("l-004", "UrbanX Finance Commentary", "x", "x", "s-4", 4200, 95000, "Finance", 4.5, 88, 3, 18, "active"),
+  L("l-005", "Atlas Advisory Authority Profile", "linkedin", "linkedin", "s-1", 6200, 24000, "B2B Consulting", 4.9, 133, 6, 9, "active"),
+  L("l-006", "Kitchen & Craft Traffic Account", "pinterest", "pinterest", "s-5", 1850, 45000, "Home & Recipes", 4.8, 121, 5, 30, "active"),
+  L("l-007", "MarketPulse Investing Channel", "telegram", "telegram", "s-4", 3400, 58000, "Markets", 4.7, 97, 8, 14, "active"),
+  L("l-008", "GridIron Gaming Highlights", "tiktok", "tiktok", "s-6", 8200, 510000, "Gaming", 4.9, 264, 9, 4, "active", 9900),
+  L("l-009", "DealStream Bargain Community", "facebook", "facebook", "s-7", 4100, 74000, "Deals", 4.5, 156, 11, 21, "active"),
+  L("l-010", "Clutch Arena Partnered Channel", "twitch", "twitch", "s-6", 6900, 42000, "FPS Streaming", 4.8, 117, 12, 7, "active"),
+  L("l-011", "Runway Notes Beauty Account", "tiktok", "tiktok", "s-3", 4600, 190000, "Beauty", 4.9, 178, 7, 16, "active"),
+  L("l-012", "Studio Nine Shorts Channel", "youtube", "youtube", "s-7", 7800, 120000, "Entertainment", 4.8, 149, 14, 3, "active"),
+  L("l-013", "Globe Hoppers Travel Page", "instagram", "instagram", "s-8", 5600, 620000, "Travel", 4.3, 64, 10, 8, "active"),
+  L("l-014", "HomeFront Interior Design Page", "instagram", "instagram", "s-2", 3200, 130000, "Interior", 4.6, 108, 15, 22, "active"),
+  L("l-015", "ServerCraft Tech Community", "discord", "discord", "s-1", 2600, 31000, "Technology", 4.7, 71, 18, 11, "active"),
+  L("l-016", "Founders Circle Company Page", "linkedin", "linkedin", "s-5", 2750, 18000, "Startups", 4.6, 82, 20, 19, "active"),
+  L("l-017", "TechPrism News Handle", "x", "x", "s-7", 2900, 48000, "Technology", 4.5, 76, 22, 13, "active"),
+  L("l-018", "Quiet Focus Lofi Channel", "youtube", "youtube", "s-3", 5100, 31000, "Music", 4.8, 187, 25, 5, "active"),
+  L("l-019", "The Daily Plate Recipe Page", "instagram", "instagram", "s-3", 2350, 210000, "Food", 4.7, 162, 28, 0, "paused"),
+  L("l-020", "HustleHub Business Page", "facebook", "facebook", "s-8", 2250, 96000, "Entrepreneurship", 4.4, 52, 30, 10, "pending"),
+  L("l-021", "Prime Clips Highlight Hub", "youtube", "youtube", "s-2", 4300, 88000, "Sports", 4.7, 95, 6, 0, "sold"),
+  L("l-022", "Daily Grind Coffee Community", "instagram", "instagram", "s-6", 1950, 54000, "Food & Drink", 4.5, 77, 16, 27, "active"),
 ];
 
 for (const item of listings) {
@@ -476,6 +476,37 @@ export const api = {
     emit();
   },
 
+  /**
+   * Seller inventory control: adds (or removes) units of an existing listing.
+   *
+   * Restocking a listing that sold out flips it back to "active" — otherwise
+   * new stock would be invisible because the marketplace filters on status.
+   * Stock is clamped at 0 and cannot be negative.
+   */
+  adjustStock(id: string, delta: number): void {
+    state = {
+      ...state,
+      listings: state.listings.map((l) => {
+        if (l.id !== id) return l;
+        const nextStock = Math.max(0, l.stock + delta);
+        return {
+          ...l,
+          stock: nextStock,
+          status:
+            nextStock > 0 && l.status === "sold" ? "active" : nextStock <= 0 && l.status === "active" ? "sold" : l.status,
+        };
+      }),
+    };
+    emit();
+  },
+
+  /** Sets absolute stock (seller dashboard "set to N" control). */
+  setStock(id: string, value: number): void {
+    const listing = state.listings.find((l) => l.id === id);
+    if (!listing) return;
+    api.adjustStock(id, Math.max(0, Math.floor(value)) - listing.stock);
+  },
+
   placeOrder(input: {
     listingId: string;
     listingTitle: string;
@@ -486,8 +517,18 @@ export const api = {
   }): Order {
     // NOTE: in production the price/stock come from the server, never the client.
     const listing = state.listings.find((l) => l.id === input.listingId);
-    if (!listing || listing.status !== "active" || listing.stock < input.quantity) {
+    if (!listing || listing.status !== "active") {
       throw new Error("Listing is no longer available");
+    }
+    if (!Number.isInteger(input.quantity) || input.quantity < 1) {
+      throw new Error("Quantity must be at least 1");
+    }
+    if (listing.stock < input.quantity) {
+      throw new Error(
+        listing.stock === 0
+          ? "This listing just sold out"
+          : `Only ${listing.stock} left in stock`,
+      );
     }
     const order: Order = {
       id: `o-${Math.floor(1000 + Math.random() * 9000)}`,

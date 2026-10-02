@@ -31,6 +31,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { BrandMark } from "@/components/site/BrandMark";
 import { RatingStars } from "@/components/common/RatingStars";
 import { ListingCard } from "@/components/common/ListingCard";
+import { StockBadge } from "@/components/common/Primitives";
 import { formatFollowers, formatPrice } from "@/lib/format";
 import { getCategory, getRelated, getReviewsFor, getSeller, useDb } from "@/lib/db";
 import { cn } from "@/lib/utils";
@@ -77,10 +78,13 @@ export default function ListingDetail() {
   const related = getRelated(listing);
   const available = listing.status === "active" && listing.stock > 0;
 
+  // Sellers can restock or drain a listing at any time, so clamp the picked
+  // quantity to whatever stock is left rather than trusting stale state.
+  const maxQty = Math.max(1, listing.stock);
+  const qty = Math.min(quantity, maxQty);
+
   const buy = () => {
-    navigate(
-      `/checkout?listing=${listing.id}&qty=${quantity}`,
-    );
+    navigate(`/checkout?listing=${listing.id}&qty=${qty}`);
   };
 
   return (
@@ -279,18 +283,25 @@ export default function ListingDetail() {
               )}
             </p>
 
-            <div className="mt-3 text-sm">
-              {available ? (
-                <span className="inline-flex items-center gap-1.5 text-emerald-600">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  Available · exclusive listing
-                </span>
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              {listing.status === "active" ? (
+                <StockBadge stock={listing.stock} />
               ) : (
-                <span className="font-medium text-amber-600 capitalize">
+                <span className="font-medium text-muted-foreground capitalize">
                   {listing.status === "sold" ? "Sold" : "Currently unavailable"}
                 </span>
               )}
+              {available && (
+                <span className="text-xs text-muted-foreground">
+                  Escrow-protected listing
+                </span>
+              )}
             </div>
+            {!available && listing.status === "active" && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                This listing is sold out. Check back — the seller can restock it.
+              </p>
+            )}
 
             {/* Quantity */}
             <div className="mt-5 flex items-center justify-between">
@@ -307,15 +318,15 @@ export default function ListingDetail() {
                   <Minus className="size-3.5" />
                 </Button>
                 <span className="w-9 text-center text-sm font-semibold tabular-nums" aria-live="polite">
-                  {quantity}
+                  {qty}
                 </span>
                 <Button
                   variant="outline"
                   size="icon"
                   className="size-8 rounded-lg"
                   aria-label="Increase quantity"
-                  disabled={!available || quantity >= listing.stock}
-                  onClick={() => setQuantity((q) => Math.min(listing.stock, q + 1))}
+                  disabled={!available || qty >= maxQty}
+                  onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
                 >
                   <Plus className="size-3.5" />
                 </Button>
@@ -329,8 +340,14 @@ export default function ListingDetail() {
                 disabled={!available}
                 onClick={buy}
               >
-                <ShieldCheck className="size-4" />
-                Buy with escrow
+                {available ? (
+                  <>
+                    <ShieldCheck className="size-4" />
+                    {qty > 1 ? `Buy ${qty} with escrow` : "Buy with escrow"}
+                  </>
+                ) : (
+                  "Sold out"
+                )}
               </Button>
               <Dialog open={reportOpen} onOpenChange={setReportOpen}>
                 <DialogTrigger asChild>

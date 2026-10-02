@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { BrandMark } from "@/components/site/BrandMark";
+import { QuantityStepper, StockBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { api, getSeller, useDb } from "@/lib/db";
 import { useSession } from "@/lib/session";
@@ -22,11 +23,18 @@ export default function Checkout() {
   const { listings } = useDb();
 
   const listing = listings.find((l) => l.id === params.get("listing"));
-  const qty = Math.max(1, parseInt(params.get("qty") ?? "1", 10) || 1);
 
   const [payment, setPayment] = useState<PaymentMethod>("card");
   const [agreed, setAgreed] = useState(false);
   const [placing, setPlacing] = useState(false);
+  // Seed from ?qty= but never let the URL exceed what is actually in stock —
+  // otherwise a hand-edited link shows a bogus total and fails at submit.
+  const [qty, setQty] = useState(() => {
+    const requested = parseInt(params.get("qty") ?? "1", 10);
+    const safe = Number.isFinite(requested) && requested > 0 ? requested : 1;
+    const available = listing?.stock ?? 1;
+    return Math.min(safe, Math.max(1, available));
+  });
 
   if (!listing) {
     return (
@@ -43,11 +51,14 @@ export default function Checkout() {
   }
 
   const seller = getSeller(listing.sellerId);
+  const available = listing.stock;
+  const soldOut = available <= 0;
   const subtotal = listing.price * qty;
   const escrowFee = Math.round(subtotal * 0.03);
   const total = subtotal + escrowFee;
 
-  const canPlace = agreed && !!user && !(payment === "wallet" && (user?.balance ?? 0) < total);
+  const canPlace =
+    agreed && !!user && !soldOut && !(payment === "wallet" && (user?.balance ?? 0) < total);
 
   const walletShort = payment === "wallet" && !!user && user.balance < total;
 
@@ -77,6 +88,14 @@ export default function Checkout() {
           unitPrice: listing.price,
         });
         navigate(`/order/${order.id}/confirmed`);
+      } catch (err) {
+        // placeOrder throws when stock ran out between render and submit.
+        // Without this the buyer is left on a dead button with no feedback.
+        toast.error("Could not complete this purchase.", {
+          description: err instanceof Error ? err.message : "Please try again.",
+        });
+        // The available quantity may have changed, so re-read from the store.
+        setQty((prev) => Math.max(1, Math.min(prev, available)));
       } finally {
         setPlacing(false);
       }
@@ -107,12 +126,28 @@ export default function Checkout() {
                   Sold by {seller.name}
                   {seller.verified && " · ID-verified"}
                 </p>
+                <div className="mt-2">
+                  <StockBadge stock={available} />
+                </div>
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold tabular-nums">{formatPrice(subtotal)}</p>
                 <p className="text-xs text-muted-foreground">Qty {qty}</p>
               </div>
             </div>
+            {soldOut ? (
+              <p className="mt-4 rounded-full bg-muted px-4 py-3 text-xs text-muted-foreground">
+                This listing has sold out.{" "}
+                <Link to="/marketplace" className="font-medium underline">
+                  Find similar accounts
+                </Link>
+              </p>
+            ) : (
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+                <span className="text-sm font-medium">How many do you need?</span>
+                <QuantityStepper value={qty} max={available} onChange={setQty} />
+              </div>
+            )}
             {!user && (
               <p className="mt-4 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
                 You need an account to complete this purchase.{" "}
@@ -183,7 +218,10 @@ export default function Checkout() {
             <h2 className="font-semibold">Order summary</h2>
             <dl className="mt-4 space-y-2.5 text-sm">
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Subtotal</dt>
+                <dt className="text-muted-foreground">
+                  Subtotal{" "}
+                  <span className="text-xs">({formatPrice(listing.price)} × {qty})</span>
+                </dt>
                 <dd className="tabular-nums">{formatPrice(subtotal)}</dd>
               </div>
               <div className="flex justify-between">
@@ -221,6 +259,8 @@ export default function Checkout() {
                   <Loader2 className="size-4 animate-spin" />
                   Processing…
                 </>
+              ) : soldOut ? (
+                "Sold out"
               ) : (
                 <>
                   <Lock className="size-4" />

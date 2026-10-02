@@ -66,6 +66,11 @@ function AccountCard({
           <span className="absolute bottom-2 left-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-bold text-black backdrop-blur-sm">
             {formatFollowers(listing.followers)} followers
           </span>
+          {listing.stock <= 3 && (
+            <span className="absolute left-2 top-2 rounded-full bg-black px-2 py-0.5 text-[10px] font-bold text-white">
+              {listing.stock === 0 ? "Sold out" : `Only ${listing.stock} left`}
+            </span>
+          )}
         </Link>
         <button
           type="button"
@@ -92,6 +97,9 @@ function AccountCard({
           {listing.oldPrice && (
             <span className="text-[11px] text-gray-400 line-through">{formatPrice(listing.oldPrice)}</span>
           )}
+          <span className="ml-auto text-[10px] font-semibold text-gray-500">
+            {listing.stock} in stock
+          </span>
         </div>
       </Link>
     </article>

@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Inbox } from "lucide-react";
+import { Inbox, Minus, Plus } from "lucide-react";
 
 export function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -42,6 +42,77 @@ export function StatusBadge({ status }: { status: string }) {
     >
       {status.replace(/_/g, " ")}
     </span>
+  );
+}
+
+/**
+ * Availability pill. Buyers care about two things: can I get one, and will it
+ * run out — so sold-out and low-stock are called out explicitly.
+ */
+export function StockBadge({
+  stock,
+  className,
+}: {
+  stock: number;
+  className?: string;
+}) {
+  const label =
+    stock === 0 ? "Sold out" : stock <= 3 ? `Only ${stock} left` : `${stock} available`;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
+        stock === 0
+          ? "bg-muted text-muted-foreground"
+          : stock <= 3
+            ? "bg-amber-500/10 text-amber-700"
+            : "bg-muted text-foreground",
+        className,
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
+/** Quantity stepper bounded by the listing's remaining stock. */
+export function QuantityStepper({
+  value,
+  max,
+  onChange,
+}: {
+  value: number;
+  max: number;
+  onChange: (next: number) => void;
+}) {
+  const clamp = (n: number) => Math.min(Math.max(1, n), Math.max(1, max));
+  return (
+    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-white p-1">
+      <button
+        type="button"
+        aria-label="Decrease quantity"
+        disabled={value <= 1}
+        onClick={() => onChange(clamp(value - 1))}
+        className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+      >
+        <Minus className="size-4" />
+      </button>
+      <span
+        aria-live="polite"
+        className="w-8 text-center text-sm font-bold tabular-nums"
+      >
+        {value}
+      </span>
+      <button
+        type="button"
+        aria-label="Increase quantity"
+        disabled={value >= max}
+        onClick={() => onChange(clamp(value + 1))}
+        className="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+      >
+        <Plus className="size-4" />
+      </button>
+    </div>
   );
 }
 

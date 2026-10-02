@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Minus, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +36,7 @@ const emptyDraft = {
   followers: "",
   niche: "",
   description: "",
+  stock: "1",
 };
 
 export default function SellerListings() {
@@ -59,6 +60,7 @@ export default function SellerListings() {
       followers: String(listing.followers),
       niche: listing.niche,
       description: listing.description,
+      stock: String(listing.stock),
     });
     setEditorOpen(true);
   };
@@ -66,8 +68,13 @@ export default function SellerListings() {
   const save = () => {
     const price = Number(draft.price);
     const followers = Number(draft.followers);
+    const stock = Math.floor(Number(draft.stock));
     if (!draft.title.trim() || !price || !followers) {
       toast.error("Please fill in title, price and follower count.");
+      return;
+    }
+    if (!Number.isFinite(stock) || stock < 0) {
+      toast.error("Stock must be zero or more.");
       return;
     }
     const category = categories.find((c) => c.slug === draft.category);
@@ -80,7 +87,9 @@ export default function SellerListings() {
         followers,
         niche: draft.niche.trim() || editing.niche,
         description: draft.description.trim() || editing.description,
-        status: "pending",
+        stock,
+        // Restocking a sold-out listing should bring it straight back live.
+        status: stock > 0 && editing.status === "sold" ? "active" : "pending",
       });
       toast.success("Listing updated — pending re-approval.");
     } else {
@@ -100,7 +109,7 @@ export default function SellerListings() {
           "Original registration email included with full access",
           "Escrow-protected transfer with dispute coverage",
         ],
-        stock: 1,
+        stock,
         deliveryTime: "Within 24 hours",
       });
       toast.success("Listing submitted for approval.");
@@ -113,7 +122,9 @@ export default function SellerListings() {
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
-            {myListings.length} listing{myListings.length === 1 ? "" : "s"} · new listings require approval before going live.
+            {myListings.length} listing{myListings.length === 1 ? "" : "s"} ·{" "}
+            {myListings.reduce((sum, l) => sum + l.stock, 0)} units in stock · new
+            listings require approval before going live.
           </p>
           <Button
             className="rounded-xl"
@@ -135,9 +146,10 @@ export default function SellerListings() {
           />
         ) : (
           <div className="glass overflow-hidden">
-            <div className="hidden grid-cols-[1fr_7rem_7rem_9rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid">
+            <div className="hidden grid-cols-[1fr_7rem_9rem_7rem_9rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid">
               <span>Listing</span>
               <span>Price</span>
+              <span className="text-center">Stock</span>
               <span>Status</span>
               <span className="text-right">Actions</span>
             </div>
@@ -155,6 +167,28 @@ export default function SellerListings() {
                   </span>
                   <span className="w-16 text-sm font-semibold tabular-nums">
                     {formatPrice(l.price)}
+                  </span>
+                  <span className="inline-flex items-center justify-center gap-1 rounded-full border border-border bg-white p-0.5">
+                    <button
+                      type="button"
+                      aria-label={`Remove one unit of ${l.title}`}
+                      disabled={l.stock === 0}
+                      onClick={() => api.adjustStock(l.id, -1)}
+                      className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
+                    >
+                      <Minus className="size-3.5" />
+                    </button>
+                    <span className="w-7 text-center text-sm font-bold tabular-nums">
+                      {l.stock}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Add one unit of ${l.title}`}
+                      onClick={() => api.adjustStock(l.id, 1)}
+                      className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <Plus className="size-3.5" />
+                    </button>
                   </span>
                   <StatusBadge status={l.status} />
                   <span className="flex w-full justify-end gap-1.5 lg:w-auto">
@@ -274,8 +308,25 @@ export default function SellerListings() {
                   placeholder="120000"
                 />
               </div>
+            <div className="grid gap-2">
+                <Label htmlFor="draft-stock">Units available</Label>
+                <Input
+                  id="draft-stock"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={draft.stock}
+                  onChange={(e) => setDraft((d) => ({ ...d, stock: e.target.value }))}
+                  className="inset-well rounded-xl border-border/60"
+                  placeholder="1"
+                />
+                <p className="text-xs text-muted-foreground">
+                  How many buyers can purchase this listing. Set 0 to mark it
+                  sold out.
+                </p>
+              </div>
               <div className="grid gap-2">
-                <Label htmlFor="draft-niche">Niche</Label>
+              <Label htmlFor="draft-niche">Niche</Label>
                 <Input
                   id="draft-niche"
                   value={draft.niche}

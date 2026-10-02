@@ -4,7 +4,9 @@ import { Link } from "react-router";
 import { BadgeCheck, Clock, ShieldCheck } from "lucide-react";
 import { BrandMark } from "@/components/site/BrandMark";
 import { RatingStars } from "@/components/common/RatingStars";
+import { StockBadge } from "@/components/common/Primitives";
 import { getSeller, type Listing } from "@/lib/db";
+import { cn } from "@/lib/utils";
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const seller = getSeller(listing.sellerId);
@@ -55,23 +57,26 @@ export function ListingCard({ listing }: { listing: Listing }) {
       <div className="mt-auto flex items-end justify-between gap-3 pt-4">
         <div>
           <p className="text-lg font-bold tracking-tight">{formatPrice(listing.price)}</p>
-          <p className="text-xs text-muted-foreground">
-            {available ? (
-              <span className="inline-flex items-center gap-1 text-emerald-600">
-                <span className="size-1.5 rounded-full bg-emerald-500" /> Available
-              </span>
-            ) : listing.status === "sold" ? (
-              "Sold"
+          <p className="mt-1 text-xs">
+            {listing.status === "active" ? (
+              <StockBadge stock={listing.stock} />
             ) : (
-              "Unavailable"
+              <span className="text-muted-foreground">
+                {listing.status === "sold" ? "Sold" : "Unavailable"}
+              </span>
             )}
           </p>
         </div>
         <Link
           to={`/listing/${listing.id}`}
-          className="inline-flex h-9 items-center justify-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className={cn(
+            "inline-flex h-9 items-center justify-center rounded-xl px-4 text-sm font-medium transition-colors",
+            available
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "inset-well text-muted-foreground",
+          )}
         >
-          View Details
+          {available ? "View Details" : "View"}
         </Link>
       </div>
     </motion.article>
