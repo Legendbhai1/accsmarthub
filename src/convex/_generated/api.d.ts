@@ -10,6 +10,8 @@
 
 import type * as auth from "../auth.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
+import type * as credentialStore from "../credentialStore.js";
+import type * as credentials from "../credentials.js";
 import type * as http from "../http.js";
 import type * as lib from "../lib.js";
 import type * as marketplace from "../marketplace.js";
@@ -29,6 +31,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   "auth/emailOtp": typeof auth_emailOtp;
+  credentialStore: typeof credentialStore;
+  credentials: typeof credentials;
   http: typeof http;
   lib: typeof lib;
   marketplace: typeof marketplace;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
+import { KeyRound } from "lucide-react";
 import { Lock, Minus, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,17 +73,31 @@ export default function SellerListings() {
   const generateListingUploadUrl = useMutation(
     convexApi.marketplace.generateListingUploadUrl,
   );
+  const setCredentials = useMutation(convexApi.credentials.setCredentials);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [editorOpen, setEditorOpen] = useState(() => params.get("new") === "1");
   const [editing, setEditing] = useState<Listing | null>(null);
   const [draft, setDraft] = useState(emptyDraft);
   const [deleteTarget, setDeleteTarget] = useState<Listing | null>(null);
+  const [vaultFor, setVaultFor] = useState<string | null>(null);
+  const [vaultText, setVaultText] = useState("");
+  const [vaultName, setVaultName] = useState("");
+  const [vaultFiles, setVaultFiles] = useState<
+    { unitKey: string; fileName: string; credentials: string }[]
+  >([]);
+  const [savingVault, setSavingVault] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const approved = user?.sellerStatus === "approved";
   const ledgerByListing = new Map((ledger ?? []).map((row) => [row.listingId, row]));
   const myListings = catalogue;
+
+  // Which listings already have a credential file attached.
+  const credentialStatus = useQuery(
+    convexApi.credentials.credentialStatus,
+    myListings.length ? { listingIds: myListings.map((l) => l.id) } : "skip",
+  );
 
   const openEdit = (listing: Listing) => {
     const row = ledgerByListing.get(listing.id);
@@ -386,6 +401,32 @@ export default function SellerListings() {
                     </span>
                     <StatusBadge status={l.status} />
                     <span className="flex w-full justify-end gap-1.5 lg:w-auto">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="size-8 rounded-lg"
+                        aria-label={`Manage credentials for ${l.title}`}
+                        title={
+                          credentialStatus?.[l.id]?.attached
+                            ? `${credentialStatus[l.id].availableUnits} of ${
+                                credentialStatus[l.id].totalUnits
+                              } accounts still unsold — click to manage`
+                            : "Attach the credentials buyers will download"
+                        }
+                        onClick={() => {
+                          setVaultFor(l.id);
+                          setVaultText("");
+                          setVaultName(`${l.id}-unit-1.txt`);
+                        }}
+                      >
+                        <KeyRound
+                          className={
+                            credentialStatus?.[l.id]?.attached
+                              ? "size-3.5 text-emerald-600"
+                              : "size-3.5 text-amber-600"
+                          }
+                        />
+                      </Button>
                       {l.status === "active" ? (
                         <Button
                           variant="outline"
@@ -730,6 +771,158 @@ export default function SellerListings() {
             </Button>
             <Button className="rounded-xl" onClick={save}>
               {editing ? "Save changes" : "Submit for approval"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credential vault — one .txt per listing, reused by every buyer. */}
+      <Dialog open={!!vaultFor} onOpenChange={() => setVaultFor(null)}>
+        <DialogContent className="glass max-h-[90vh] overflow-y-auto border-border/70 sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Account credentials</DialogTitle>
+            <DialogDescription>
+              Paste the credentials buyers receive after they pay. Stored
+              encrypted and shared from one copy, no matter how many people buy
+              this listing.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="vault-file">Upload .txt files</Label>
+              <Input
+                id="vault-file"
+                type="file"
+                multiple
+                accept=".txt,text/plain"
+                onChange={async (e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  if (files.length === 0) return;
+                  const tooBig = files.find((f) => f.size > 20_000);
+                  if (tooBig) {
+                    toast.error(`${tooBig.name} is too large (20KB maximum).`);
+                    return;
+                  }
+                  const loaded = await Promise.all(
+                    files.map(async (file) => ({
+                      unitKey: file.name.replace(/\.txt$/i, ""),
+                      fileName: file.name,
+                      credentials: await file.text(),
+                    })),
+                  );
+                  setVaultFiles(loaded);
+                  setVaultText("");
+                  setVaultName("");
+                }}
+                className="inset-well rounded-xl border-border/60"
+              />
+              <p className="text-xs text-muted-foreground">
+                One file per unit in stock — each buyer receives a different
+                account. You can also type a single account below.
+              </p>
+            </div>
+
+            {vaultFiles.length > 0 && (
+              <ul className="space-y-1.5">
+                {vaultFiles.map((f, i) => (
+                  <li
+                    key={f.unitKey}
+                    className="inset-well flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
+                  >
+                    <KeyRound className="size-3.5 shrink-0 text-emerald-600" />
+                    <span className="min-w-0 flex-1 truncate">{f.fileName}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${f.fileName}`}
+                      onClick={() =>
+                        setVaultFiles((prev) => prev.filter((_, idx) => idx !== i))
+                      }
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="grid gap-2">
+              <Label htmlFor="vault-name">File name</Label>
+              <Input
+                id="vault-name"
+                value={vaultName}
+                onChange={(e) => setVaultName(e.target.value)}
+                className="inset-well rounded-xl border-border/60"
+                placeholder={`${vaultFor ?? "listing"}-unit-1.txt`}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="vault-text">Credentials</Label>
+              <Textarea
+                id="vault-text"
+                value={vaultText}
+                onChange={(e) => setVaultText(e.target.value)}
+                className="inset-well min-h-48 rounded-xl border-border/60 font-mono text-xs"
+                placeholder={"username: someone@example.com\npassword: …\n2fa backup: …"}
+              />
+              <p className="text-xs text-muted-foreground">
+                Do not include links — they are rejected. Only the account
+                details themselves are delivered.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              className="rounded-xl"
+              onClick={() => setVaultFor(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="rounded-xl"
+              disabled={
+                savingVault ||
+                (vaultFiles.length === 0 && !vaultText.trim())
+              }
+              onClick={async () => {
+                if (!vaultFor) return;
+                setSavingVault(true);
+                try {
+                  const files =
+                    vaultFiles.length > 0
+                      ? vaultFiles
+                      : [
+                          {
+                            unitKey: vaultName.replace(/\.txt$/i, "") || "unit-1",
+                            fileName: vaultName || `${vaultFor}-unit-1.txt`,
+                            credentials: vaultText,
+                          },
+                        ];
+                  const result = await setCredentials({ listingId: vaultFor, files });
+                  toast.success("Credentials saved", {
+                    description: `${result.unclaimedUnits} account${
+                      result.unclaimedUnits === 1 ? "" : "s"
+                    } ready to sell${
+                      result.reservedUnits
+                        ? ` · ${result.reservedUnits} already reserved by paid orders`
+                        : ""
+                    }.`,
+                  });
+                  setVaultFor(null);
+                  setVaultText("");
+                  setVaultName("");
+                  setVaultFiles([]);
+                } catch (err) {
+                  toast.error("Could not save credentials", {
+                    description: err instanceof Error ? err.message : "Please try again.",
+                  });
+                } finally {
+                  setSavingVault(false);
+                }
+              }}
+            >
+              {savingVault ? "Saving…" : "Save credentials"}
             </Button>
           </DialogFooter>
         </DialogContent>

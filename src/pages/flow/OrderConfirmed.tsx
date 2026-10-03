@@ -1,8 +1,15 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2, MailCheck, PackageCheck, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Download,
+  Loader2,
+  MailCheck,
+  PackageCheck,
+  ShieldCheck,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
@@ -14,7 +21,9 @@ export default function OrderConfirmed() {
   const orderNo = orderId ? decodeURIComponent(orderId) : "";
   const order = useQuery(api.marketplace.getOrder, orderNo ? { orderNo } : "skip");
   const completeOrder = useMutation(api.marketplace.completeOrder);
+  const downloadCredentials = useAction(api.credentials.downloadCredentials);
   const [confirming, setConfirming] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const confirm = async () => {
     setConfirming(true);
@@ -29,6 +38,42 @@ export default function OrderConfirmed() {
       });
     } finally {
       setConfirming(false);
+    }
+  };
+
+  // Credentials are fetched from the server on demand and saved straight to
+  // disk — the text is never rendered into the page. A multi-unit order gets
+  // one file per unit, downloaded sequentially.
+  const download = async () => {
+    setDownloading(true);
+    try {
+      const { files } = await downloadCredentials({ orderNo });
+      for (const file of files) {
+        const url = URL.createObjectURL(
+          new Blob([file.content], { type: "text/plain" }),
+        );
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = file.fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+        // Browsers throttle rapid successive downloads; space them out.
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      toast.success(
+        files.length === 1
+          ? "Credentials downloaded"
+          : `${files.length} accounts downloaded`,
+        {
+          description: "Keep these files private — they grant full account access.",
+        },
+      );
+    } catch (err) {
+      toast.error("Could not download the credentials", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -104,6 +149,23 @@ export default function OrderConfirmed() {
                 <PackageCheck className="size-4" />
               )}
               Confirm I received the account
+            </Button>
+          )}
+          {/* Credentials unlock as soon as the order is paid — escrow has the
+              buyer's money, so the seller has delivered for a guaranteed sale. */}
+          {order && order.status !== "refunded" && (
+            <Button
+              className="rounded-xl bg-[#15172b]"
+              onClick={download}
+              disabled={downloading}
+            >
+              {downloading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Download className="size-4" />
+              )}
+              Download credentials
+              {order.quantity > 1 ? ` (${order.quantity} accounts)` : " (.txt)"}
             </Button>
           )}
           <Button variant="outline" className="rounded-xl" asChild>

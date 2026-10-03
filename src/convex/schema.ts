@@ -202,6 +202,67 @@ const schema = defineSchema(
       .index("by_status", ["status"])
       .index("by_reported", ["reportedUserId"]),
 
+    /**
+     * The credential vault.
+     *
+     * ONE ROW PER UNIT IN STOCK, NOT PER ORDER. Each purchasable unit of a
+     * listing needs its own account — handing the same username and password
+     * to two buyers means the second one receives an account whose password
+     * the first already changed. So a listing with stock 50 carries up to 50
+     * distinct credential rows.
+     *
+     * This is still far smaller than the alternative: rows are created once
+     * per unit when the seller uploads, not per order, and they are tiny
+     * (~200 bytes encrypted). A listing that sells out stores exactly as
+     * many rows as it has units.
+     *
+     * The ciphertext is only ever decrypted inside a server function that has
+     * already checked the caller is the *paid buyer* of an order that reserved
+     * that specific unit. There is no public read path and no client query
+     * that returns plaintext.
+     */
+    listingCredentials: defineTable({
+      listingId: v.string(),
+      sellerId: v.string(),
+      /**
+       * Which unit of the listing this row delivers. Unique per listing, so a
+       * buyer is always handed a unit nobody else has claimed.
+       */
+      unitKey: v.string(),
+      /** AES-GCM ciphertext, base64. */
+      ciphertext: v.string(),
+      /** Initialization vector, base64. */
+      iv: v.string(),
+      /** AES-GCM auth tag, base64. */
+      authTag: v.string(),
+      /** Suggested filename for the downloaded .txt. */
+      fileName: v.string(),
+      /** Set when a buyer's order reserves this unit. */
+      claimedByOrderNo: v.optional(v.string()),
+      claimedAt: v.optional(v.number()),
+      createdAt: v.number(),
+      updatedAt: v.number(),
+    })
+      .index("by_listing", ["listingId"])
+      .index("by_unit", ["listingId", "unitKey"])
+      .index("by_seller", ["sellerId"]),
+
+    /**
+     * Audit trail so a credential download can be reviewed after a dispute.
+     * Append-only by design — a seller must never be able to erase evidence
+     * that a buyer received the account.
+     */
+    credentialDownloads: defineTable({
+      orderNo: v.string(),
+      listingId: v.string(),
+      unitKey: v.string(),
+      buyerId: v.string(),
+      sellerId: v.string(),
+      downloadedAt: v.number(),
+    })
+      .index("by_order", ["orderNo"])
+      .index("by_buyer", ["buyerId"]),
+
     // add other tables here
 
     // tableName: defineTable({

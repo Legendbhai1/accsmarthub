@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { internal as internalApi } from "./_generated/api";
 import {
   assertVerified,
   ESCROW_FEE_RATE,
@@ -251,7 +252,26 @@ export const placeOrder = mutation({
     quantity: v.number(),
     paymentMethod: v.union(v.literal("wallet"), v.literal("card"), v.literal("bank")),
   },
-  handler: async (ctx, { listingId, quantity, paymentMethod }) => {
+  // Explicit return annotation: without it the `runMutation` into the internal
+  // credential module makes this mutation's own type self-referential (TS7022).
+  handler: async (
+    ctx,
+    { listingId, quantity, paymentMethod },
+  ): Promise<{
+    orderId: unknown;
+    orderNo: string;
+    quantity: number;
+    unitPriceUsd: number;
+    grossAmount: number;
+    escrowFeeUsd: number;
+    totalUsd: number;
+    commissionRate: number;
+    commissionAmount: number;
+    sellerNetAmount: number;
+    status: string;
+    remainingStock: number;
+    unitKeys: string[];
+  }> => {
     const account = await requireAccount(ctx);
     assertVerified(account);
 
@@ -324,6 +344,14 @@ export const placeOrder = mutation({
       updatedAt: Date.now(),
     });
 
+    // Reserve this buyer's credential units in the SAME transaction that
+    // decremented stock, so two buyers can never receive the same account.
+    // runMutation here still commits or rolls back with the outer transaction.
+    const unitKeys = await ctx.runMutation(
+      internalApi.credentialStore.reserveUnits,
+      { listingId, orderNo, quantity: qty },
+    );
+
     const order = await ctx.db.get(orderId);
     return {
       orderId,
@@ -338,6 +366,7 @@ export const placeOrder = mutation({
       sellerNetAmount,
       status: order?.status ?? "in_escrow",
       remainingStock: remaining,
+      unitKeys,
     };
   },
 });
