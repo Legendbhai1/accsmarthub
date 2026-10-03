@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  KeyRound,
   Loader2,
   Mail,
   MailCheck,
@@ -157,6 +158,11 @@ export default function SupabaseAuth() {
                     <ArrowRight className="size-4" />
                   )}
                   Email me a code
+                </Button>
+                <Button asChild variant="ghost" className="w-full rounded-xl">
+                  <Link to="/forgot-password">
+                    <KeyRound className="size-4" /> I already have an account
+                  </Link>
                 </Button>
               </form>
             </>

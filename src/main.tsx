@@ -21,6 +21,8 @@ const Categories = lazy(() => import("./pages/public/Categories.tsx"));
 const Disputes = lazy(() => import("./pages/public/Disputes.tsx"));
 const Auth = lazy(() => import("./pages/flow/Auth.tsx"));
 const SupabaseAuth = lazy(() => import("./pages/flow/SupabaseAuth.tsx"));
+const ForgotPassword = lazy(() => import("./pages/flow/ForgotPassword.tsx"));
+const ResetPassword = lazy(() => import("./pages/flow/ResetPassword.tsx"));
 const Checkout = lazy(() => import("./pages/flow/Checkout.tsx"));
 const OrderConfirmed = lazy(() => import("./pages/flow/OrderConfirmed.tsx"));
 const BuyerDashboard = lazy(() => import("./pages/buyer/BuyerDashboard.tsx"));
@@ -175,6 +177,10 @@ createRoot(document.getElementById("root")!).render(
                   only until the remaining pages are migrated. */}
               <Route path="/auth" element={<SupabaseAuth />} />
               <Route path="/auth/convex" element={<Auth />} />
+              {/* Password recovery. /reset-password is opened from the email
+                  link, so it must stay outside the auth guards. */}
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order/:orderId/confirmed" element={<OrderConfirmed />} />
 
