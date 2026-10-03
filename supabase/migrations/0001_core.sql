@@ -311,13 +311,23 @@ create policy "parties read orders" on public.orders
 --  each runs as ONE transaction, so a partial charge is impossible.
 -- =====================================================================
 
--- Buyer tops up their wallet. Called after OxaPay confirms payment.
-create or replace function public.credit_wallet(p_amount numeric)
+-- Buyer tops up their wallet. Called ONLY by the OxaPay webhook running as
+-- the service role.
+--
+-- The user is passed explicitly rather than read from auth.uid(), because a
+-- service-role request carries no user JWT — auth.uid() would be NULL and the
+-- update would silently match nothing. Safety comes from the EXECUTE grant at
+-- the end of this file: no browser session can reach this function.
+create or replace function public.credit_wallet(p_user_id uuid, p_amount numeric)
 returns void language plpgsql security definer set search_path = public as $$
 begin
+  if p_amount is null or p_amount <= 0 then
+    raise exception 'Credit amount must be positive';
+  end if;
   update public.wallets
      set balance_usd = balance_usd + p_amount, updated_at = now()
-   where user_id = auth.uid();
+   where user_id = p_user_id;
+  if not found then raise exception 'Wallet not found for that user'; end if;
 end;
 $$;
 
@@ -555,6 +565,12 @@ revoke execute on all functions in schema public from public, anon, authenticate
 -- Read-only helper used inside RLS policies.
 grant execute on function public.is_admin() to anon, authenticated;
 
+-- Signup trigger. The default-deny above revoked this too, and Postgres gates
+-- trigger execution on EXECUTE privilege — without restoring it, the insert
+-- into auth.users that creates every new account would fail.
+-- Safe to expose: PostgREST cannot invoke a function returning `trigger`.
+grant execute on function public.handle_new_user() to public;
+
 -- Self-service actions; each one verifies ownership internally.
 grant execute on function public.place_order(uuid, integer) to authenticated;
 grant execute on function public.complete_order(text) to authenticated;
@@ -564,4 +580,4 @@ grant execute on function public.upload_credentials(uuid, jsonb) to authenticate
 
 -- MONEY IN. Never reachable from a browser — only the OxaPay webhook runs
 -- with the service role, which is not exposed to the client.
-grant execute on function public.credit_wallet(numeric) to service_role;
+grant execute on function public.credit_wallet(uuid, numeric) to service_role;
