@@ -20,6 +20,7 @@ const Faq = lazy(() => import("./pages/public/Faq.tsx"));
 const Categories = lazy(() => import("./pages/public/Categories.tsx"));
 const Disputes = lazy(() => import("./pages/public/Disputes.tsx"));
 const Auth = lazy(() => import("./pages/flow/Auth.tsx"));
+const SupabaseAuth = lazy(() => import("./pages/flow/SupabaseAuth.tsx"));
 const Checkout = lazy(() => import("./pages/flow/Checkout.tsx"));
 const OrderConfirmed = lazy(() => import("./pages/flow/OrderConfirmed.tsx"));
 const BuyerDashboard = lazy(() => import("./pages/buyer/BuyerDashboard.tsx"));
@@ -170,6 +171,8 @@ createRoot(document.getElementById("root")!).render(
 
               {/* Auth & purchase flow */}
               <Route path="/auth" element={<Auth />} />
+              {/* Supabase-backed email verification (the backend cutover) */}
+              <Route path="/auth/supabase" element={<SupabaseAuth />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order/:orderId/confirmed" element={<OrderConfirmed />} />
 
