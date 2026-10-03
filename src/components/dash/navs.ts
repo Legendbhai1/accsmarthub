@@ -1,7 +1,12 @@
 import {
+  AlertCircle,
+  BarChart3,
   Bell,
+  LayoutDashboard,
   LifeBuoy,
+  MessageSquare,
   Package,
+  PlusCircle,
   Receipt,
   Settings,
   Shield,
@@ -25,11 +30,18 @@ export const buyerNav: NavItem[] = [
 ];
 
 export const sellerNav: NavItem[] = [
-  { label: "Overview", to: "/seller", icon: Store },
-  { label: "Listings", to: "/seller/listings", icon: Tags },
+  { label: "Dashboard", to: "/seller", icon: LayoutDashboard },
+  { label: "My Listings", to: "/seller/listings", icon: ShoppingBag },
+  // `?new=1` opens the listing editor directly — the editor already reads
+  // this param, so the button is a shortcut rather than a separate page.
+  { label: "Create Listing", to: "/seller/listings?new=1", icon: PlusCircle },
   { label: "Orders", to: "/seller/orders", icon: Receipt },
+  { label: "Transactions", to: "/seller/transactions", icon: Wallet },
+  { label: "Analytics", to: "/seller/analytics", icon: BarChart3 },
+  { label: "Disputes", to: "/seller/disputes", icon: AlertCircle },
+  { label: "Support Chat", to: "/account/support", icon: MessageSquare },
   { label: "Earnings", to: "/seller/earnings", icon: Wallet },
-  { label: "Disputes", to: "/seller/disputes", icon: Shield },
+  { label: "Store Settings", to: "/seller/settings", icon: Settings },
   { label: "Profile", to: "/seller/profile", icon: User },
 ];
 

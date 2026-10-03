@@ -37,6 +37,9 @@ const SellerOrders = lazy(() => import("./pages/seller/SellerOrders.tsx"));
 const SellerEarnings = lazy(() => import("./pages/seller/SellerEarnings.tsx"));
 const SellerDisputes = lazy(() => import("./pages/seller/SellerDisputes.tsx"));
 const SellerProfile = lazy(() => import("./pages/seller/SellerProfile.tsx"));
+const SellerTransactions = lazy(() => import("./pages/seller/SellerTransactions.tsx"));
+const SellerAnalytics = lazy(() => import("./pages/seller/SellerAnalytics.tsx"));
+const SellerSettings = lazy(() => import("./pages/seller/SellerSettings.tsx"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.tsx"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers.tsx"));
 const AdminSellers = lazy(() => import("./pages/admin/AdminSellers.tsx"));
@@ -187,6 +190,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/seller/orders" element={<RequireRole roles={["seller", "admin"]}><SellerOrders /></RequireRole>} />
               <Route path="/seller/earnings" element={<RequireRole roles={["seller", "admin"]}><SellerEarnings /></RequireRole>} />
               <Route path="/seller/disputes" element={<RequireRole roles={["seller", "admin"]}><SellerDisputes /></RequireRole>} />
+              <Route path="/seller/transactions" element={<RequireRole roles={["seller", "admin"]}><SellerTransactions /></RequireRole>} />
+              <Route path="/seller/analytics" element={<RequireRole roles={["seller", "admin"]}><SellerAnalytics /></RequireRole>} />
+              <Route path="/seller/settings" element={<RequireRole roles={["seller", "admin"]}><SellerSettings /></RequireRole>} />
               <Route path="/seller/profile" element={<RequireRole roles={["seller", "admin"]}><SellerProfile /></RequireRole>} />
 
               {/* Admin panel */}
