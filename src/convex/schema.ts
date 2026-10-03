@@ -114,6 +114,19 @@ const schema = defineSchema(
       storeId: v.optional(v.id("stores")),
       title: v.string(),
       brand: v.string(),
+      /** One-line summary shown on the listing card. */
+      summary: v.optional(v.string()),
+      /** Bulleted "what's included" points. */
+      features: v.optional(v.array(v.string())),
+      /** Optional expandable Q&A rendered on the listing page. */
+      faq: v.optional(
+        v.array(v.object({ question: v.string(), answer: v.string() })),
+      ),
+      imageStorageId: v.optional(v.string()),
+      discountPercent: v.optional(v.number()),
+      warrantyHours: v.optional(v.number()),
+      /** Seller parked the listing: it stays approved but off the storefront. */
+      hidden: v.optional(v.boolean()),
       priceUsd: v.number(),
       stock: v.number(),
       status: v.union(

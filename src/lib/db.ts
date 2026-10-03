@@ -151,6 +151,35 @@ export type SellerApplication = {
  */
 export const DEMO_SELLER_ID = "s-1";
 
+/**
+ * The service categories a seller can pick when creating a listing.
+ *
+ * This is deliberately broader than the social-media `categories` above:
+ * the marketplace also carries software, webmail, connectivity and other
+ * digital goods. `brand` drives the icon; it falls back to a neutral glyph
+ * for services without a registered brand mark.
+ */
+export const SERVICE_CATEGORIES = [
+  { slug: "instagram", name: "Instagram", brand: "instagram" },
+  { slug: "tiktok", name: "TikTok", brand: "tiktok" },
+  { slug: "youtube", name: "YouTube", brand: "youtube" },
+  { slug: "x", name: "X (Twitter)", brand: "x" },
+  { slug: "facebook", name: "Facebook", brand: "facebook" },
+  { slug: "linkedin", name: "LinkedIn", brand: "linkedin" },
+  { slug: "discord", name: "Discord", brand: "discord" },
+  { slug: "telegram", name: "Telegram", brand: "telegram" },
+  { slug: "twitch", name: "Twitch", brand: "twitch" },
+  { slug: "pinterest", name: "Pinterest", brand: "pinterest" },
+  { slug: "software", name: "Software", brand: "software" },
+  { slug: "gmail", name: "Gmail", brand: "gmail" },
+  { slug: "gmx", name: "GMX", brand: "gmx" },
+  { slug: "webmail", name: "Webmail", brand: "webmail" },
+  { slug: "apple", name: "Apple", brand: "apple" },
+  { slug: "vpn", name: "VPN", brand: "vpn" },
+  { slug: "att", name: "AT&T", brand: "att" },
+  { slug: "offline", name: "Offline", brand: "offline" },
+];
+
 const sellers: Seller[] = [
   { id: "s-1", name: "Meridian Digital", rating: 4.9, reviews: 1240, sales: 3120, verified: true, memberSince: "2024-03-12", responseTime: "Under 1 hour" },
   { id: "s-2", name: "Harborlight Accounts", rating: 4.8, reviews: 986, sales: 2450, verified: true, memberSince: "2024-01-20", responseTime: "Under 2 hours" },

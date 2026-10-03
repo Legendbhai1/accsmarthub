@@ -26,19 +26,27 @@ import { sellerNav } from "@/components/dash/navs";
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
-import { api, categories, useDb, type Listing, DEMO_SELLER_ID } from "@/lib/db";
+import { api, useDb, type Listing, DEMO_SELLER_ID, SERVICE_CATEGORIES } from "@/lib/db";
 import { api as convexApi } from "@/convex/_generated/api";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 
+type FaqDraft = { question: string; answer: string };
+
 const emptyDraft = {
   title: "",
+  summary: "",
   category: "instagram",
   price: "",
   followers: "",
   niche: "",
   description: "",
+  features: "",
   stock: "1",
+  discount: "0",
+  warranty: "24",
+  hidden: false,
+  faq: [] as FaqDraft[],
 };
 
 /**
@@ -61,6 +69,10 @@ export default function SellerListings() {
   );
   const publishListing = useMutation(convexApi.marketplace.publishListing);
   const adjustStock = useMutation(convexApi.marketplace.adjustStock);
+  const generateListingUploadUrl = useMutation(
+    convexApi.marketplace.generateListingUploadUrl,
+  );
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [editorOpen, setEditorOpen] = useState(() => params.get("new") === "1");
   const [editing, setEditing] = useState<Listing | null>(null);
@@ -73,15 +85,22 @@ export default function SellerListings() {
   const myListings = catalogue;
 
   const openEdit = (listing: Listing) => {
+    const row = ledgerByListing.get(listing.id);
     setEditing(listing);
     setDraft({
       title: listing.title,
+      summary: row?.summary ?? "",
       category: listing.category,
       price: String(listing.price),
       followers: String(listing.followers),
       niche: listing.niche,
       description: listing.description,
-      stock: String(ledgerByListing.get(listing.id)?.stock ?? listing.stock),
+      features: (row?.features ?? listing.features ?? []).join("\n"),
+      stock: String(row?.stock ?? listing.stock),
+      discount: String(row?.discountPercent ?? 0),
+      warranty: String(row?.warrantyHours ?? 24),
+      hidden: row?.hidden ?? false,
+      faq: (row?.faq ?? []).map((f) => ({ ...f })),
     });
     setEditorOpen(true);
   };
@@ -90,6 +109,8 @@ export default function SellerListings() {
     const price = Number(draft.price);
     const followers = Number(draft.followers);
     const stock = Math.floor(Number(draft.stock));
+    const discount = Number(draft.discount);
+    const warranty = Number(draft.warranty);
     if (!draft.title.trim() || !price || !followers) {
       toast.error("Please fill in title, price and follower count.");
       return;
@@ -98,73 +119,135 @@ export default function SellerListings() {
       toast.error("Stock must be zero or more.");
       return;
     }
-    const category = categories.find((c) => c.slug === draft.category);
+    if (!Number.isFinite(discount) || discount < 0 || discount > 90) {
+      toast.error("Discount must be between 0 and 90%.");
+      return;
+    }
+    if (!Number.isFinite(warranty) || warranty < 0) {
+      toast.error("Warranty must be zero or more hours.");
+      return;
+    }
+    const category = SERVICE_CATEGORIES.find((c) => c.slug === draft.category);
+    const features = draft.features
+      .split("\n")
+      .map((f) => f.trim())
+      .filter(Boolean);
+    const faq = draft.faq
+      .filter((f) => f.question.trim() || f.answer.trim())
+      .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() }));
+    if (faq.some((f) => !f.question)) {
+      toast.error("Every FAQ section needs a title.");
+      return;
+    }
 
-    if (editing) {
-      api.updateListing(editing.id, {
-        title: draft.title.trim(),
-        category: draft.category,
-        brand: category?.brand ?? editing.brand,
-        price,
-        followers,
-        niche: draft.niche.trim() || editing.niche,
-        description: draft.description.trim() || editing.description,
-        stock,
-        status: stock > 0 && editing.status === "sold" ? "active" : "pending",
+    // Contact details are rejected on every text field, not only the
+    // description — catch it before the round trip.
+    const copy = [
+      draft.title,
+      draft.summary,
+      draft.description,
+      ...features,
+      ...faq.map((f) => `${f.question} ${f.answer}`),
+    ];
+    const leaked = copy.find((text) =>
+      /(?:\+\d[\s().-]*)?(?:\d[\s().-]*){9,}|[\w.+-]+@[\w-]+\.[\w.]+|(?:t\.me|@)[A-Za-z0-9_]{4,}|wa\.me|whatsapp|https?:\/\//i.test(
+        text,
+      ),
+    );
+    if (leaked) {
+      toast.error("Your listing contains contact information.", {
+        description:
+          "Remove phone numbers, emails, chat handles and links — buyers must transact through escrow.",
       });
-      try {
-        // Re-register with the ledger so server price/stock stay authoritative.
+      return;
+    }
+
+    const uploadImage = async () => {
+      const file = imageFile;
+      if (!file) return undefined;
+      const url = await generateListingUploadUrl();
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!res.ok) throw new Error("Image upload failed. Try a smaller file.");
+      const { storageId } = (await res.json()) as { storageId: string };
+      return storageId;
+    };
+
+    try {
+      const imageStorageId = await uploadImage();
+
+      if (editing) {
+        api.updateListing(editing.id, {
+          title: draft.title.trim(),
+          category: draft.category,
+          brand: category?.brand ?? editing.brand,
+          price,
+          followers,
+          niche: draft.niche.trim() || editing.niche,
+          description: draft.description.trim() || editing.description,
+          features,
+          stock,
+          status: stock > 0 && editing.status === "sold" ? "active" : "pending",
+        });
         await publishListing({
           listingId: editing.id,
           title: draft.title.trim(),
           brand: category?.brand ?? editing.brand,
           priceUsd: price,
           stock,
+          summary: draft.summary,
+          features,
+          faq,
+          imageStorageId,
+          discountPercent: discount,
+          warrantyHours: warranty,
+          hidden: draft.hidden,
         });
-        toast.success("Listing updated — price and stock saved on the server.");
-      } catch (err) {
-        toast.error("Saved locally, but the server rejected the update", {
-          description: err instanceof Error ? err.message : "Please try again.",
+        toast.success("Listing updated — sent for review.");
+      } else {
+        const created = api.createListing({
+          title: draft.title.trim(),
+          category: draft.category,
+          brand: category?.brand ?? "instagram",
+          sellerId: DEMO_SELLER_ID,
+          price,
+          rating: 0,
+          reviewCount: 0,
+          followers,
+          niche: draft.niche.trim() || "General",
+          description: draft.description.trim() || "Description pending.",
+          features,
+          stock,
+          deliveryTime: "Within 24 hours",
+        });
+        await publishListing({
+          listingId: created.id,
+          title: created.title,
+          brand: created.brand,
+          priceUsd: price,
+          stock,
+          summary: draft.summary,
+          features,
+          faq,
+          imageStorageId,
+          discountPercent: discount,
+          warrantyHours: warranty,
+          hidden: draft.hidden,
+        });
+        toast.success("Listing submitted for review.", {
+          description: "An admin reviews new listings before they go live.",
         });
       }
       setEditorOpen(false);
-      return;
-    }
-
-    const created = api.createListing({
-      title: draft.title.trim(),
-      category: draft.category,
-      brand: category?.brand ?? "instagram",
-      sellerId: DEMO_SELLER_ID,
-      price,
-      rating: 0,
-      reviewCount: 0,
-      followers,
-      niche: draft.niche.trim() || "General",
-      description: draft.description.trim() || "Description pending.",
-      features: [
-        "Verified proof of ownership and transfer record",
-        "Original registration email included with full access",
-        "Escrow-protected transfer with dispute coverage",
-      ],
-      stock,
-      deliveryTime: "Within 24 hours",
-    });
-    try {
-      await publishListing({
-        listingId: created.id,
-        title: created.title,
-        brand: created.brand,
-        priceUsd: price,
-        stock,
-      });
-      toast.success("Listing created — stock is now tracked on the server.");
+      setImageFile(null);
     } catch (err) {
-      toast.error("Listing created but not published to the server", {
+      toast.error("Could not save the listing", {
         description: err instanceof Error ? err.message : "Please try again.",
       });
     }
-    setEditorOpen(false);
   };
 
   const step = async (listing: Listing, delta: number) => {
@@ -367,28 +450,74 @@ export default function SellerListings() {
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
+            {/* Guidelines — the same rules the screenshots call out, kept in
+                the project's own visual language rather than copied. */}
+            <div className="rounded-xl border border-sky-500/25 bg-sky-500/[0.06] px-4 py-3.5 text-xs">
+              <p className="font-semibold text-sky-900">Before you submit</p>
+              <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-sky-900/80">
+                <li>
+                  <strong>No contact info.</strong> Phone numbers, emails and
+                  chat handles in a listing get your account suspended.
+                </li>
+                <li>
+                  <strong>Commission.</strong> AccsMartHub takes 10% of the
+                  sale price. Your payout is calculated on the server.
+                </li>
+                <li>
+                  <strong>Review window.</strong> New listings go to admin
+                  review before they appear in the marketplace.
+                </li>
+              </ol>
+            </div>
+
             <div className="grid gap-2">
-              <Label htmlFor="draft-title">Title</Label>
+              <Label htmlFor="draft-title">Product title</Label>
               <Input
                 id="draft-title"
                 value={draft.title}
                 onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
                 className="inset-well rounded-xl border-border/60"
-                placeholder="e.g. Aurora Lifestyle Theme Page"
+                placeholder="e.g. Premium Netflix 4K UHD Account"
               />
             </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="draft-summary">Short one-liner</Label>
+              <Input
+                id="draft-summary"
+                value={draft.summary}
+                onChange={(e) => setDraft((d) => ({ ...d, summary: e.target.value }))}
+                className="inset-well rounded-xl border-border/60"
+                placeholder="Shown on the listing card"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="draft-image">Cover image</Label>
+              <Input
+                id="draft-image"
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                className="inset-well rounded-xl border-border/60"
+              />
+              <p className="text-xs text-muted-foreground">
+                PNG, JPG, WebP or GIF up to 20MB.
+              </p>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label>Platform</Label>
+                <Label>Service category</Label>
                 <Select
                   value={draft.category}
                   onValueChange={(v) => setDraft((d) => ({ ...d, category: v }))}
                 >
                   <SelectTrigger className="inset-well rounded-xl border-border/60">
-                    <SelectValue />
+                    <SelectValue placeholder="Select a service" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((c) => (
+                    {SERVICE_CATEGORIES.map((c) => (
                       <SelectItem key={c.slug} value={c.slug}>
                         {c.name}
                       </SelectItem>
@@ -405,11 +534,14 @@ export default function SellerListings() {
                   value={draft.price}
                   onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
                   className="inset-well rounded-xl border-border/60"
-                  placeholder="3500"
+                  placeholder="0.00"
                 />
+                <p className="text-xs text-muted-foreground">
+                  What the buyer pays before the escrow fee.
+                </p>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="draft-followers">Followers</Label>
+                <Label htmlFor="draft-followers">Followers / audience size</Label>
                 <Input
                   id="draft-followers"
                   type="number"
@@ -433,9 +565,34 @@ export default function SellerListings() {
                   placeholder="1"
                 />
                 <p className="text-xs text-muted-foreground">
-                  How many buyers can purchase this listing. Set 0 to mark it
-                  sold out.
+                  Set 0 to mark it sold out.
                 </p>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="draft-discount">Discount (%)</Label>
+                <Input
+                  id="draft-discount"
+                  type="number"
+                  min={0}
+                  max={90}
+                  value={draft.discount}
+                  onChange={(e) => setDraft((d) => ({ ...d, discount: e.target.value }))}
+                  className="inset-well rounded-xl border-border/60"
+                  placeholder="0"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="draft-warranty">Warranty window (hours)</Label>
+                <Input
+                  id="draft-warranty"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={draft.warranty}
+                  onChange={(e) => setDraft((d) => ({ ...d, warranty: e.target.value }))}
+                  className="inset-well rounded-xl border-border/60"
+                  placeholder="24"
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="draft-niche">Niche</Label>
@@ -448,20 +605,124 @@ export default function SellerListings() {
                 />
               </div>
             </div>
+
+            <label className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm">
+              <input
+                type="checkbox"
+                checked={draft.hidden}
+                onChange={(e) => setDraft((d) => ({ ...d, hidden: e.target.checked }))}
+                className="size-4 accent-[#15172b]"
+              />
+              Hide from storefront
+              <span className="text-xs text-muted-foreground">
+                Keep the listing but stop showing it in search and category
+                pages.
+              </span>
+            </label>
+
             <div className="grid gap-2">
               <Label htmlFor="draft-description">Description</Label>
               <Textarea
                 id="draft-description"
                 value={draft.description}
                 onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-                className="inset-well min-h-24 rounded-xl border-border/60"
-                placeholder="Describe the account, its audience and what's included in the transfer…"
+                className="inset-well min-h-28 rounded-xl border-border/60"
+                placeholder="Describe the product — quality, warranty, what's included…"
               />
-              <p className="text-xs text-muted-foreground">
-                Never include contact details or external links — buyers must
-                transact through escrow.
-              </p>
             </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="draft-features">Features</Label>
+              <Textarea
+                id="draft-features"
+                value={draft.features}
+                onChange={(e) => setDraft((d) => ({ ...d, features: e.target.value }))}
+                className="inset-well min-h-24 rounded-xl border-border/60"
+                placeholder={"One feature per line, e.g.\nAuto delivery\n1 month warranty\n24/7 support"}
+              />
+            </div>
+
+            <div className="grid gap-3">
+              <div>
+                <p className="text-sm font-semibold">FAQ / accordion sections</p>
+                <p className="text-xs text-muted-foreground">
+                  Optional — shown as expandable questions on the listing page.
+                </p>
+              </div>
+              {draft.faq.map((item, index) => (
+                <div
+                  key={index}
+                  className="grid gap-3 rounded-xl border border-border/60 bg-muted/20 p-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Section {index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Remove FAQ section ${index + 1}`}
+                      onClick={() =>
+                        setDraft((d) => ({
+                          ...d,
+                          faq: d.faq.filter((_, i) => i !== index),
+                        }))
+                      }
+                      className="text-muted-foreground transition-colors hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </div>
+                  <Input
+                    aria-label={`FAQ section ${index + 1} title`}
+                    value={item.question}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        faq: d.faq.map((f, i) =>
+                          i === index ? { ...f, question: e.target.value } : f,
+                        ),
+                      }))
+                    }
+                    className="inset-well rounded-xl border-border/60"
+                    placeholder="How does delivery work?"
+                  />
+                  <Textarea
+                    aria-label={`FAQ section ${index + 1} answer`}
+                    value={item.answer}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        faq: d.faq.map((f, i) =>
+                          i === index ? { ...f, answer: e.target.value } : f,
+                        ),
+                      }))
+                    }
+                    className="inset-well min-h-24 rounded-xl border-border/60"
+                    placeholder="Explain in detail…"
+                  />
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-fit rounded-xl"
+                onClick={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    faq: [...d.faq, { question: "", answer: "" }],
+                  }))
+                }
+              >
+                <Plus className="size-4" />
+                Add FAQ section
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              By submitting you confirm this listing follows AccsMartHub&apos;s
+              seller guidelines. Contact details in any field above are rejected
+              automatically.
+            </p>
           </div>
           <DialogFooter>
             <Button variant="ghost" className="rounded-xl" onClick={() => setEditorOpen(false)}>

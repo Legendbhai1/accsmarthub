@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import {
   assertVerified,
   ESCROW_FEE_RATE,
+  findOffPlatformContact,
   money,
   lockFunds,
   PLATFORM_COMMISSION_RATE,
@@ -65,6 +66,17 @@ export const sellerListings = query({
   },
 });
 
+/** Upload a listing cover image; returns the id to store on the listing. */
+export const generateListingUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const account = await requireAccount(ctx);
+    assertVerified(account);
+    await requireApprovedStore(ctx, account.id);
+    return ctx.storage.generateUploadUrl();
+  },
+});
+
 /**
  * Publishes a catalogue listing into the ledger. Blocked until the seller's
  * store has been approved by an admin.
@@ -76,6 +88,15 @@ export const publishListing = mutation({
     brand: v.string(),
     priceUsd: v.number(),
     stock: v.number(),
+    summary: v.optional(v.string()),
+    features: v.optional(v.array(v.string())),
+    faq: v.optional(
+      v.array(v.object({ question: v.string(), answer: v.string() })),
+    ),
+    imageStorageId: v.optional(v.string()),
+    discountPercent: v.optional(v.number()),
+    warrantyHours: v.optional(v.number()),
+    hidden: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const account = await requireAccount(ctx);
@@ -87,6 +108,47 @@ export const publishListing = mutation({
     const stock = Math.floor(args.stock);
     if (!Number.isFinite(stock) || stock < 0) throw new Error("Stock cannot be negative.");
 
+    const discount = args.discountPercent ?? 0;
+    if (!Number.isFinite(discount) || discount < 0 || discount > 90) {
+      throw new Error("Discount must be between 0 and 90%.");
+    }
+    const warranty = args.warrantyHours ?? 24;
+    if (!Number.isFinite(warranty) || warranty < 0 || warranty > 8760) {
+      throw new Error("Warranty must be between 0 and 8760 hours.");
+    }
+
+    const features = (args.features ?? []).map((f) => f.trim()).filter(Boolean);
+    const faq = (args.faq ?? []).filter((f) => f.question.trim() || f.answer.trim());
+    for (const item of faq) {
+      if (!item.question.trim()) throw new Error("Every FAQ section needs a title.");
+    }
+
+    // The no-contact rule is enforced on every free-text field a seller
+    // writes, not just the description — that is where sellers try to dodge it.
+    const sellerCopy = [args.title, args.summary ?? "", ...features, ...faq.map((f) => `${f.question} ${f.answer}`)];
+    for (const text of sellerCopy) {
+      const violation = findOffPlatformContact(text);
+      if (violation) {
+        throw new Error(
+          `Your listing contains a ${violation}. Contact details are not allowed in listings — buyers must transact through escrow.`,
+        );
+      }
+    }
+
+    const fields = {
+      title: args.title.trim(),
+      brand: args.brand,
+      summary: args.summary?.trim() || undefined,
+      features,
+      faq,
+      imageStorageId: args.imageStorageId,
+      discountPercent: discount,
+      warrantyHours: warranty,
+      hidden: args.hidden ?? false,
+      priceUsd: money(args.priceUsd),
+      stock,
+    };
+
     const existing = await ctx.db
       .query("listingStock")
       .withIndex("by_listing", (q) => q.eq("listingId", args.listingId))
@@ -96,10 +158,7 @@ export const publishListing = mutation({
     }
     if (existing) {
       await ctx.db.patch(existing._id, {
-        title: args.title.trim(),
-        brand: args.brand,
-        priceUsd: money(args.priceUsd),
-        stock,
+        ...fields,
         // Editing an approved listing sends it back through moderation.
         status: existing.status === "paused" ? "paused" : "pending",
         updatedAt: Date.now(),
@@ -111,10 +170,7 @@ export const publishListing = mutation({
       listingId: args.listingId,
       sellerId: account.id,
       storeId: store._id,
-      title: args.title.trim(),
-      brand: args.brand,
-      priceUsd: money(args.priceUsd),
-      stock,
+      ...fields,
       status: "pending",
       updatedAt: Date.now(),
     });
