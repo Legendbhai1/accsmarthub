@@ -20,7 +20,6 @@
  */
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PASSPHRASE = Deno.env.get("CREDENTIALS_ENCRYPTION_KEY");
 
 const cors = {
@@ -34,12 +33,6 @@ function b64ToBytes(b64: string): Uint8Array {
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
   return out;
-}
-
-function bytesToB64(bytes: Uint8Array): string {
-  let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
 }
 
 /** Matches the key derivation in the Postgres migration's sibling client code. */
