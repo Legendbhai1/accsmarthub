@@ -170,9 +170,11 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/marketplace" element={<Marketplace />} />
 
               {/* Auth & purchase flow */}
-              <Route path="/auth" element={<Auth />} />
-              {/* Supabase-backed email verification (the backend cutover) */}
-              <Route path="/auth/supabase" element={<SupabaseAuth />} />
+              {/* Supabase-backed email verification. Sign-in now goes through
+                  Supabase Auth; the Convex Auth page stays on /auth/convex
+                  only until the remaining pages are migrated. */}
+              <Route path="/auth" element={<SupabaseAuth />} />
+              <Route path="/auth/convex" element={<Auth />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order/:orderId/confirmed" element={<OrderConfirmed />} />
 

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import {
   ArrowLeft,
   ArrowRight,
@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/site/Logo";
 import { sendEmailCode, verifyEmailCode } from "@/lib/supabase";
+import { useSession } from "@/lib/session";
+import { roleHome } from "@/components/site/guards";
 import { toast } from "sonner";
 
 type Mode = "email" | "otp" | "done";
@@ -30,6 +32,9 @@ type Mode = "email" | "otp" | "done";
  * in place instead, and the data layer is moved across next.
  */
 export default function SupabaseAuth() {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useSession();
   const [mode, setMode] = useState<Mode>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -37,6 +42,17 @@ export default function SupabaseAuth() {
   const [error, setError] = useState<string | null>(null);
 
   const normalized = email.trim().toLowerCase();
+
+  // Wait for the session provider to pick up the new Supabase session before
+  // navigating, otherwise the destination guard bounces straight back here.
+  const returnTo = params.get("returnTo");
+  const destination = returnTo?.startsWith("/") ? returnTo : roleHome.buyer;
+
+  useEffect(() => {
+    if (mode === "done" && user) {
+      navigate(destination, { replace: true });
+    }
+  }, [mode, user, destination, navigate]);
 
   const sendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,25 +245,11 @@ export default function SupabaseAuth() {
                 Email verified
               </h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                {normalized} is confirmed and your account is ready.
+                {normalized} is confirmed. Taking you to your account…
               </p>
-
-              <div className="mt-5 grid gap-2 rounded-xl bg-muted/50 px-4 py-3.5 text-xs text-muted-foreground">
-                <p>
-                  Authentication now runs on Supabase. Your wallets, listings,
-                  orders and the credential vault move onto the same Supabase
-                  database next, using the schema already prepared for it.
-                </p>
-                <p>
-                  Until that cutover is finished, the seller and buyer
-                  dashboards still read the previous backend — so they are not
-                  linked yet.
-                </p>
-              </div>
-
               <Button asChild className="mt-5 w-full rounded-xl">
                 <Link to="/">
-                  Back to marketplace
+                  Continue
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
