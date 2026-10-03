@@ -144,6 +144,13 @@ export type SellerApplication = {
 
 /* ------------------------------- demo data -------------------------------- */
 
+/**
+ * The demo catalogue owner. Listing presentation still lives here, so the
+ * seller screens use this id to decide which seeded rows to edit. All money,
+ * stock and order state comes from the Convex ledger, never from this file.
+ */
+export const DEMO_SELLER_ID = "s-1";
+
 const sellers: Seller[] = [
   { id: "s-1", name: "Meridian Digital", rating: 4.9, reviews: 1240, sales: 3120, verified: true, memberSince: "2024-03-12", responseTime: "Under 1 hour" },
   { id: "s-2", name: "Harborlight Accounts", rating: 4.8, reviews: 986, sales: 2450, verified: true, memberSince: "2024-01-20", responseTime: "Under 2 hours" },

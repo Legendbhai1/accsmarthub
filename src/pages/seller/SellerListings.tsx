@@ -26,9 +26,8 @@ import { sellerNav } from "@/components/dash/navs";
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
-import { api, categories, useDb, type Listing } from "@/lib/db";
+import { api, categories, useDb, type Listing, DEMO_SELLER_ID } from "@/lib/db";
 import { api as convexApi } from "@/convex/_generated/api";
-import { DEMO_SELLER_ID } from "@/pages/seller/SellerDashboard";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 

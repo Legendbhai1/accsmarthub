@@ -31,6 +31,8 @@ import { cn } from "@/lib/utils";
 const NAV_LINKS = [
   { label: "Home", to: "/" },
   { label: "Marketplace", to: "/marketplace" },
+  { label: "Categories", to: "/categories" },
+  { label: "Disputes", to: "/disputes" },
   { label: "Trust & Safety", to: "/trust" },
   { label: "FAQ", to: "/faq" },
 ];

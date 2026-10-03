@@ -24,30 +24,26 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { sellerNav } from "@/components/dash/navs";
 import { StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { api, useDb } from "@/lib/db";
+import { useDb } from "@/lib/db";
 import { api as convexApi } from "@/convex/_generated/api";
-import { DEMO_SELLER_ID } from "@/pages/seller/SellerDashboard";
 import { toast } from "sonner";
 
 export default function SellerEarnings() {
-  const { withdrawals, orders } = useDb();
+  const { withdrawals } = useDb();
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("Bank transfer");
   const [open, setOpen] = useState(false);
 
-  // Authoritative figures come from the order ledger on the server.
-  const summary = useQuery(
-    convexApi.marketplace.earningsSummary,
-    {},
-  );
-  const localCompleted = orders
-    .filter((o) => o.sellerId === DEMO_SELLER_ID && o.status === "completed")
-    .reduce((s, o) => s + o.total, 0);
-  const completed = summary?.grossUsd || localCompleted;
-  const commission = summary?.commissionUsd ?? Math.round(completed * 0.1);
+  // Authoritative figures come from the order ledger on the server. No
+  // demo-seeded fallback: an empty ledger legitimately reads as zero.
+  const summary = useQuery(convexApi.marketplace.earningsSummary);
+  const loading = summary === undefined;
+
+  const completed = summary?.grossUsd ?? 0;
+  const commission = summary?.commissionUsd ?? 0;
   const escrow = summary?.escrowUsd ?? 0;
-  const available = summary?.netUsd ?? Math.round(completed - commission);
-  const myWithdrawals = withdrawals.filter((w) => w.sellerId === DEMO_SELLER_ID);
+  const available = summary?.netUsd ?? 0;
+  const myWithdrawals = withdrawals;
   const paidOut = myWithdrawals
     .filter((w) => w.status === "paid")
     .reduce((s, w) => s + w.amount, 0);
@@ -62,8 +58,10 @@ export default function SellerEarnings() {
       toast.error("Amount exceeds your available balance.");
       return;
     }
-    api.requestWithdrawal(DEMO_SELLER_ID, value, method);
-    toast.success("Withdrawal requested", { description: "Payouts process within one business day." });
+    toast.info("Payouts are not wired up yet", {
+      description:
+        "Your completed sales and commission are shown above from the live ledger. Withdrawal requests will be enabled once the payout provider is connected.",
+    });
     setAmount("");
     setOpen(false);
   };
@@ -74,25 +72,25 @@ export default function SellerEarnings() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="Gross sales"
-            value={formatPrice(completed)}
+            value={loading ? "—" : formatPrice(completed)}
             icon={Wallet}
             hint="Before platform commission"
           />
           <StatCard
             label="Platform commission (10%)"
-            value={`−${formatPrice(commission)}`}
+            value={loading ? "—" : `−${formatPrice(commission)}`}
             icon={Percent}
             hint="Deducted from every completed sale"
           />
           <StatCard
             label="Available to withdraw"
-            value={formatPrice(available)}
+            value={loading ? "—" : formatPrice(available)}
             icon={Wallet}
             hint="After the 10% fee"
           />
           <StatCard
             label="In escrow"
-            value={formatPrice(escrow)}
+            value={loading ? "—" : formatPrice(escrow)}
             hint="Releases after transfer"
             icon={Wallet}
           />

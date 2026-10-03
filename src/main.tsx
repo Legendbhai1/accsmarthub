@@ -17,6 +17,8 @@ const Marketplace = lazy(() => import("./pages/public/Marketplace.tsx"));
 const ListingDetail = lazy(() => import("./pages/public/ListingDetail.tsx"));
 const Trust = lazy(() => import("./pages/public/Trust.tsx"));
 const Faq = lazy(() => import("./pages/public/Faq.tsx"));
+const Categories = lazy(() => import("./pages/public/Categories.tsx"));
+const Disputes = lazy(() => import("./pages/public/Disputes.tsx"));
 const Auth = lazy(() => import("./pages/flow/Auth.tsx"));
 const Checkout = lazy(() => import("./pages/flow/Checkout.tsx"));
 const OrderConfirmed = lazy(() => import("./pages/flow/OrderConfirmed.tsx"));
@@ -154,6 +156,8 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/" element={<Home />} />
                 
                 <Route path="/listing/:id" element={<ListingDetail />} />
+                <Route path="/categories" element={<Categories />} />
+                <Route path="/disputes" element={<Disputes />} />
                 <Route path="/trust" element={<Trust />} />
                 <Route path="/faq" element={<Faq />} />
               </Route>

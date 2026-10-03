@@ -1,3 +1,4 @@
+import { useQuery } from "convex/react";
 import { Link } from "react-router";
 import { ArrowRight, Eye, Receipt, Wallet, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,21 +6,19 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { sellerNav } from "@/components/dash/navs";
 import { SectionHeading, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { useDb } from "@/lib/db";
-
-/** Demo: the signed-in seller is mapped to the seeded "Meridian Digital" account. */
-export const DEMO_SELLER_ID = "s-1";
+import { api as convexApi } from "@/convex/_generated/api";
 
 export default function SellerDashboard() {
-  const { listings, orders } = useDb();
-  const myListings = listings.filter((l) => l.sellerId === DEMO_SELLER_ID);
-  const myOrders = orders.filter((o) => o.sellerId === DEMO_SELLER_ID);
-  const escrow = myOrders
-    .filter((o) => o.status === "in_escrow" || o.status === "transferring")
-    .reduce((s, o) => s + o.total, 0);
-  const earned = myOrders
-    .filter((o) => o.status === "completed")
-    .reduce((s, o) => s + o.total, 0);
+  // All three figures come from the signed-in seller's own server rows.
+  const orders = useQuery(convexApi.marketplace.salesOrders);
+  const listings = useQuery(convexApi.marketplace.sellerListings);
+  const summary = useQuery(convexApi.marketplace.earningsSummary);
+
+  const escrowHeld = (orders ?? [])
+    .filter((o) => ["in_escrow", "transferring"].includes(o.status))
+    .reduce((s, o) => s + o.grossAmount, 0);
+  const activeListings = (listings ?? []).filter((l) => l.status === "active").length;
+  const loading = orders === undefined || listings === undefined;
 
   return (
     <DashLayout title="Seller overview" nav={sellerNav}>
@@ -40,10 +39,28 @@ export default function SellerDashboard() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Active listings" value={String(myListings.filter((l) => l.status === "active").length)} icon={Eye} />
-          <StatCard label="Escrow pending" value={formatPrice(escrow)} icon={Receipt} hint="Releases on buyer confirmation" />
-          <StatCard label="Earned (completed)" value={formatPrice(Math.round(earned * 0.92))} icon={Wallet} hint="After 8% fee" />
-          <StatCard label="Orders" value={String(myOrders.length)} icon={Receipt} />
+          <StatCard
+            label="Active listings"
+            value={loading ? "—" : String(activeListings)}
+            icon={Eye}
+          />
+          <StatCard
+            label="In escrow"
+            value={loading ? "—" : formatPrice(Math.round(escrowHeld * 100) / 100)}
+            icon={Receipt}
+            hint="Releases on buyer confirmation"
+          />
+          <StatCard
+            label="Earned (completed)"
+            value={summary ? formatPrice(summary.netUsd) : "—"}
+            icon={Wallet}
+            hint="After the 10% platform commission"
+          />
+          <StatCard
+            label="Orders"
+            value={loading ? "—" : String(orders?.length ?? 0)}
+            icon={Receipt}
+          />
         </div>
 
         <section className="glass p-6">
@@ -57,27 +74,33 @@ export default function SellerDashboard() {
               </Button>
             }
           />
-          <ul className="mt-4 divide-y divide-border/60">
-            {myOrders.slice(0, 4).map((order) => (
-              <li key={order.id} className="flex items-center gap-3 py-3.5">
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{order.listingTitle}</span>
-                  <span className="text-xs text-muted-foreground">
-                    #{order.id} · {new Date(order.createdAt).toLocaleDateString()}
+          {loading ? (
+            <p className="mt-4 text-sm text-muted-foreground">Loading your orders…</p>
+          ) : (orders ?? []).length === 0 ? (
+            <p className="mt-4 py-6 text-center text-sm text-muted-foreground">
+              No orders yet — publish a listing to get started.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y divide-border/60">
+              {(orders ?? []).slice(0, 4).map((order) => (
+                <li key={order._id} className="flex items-center gap-3 py-3.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">
+                      {order.listingTitle}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {order.orderNo} ·{" "}
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </span>
                   </span>
-                </span>
-                <StatusBadge status={order.status} />
-                <span className="w-20 text-right text-sm font-semibold tabular-nums">
-                  {formatPrice(order.total)}
-                </span>
-              </li>
-            ))}
-            {myOrders.length === 0 && (
-              <li className="py-6 text-center text-sm text-muted-foreground">
-                No orders yet — publish a listing to get started.
-              </li>
-            )}
-          </ul>
+                  <StatusBadge status={order.status} />
+                  <span className="w-20 text-right text-sm font-semibold tabular-nums">
+                    {formatPrice(order.grossAmount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
     </DashLayout>

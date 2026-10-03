@@ -8,6 +8,8 @@ import { BrandMark } from "@/components/site/BrandMark";
 import { ListingCard } from "@/components/common/ListingCard";
 import { SectionHeading } from "@/components/common/Primitives";
 import { categories, useDb } from "@/lib/db";
+import { useQuery } from "convex/react";
+import { api as convexApi } from "@/convex/_generated/api";
 
 const containerVariants = {
   hidden: {},
@@ -28,10 +30,22 @@ const cardVariants = {
 export default function Home() {
   const navigate = useNavigate();
   const { listings } = useDb();
+  const liveStock = useQuery(convexApi.marketplace.liveStock, {
+    listingIds: listings.map((l) => l.id),
+  });
   const [query, setQuery] = useState("");
 
   const active = listings.filter((l) => l.status === "active");
-  const featured = [...active].sort((a, b) => b.rating - a.rating).slice(0, 8);
+  // Only surface catalogue entries a seller has actually stocked, so the
+  // landing page never advertises inventory that cannot be bought.
+  const stocked = active.filter((l) => {
+    const row = liveStock?.[l.id];
+    return row ? row.stock > 0 && row.status === "active" : true;
+  });
+  const featured = stocked.slice(0, 8);
+  // Real per-category counts of live inventory, never a seeded headline.
+  const countFor = (brand: string) =>
+    stocked.filter((l) => l.brand === brand).length;
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,7 +157,11 @@ export default function Home() {
                   {category.name}
                 </h3>
                 <p className="mt-3 text-xs font-medium text-muted-foreground">
-                  {category.listingCount.toLocaleString()} listings
+                  {countFor(category.brand) === 0
+                    ? "No live listings yet"
+                    : `${countFor(category.brand)} ${
+                        countFor(category.brand) === 1 ? "listing" : "listings"
+                      } available`}
                 </p>
               </Link>
             </motion.div>
@@ -180,6 +198,18 @@ export default function Home() {
               </motion.div>
             ))}
           </div>
+          {featured.length === 0 && (
+            <div className="mt-6 rounded-3xl border border-border bg-white px-6 py-16 text-center">
+              <p className="font-semibold">No live listings yet</p>
+              <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
+                Every listing is published by an approved seller and starts
+                pending moderation. Check back shortly, or apply to sell.
+              </p>
+              <Button className="mt-5 rounded-full" asChild>
+                <Link to="/seller/apply">Apply to sell</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </motion.section>
 
@@ -207,7 +237,7 @@ export default function Home() {
           </h2>
           <p className="relative mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/70">
             Create an account to buy with escrow — or list an account and keep
-            92% of the sale price.
+            90% of the sale price.
           </p>
           <div className="relative mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button size="lg" className="rounded-full bg-white px-7 text-foreground hover:bg-white/90" asChild>

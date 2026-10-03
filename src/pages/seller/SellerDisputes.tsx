@@ -13,8 +13,7 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { sellerNav } from "@/components/dash/navs";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { api, useDb } from "@/lib/db";
-import { DEMO_SELLER_ID } from "@/pages/seller/SellerDashboard";
+import { api, useDb, DEMO_SELLER_ID } from "@/lib/db";
 
 export default function SellerDisputes() {
   const { disputes } = useDb();
@@ -25,7 +24,7 @@ export default function SellerDisputes() {
   const respond = () => {
     if (!respondTo || !text.trim()) return;
     api.addDisputeResponse(respondTo, {
-      author: "Meridian Digital",
+      author: "Your store",
       role: "seller",
       text: text.trim(),
       date: new Date().toISOString(),

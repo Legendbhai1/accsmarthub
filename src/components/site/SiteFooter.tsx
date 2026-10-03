@@ -7,6 +7,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: "Marketplace",
     links: [
       { label: "Browse listings", to: "/marketplace" },
+      { label: "All categories", to: "/categories" },
       { label: "Instagram accounts", to: "/marketplace?category=instagram" },
       { label: "YouTube channels", to: "/marketplace?category=youtube" },
       { label: "TikTok accounts", to: "/marketplace?category=tiktok" },
@@ -25,6 +26,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: "Company",
     links: [
       { label: "Trust & safety", to: "/trust" },
+      { label: "Disputes & escrow", to: "/disputes" },
       { label: "FAQ", to: "/faq" },
       { label: "Support", to: "/account/support" },
       { label: "Terms & privacy", to: "/faq" },
@@ -83,8 +85,9 @@ export function SiteFooter() {
 
         <div className="mt-12 border-t border-border/70 pt-6 text-xs text-muted-foreground">
           <p>
-            © {new Date().getFullYear()} AccsMartHub. Demo marketplace — all
-            listings, sellers and reviews are fictional.
+            © {new Date().getFullYear()} AccsMartHub. Orders, balances,
+            listings and payouts are real and escrow-protected. Listing copy
+            shown before an approved seller publishes it is sample content.
           </p>
         </div>
       </div>

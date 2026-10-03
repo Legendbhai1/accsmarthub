@@ -15,6 +15,7 @@ import type * as lib from "../lib.js";
 import type * as marketplace from "../marketplace.js";
 import type * as payments from "../payments.js";
 import type * as reports from "../reports.js";
+import type * as stats from "../stats.js";
 import type * as stores from "../stores.js";
 import type * as users from "../users.js";
 import type * as wallet from "../wallet.js";
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   marketplace: typeof marketplace;
   payments: typeof payments;
   reports: typeof reports;
+  stats: typeof stats;
   stores: typeof stores;
   users: typeof users;
   wallet: typeof wallet;

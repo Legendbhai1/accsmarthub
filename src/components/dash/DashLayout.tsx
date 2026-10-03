@@ -50,7 +50,9 @@ export function DashLayout({
             { label: "Buyer account", to: "/account", icon: ShoppingBag },
           ];
   const fullNav: NavItem[] = [...nav, ...switchItems];
-  const mobileNav: NavItem[] = [...nav.slice(0, 4), ...switchItems.slice(0, 1)];
+  // The floating bottom bar stays on the current area's own pages only — the
+  // cross-role seller/buyer switch lives in the desktop sidebar and header.
+  const mobileNav: NavItem[] = nav.slice(0, 5);
 
   return (
     <div className="flex min-h-screen">
