@@ -13,6 +13,8 @@ import type { Listing, Profile } from "@/lib/supabaseData";
  */
 export type LiveStockRow = {
   id: string;
+  title: string;
+  brand: string;
   stock: number;
   priceUsd: number;
   status: string;
@@ -24,15 +26,17 @@ async function fetchLiveStock(listingIds: string[]): Promise<LiveStockMap> {
   if (listingIds.length === 0) return {};
   const { data, error } = await supabase
     .from("listings")
-    .select("id, stock, price_usd, status")
+    .select("id, title, brand, stock, price_usd, status")
     .in("id", listingIds);
   if (error) throw new Error(friendlyError(error));
   const out: LiveStockMap = {};
   for (const row of data ?? []) {
     out[row.id] = {
       id: row.id,
+      title: row.title,
+      brand: row.brand,
       stock: Number(row.stock ?? 0),
-      priceUsd: Number(row.price_usd ?? row.stock ? 0 : 0),
+      priceUsd: Number(row.price_usd ?? 0),
       status: row.status,
     };
   }
@@ -71,10 +75,14 @@ export type SellerListingsRow = {
   updated_at: string;
 };
 
-async function fetchSellerListings(): Promise<SellerListingsRow[]> {
+async function fetchSellerListings(userId: string): Promise<SellerListingsRow[]> {
+  if (!userId) return [];
+  // RLS lets anyone read `active` listings, so the seller filter has to be
+  // explicit here — otherwise this returns the whole public catalogue.
   const { data, error } = await supabase
     .from("listings")
     .select("*")
+    .eq("seller_id", userId)
     .order("updated_at", { ascending: false });
   if (error) throw new Error(friendlyError(error));
   return (data ?? []).map((r) => ({
@@ -97,7 +105,8 @@ async function fetchSellerListings(): Promise<SellerListingsRow[]> {
 }
 
 export function useSellerListings() {
-  return useSBQuery(fetchSellerListings, []);
+  const { user } = useSession();
+  return useSBQuery(() => fetchSellerListings(user?.id ?? ""), [user?.id ?? ""]);
 }
 
 /**
@@ -120,20 +129,17 @@ async function fetchEarningsSummary(): Promise<EarningsSummary> {
   const userId = session.data.session?.user.id;
   if (!userId) return { grossUsd: 0, commissionUsd: 0, netUsd: 0, escrowUsd: 0, completedCount: 0 };
 
-  const [ordersResult, profileResult] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("gross_amount, commission_amount, seller_net_amount, status")
-      .eq("seller_id", userId),
-    supabase.from("profiles").select("id").eq("id", userId).maybeSingle(),
-  ]);
+  const ordersResult = await supabase
+    .from("orders")
+    .select("gross_amount, commission_amount, seller_net_amount, status")
+    .eq("seller_id", userId);
   if (ordersResult.error) throw new Error(friendlyError(ordersResult.error));
 
   const orders = ordersResult.data ?? [];
   const gross = orders.reduce((s, o) => s + Number(o.gross_amount ?? 0), 0);
   const commission = orders.reduce((s, o) => s + Number(o.commission_amount ?? 0), 0);
   const escrow = orders
-    .filter((o) => ["in_escrow", "transferring", "disputed"].includes(o.status))
+    .filter((o) => ["in_escrow", "disputed"].includes(o.status))
     .reduce((s, o) => s + Number(o.gross_amount ?? 0), 0);
   const completedCount = orders.filter((o) => o.status === "completed").length;
   const net = orders.reduce((s, o) => s + Number(o.seller_net_amount ?? 0), 0);
@@ -187,7 +193,7 @@ async function fetchPlatformStats(): Promise<PlatformStats> {
   const grossVolume = orders.reduce((s, o) => s + Number(o.gross_amount ?? 0), 0);
   const commission = orders.reduce((s, o) => s + Number(o.commission_amount ?? 0), 0);
   const escrowHeld = orders
-    .filter((o) => ["in_escrow", "transferring"].includes(o.status))
+    .filter((o) => ["in_escrow", "disputed"].includes(o.status))
     .reduce((s, o) => s + Number(o.gross_amount ?? 0), 0);
   const completedCount = orders.filter((o) => o.status === "completed").length;
 
@@ -247,15 +253,17 @@ export type OrderRow = {
 };
 
 async function fetchMyOrders(role: "buyer" | "seller" | "admin", userId: string): Promise<OrderRow[]> {
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false });
+  if (!userId) return [];
+  // Filter server-side: RLS already restricts rows to the parties involved,
+  // but narrowing in the query keeps the payload to just this user's orders.
+  let query = supabase.from("orders").select("*");
+  if (role === "buyer") query = query.eq("buyer_id", userId);
+  else if (role === "seller") query = query.eq("seller_id", userId);
+
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw new Error(friendlyError(error));
 
-  let rows = data ?? [];
-  if (role === "buyer") rows = rows.filter((o) => o.buyer_id === userId);
-  else if (role === "seller") rows = rows.filter((o) => o.seller_id === userId);
+  const rows = data ?? [];
 
   return rows.map((r) => ({
     order_no: r.order_no,
@@ -321,32 +329,31 @@ export async function fetchOrder(orderNo: string): Promise<OrderRow | null> {
  */
 export function useAllOrders() {
   return useSBQuery(
-    () =>
-      supabase
+    async () => {
+      const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .order("created_at", { ascending: false })
-        .then(({ data, error }) => {
+        .order("created_at", { ascending: false });
           if (error) throw new Error(friendlyError(error));
-          return (data ?? []).map((r) => ({
-            order_no: r.order_no,
-            listing_id: r.listing_id,
-            listing_title: r.listing_title,
-            brand: r.brand,
-            buyer_id: r.buyer_id,
-            seller_id: r.seller_id,
-            quantity: Number(r.quantity ?? 0),
-            unit_price_usd: Number(r.unit_price_usd ?? 0),
-            gross_amount: Number(r.gross_amount ?? 0),
-            escrow_fee_usd: Number(r.escrow_fee_usd ?? 0),
-            total_usd: Number(r.total_usd ?? 0),
-            commission_rate: Number(r.commission_rate ?? 0),
-            commission_amount: Number(r.commission_amount ?? 0),
-            seller_net_amount: Number(r.seller_net_amount ?? 0),
-            status: r.status,
-            created_at: r.created_at,
-          }));
-        }),
+      return (data ?? []).map((r) => ({
+        order_no: r.order_no,
+        listing_id: r.listing_id,
+        listing_title: r.listing_title,
+        brand: r.brand,
+        buyer_id: r.buyer_id,
+        seller_id: r.seller_id,
+        quantity: Number(r.quantity ?? 0),
+        unit_price_usd: Number(r.unit_price_usd ?? 0),
+        gross_amount: Number(r.gross_amount ?? 0),
+        escrow_fee_usd: Number(r.escrow_fee_usd ?? 0),
+        total_usd: Number(r.total_usd ?? 0),
+        commission_rate: Number(r.commission_rate ?? 0),
+        commission_amount: Number(r.commission_amount ?? 0),
+        seller_net_amount: Number(r.seller_net_amount ?? 0),
+        status: r.status,
+        created_at: r.created_at,
+      }));
+    },
     [],
   );
 }
@@ -404,4 +411,147 @@ async function fetchReviewQueue(status: string): Promise<StoreRow[]> {
 
 export function useReviewQueue(status: "pending" | "approved" | "rejected") {
   return useSBQuery(() => fetchReviewQueue(status), [status]);
+}
+
+/**
+ * Off-platform contact reports for the admin queue.
+ *
+ * Replaces `convexApi.reports.openReports`.
+ */
+export type ReportRow = {
+  id: string;
+  order_no: string | null;
+  listing_id: string | null;
+  reporter_id: string;
+  reported_user_id: string | null;
+  reason: string;
+  detail: string;
+  status: string;
+  penalty: string | null;
+  created_at: string;
+};
+
+export function useReports(status: string) {
+  return useSBQuery(
+    async () => {
+      const { data, error } = await supabase
+        .from("off_platform_reports")
+        .select("*")
+        .eq("status", status)
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(friendlyError(error));
+      return (data ?? []) as ReportRow[];
+    },
+    [status],
+  );
+}
+
+/**
+ * Credential-vault counts per listing.
+ *
+ * `credential_status` returns counts only (never ciphertext) and returns zeros
+ * for anyone who does not own the listing, so this is safe to fan out over the
+ * seller's whole inventory.
+ */
+export type CredentialStatus = {
+  attached: boolean;
+  totalUnits: number;
+  availableUnits: number;
+};
+
+export function useCredentialStatuses(listingIds: readonly string[]) {
+  const key = listingIds.join(",");
+  return useSBQuery(
+    async () => {
+      const ids = listingIds.length ? Array.from(listingIds) : [];
+      if (ids.length === 0) return {} as Record<string, CredentialStatus>;
+
+      const entries = await Promise.all(
+        ids.map(async (id) => {
+          const { data, error } = await supabase.rpc("credential_status", {
+            p_listing_id: id,
+          });
+          if (error) return [id, null] as const;
+          return [id, (data ?? null) as CredentialStatus | null] as const;
+        }),
+      );
+
+      const out: Record<string, CredentialStatus> = {};
+      for (const [id, status] of entries) {
+        if (status) out[id] = status;
+      }
+      return out;
+    },
+    [key],
+  );
+}
+
+/**
+ * The dispute (and its evidence thread) on one order, if any.
+ */
+export type DisputeRow = {
+  id: string;
+  order_no: string;
+  opened_by: string;
+  reason: string;
+  detail: string;
+  status: string;
+  resolution_note: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  messages: { id: string; author_id: string; body: string; created_at: string }[];
+};
+
+export function useDispute(orderNo: string) {
+  return useSBQuery(
+    async () => {
+      if (!orderNo) return null;
+      const { data, error } = await supabase
+        .from("disputes")
+        .select("*")
+        .eq("order_no", orderNo)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw new Error(friendlyError(error));
+      if (!data) return null;
+
+      const { data: messages, error: msgError } = await supabase
+        .from("dispute_messages")
+        .select("*")
+        .eq("dispute_id", data.id)
+        .order("created_at", { ascending: true });
+      if (msgError) throw new Error(friendlyError(msgError));
+
+      return { ...data, messages: messages ?? [] } as DisputeRow;
+    },
+    [orderNo],
+  );
+}
+
+/**
+ * The signed-in seller's own store record.
+ *
+ * Replaces `convexApi.stores.myStore`. Resolves to `null` when the seller has
+ * not submitted an application yet.
+ */
+export function useMyStore() {
+  const { user } = useSession();
+  return useSBQuery(
+    async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from("stores")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw new Error(friendlyError(error));
+      if (!data) return null;
+      return {
+        ...data,
+        contact_policy: Boolean(data.contact_policy),
+      } as StoreRow;
+    },
+    [user?.id ?? ""],
+  );
 }

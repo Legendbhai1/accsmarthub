@@ -1,4 +1,4 @@
-import { useQuery } from "convex/react";
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { BadgeCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { sellerNav } from "@/components/dash/navs";
 import { StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { api as convexApi } from "@/convex/_generated/api";
+import { useMyStore, useEarningsSummary } from "@/lib/supabaseQueries";
+import { publicAssetUrl } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 
@@ -22,10 +23,34 @@ import { toast } from "sonner";
  */
 export default function SellerProfile() {
   const { user } = useSession();
-  const store = useQuery(convexApi.stores.myStore);
-  const summary = useQuery(convexApi.marketplace.earningsSummary);
+  const storeQuery = useMyStore();
+  const summaryQuery = useEarningsSummary();
+  const store = storeQuery.data;
+  const summary = summaryQuery.data;
 
-  if (store === undefined) {
+  // The buyer-facing answers are stored as columns on the store row, so render
+  // whichever ones the seller has actually filled in.
+  const answers = useMemo(
+    () =>
+      [
+        ["Delivery speed", store?.delivery_speed],
+        ["Access format", store?.access_format],
+        ["Replacement policy", store?.replacement_policy],
+        ["Restricted regions", store?.restricted_regions],
+        ["Sourcing", store?.sourcing],
+      ]
+        .filter((pair): pair is [string, string] => !!pair[1])
+        .map(([question, answer]) => ({ question, answer })),
+    [
+      store?.delivery_speed,
+      store?.access_format,
+      store?.replacement_policy,
+      store?.restricted_regions,
+      store?.sourcing,
+    ],
+  );
+
+  if (storeQuery.loading) {
     return (
       <DashLayout title="Profile" nav={sellerNav}>
         <p className="text-sm text-muted-foreground">Loading your profile…</p>
@@ -58,20 +83,20 @@ export default function SellerProfile() {
       <div className="max-w-2xl space-y-6">
         <div className="glass p-6">
           <div className="flex flex-wrap items-center gap-4">
-            {store.logoUrl ? (
+            {store.logo_path ? (
               <img
-                src={store.logoUrl}
+                src={publicAssetUrl("store-assets", store.logo_path)}
                 alt=""
                 className="size-14 rounded-2xl object-cover"
               />
             ) : (
               <span className="flex size-14 items-center justify-center rounded-2xl bg-[#15172b] text-xl font-bold text-white">
-                {store.storeName.charAt(0)}
+                {store.store_name.charAt(0)}
               </span>
             )}
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 font-semibold">
-                {store.storeName}
+                {store.store_name}
                 {store.status === "approved" && (
                   <BadgeCheck
                     className="size-4.5 text-emerald-600"
@@ -81,7 +106,7 @@ export default function SellerProfile() {
               </p>
               <p className="text-sm text-muted-foreground">
                 {user?.email} · member since{" "}
-                {new Date(store.createdAt).toLocaleDateString("en-US", {
+                {new Date(store.created_at).toLocaleDateString("en-US", {
                   month: "short",
                   year: "numeric",
                 })}
@@ -124,14 +149,20 @@ export default function SellerProfile() {
             .
           </p>
           <dl className="mt-4 divide-y divide-border/60">
-            {store.answers.map((a) => (
+            {answers.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">
+                You have not filled in your buyer-facing answers yet.
+              </p>
+            ) : (
+              answers.map((a) => (
               <div key={a.question} className="flex flex-wrap gap-2 py-3">
-                <dt className="w-full text-xs text-muted-foreground sm:w-44">
-                  {a.question}
-                </dt>
-                <dd className="min-w-0 flex-1 text-sm">{a.answer}</dd>
-              </div>
-            ))}
+                  <dt className="w-full text-xs text-muted-foreground sm:w-44">
+                    {a.question}
+                  </dt>
+                  <dd className="min-w-0 flex-1 text-sm">{a.answer}</dd>
+                </div>
+              ))
+            )}
           </dl>
         </div>
 
@@ -150,7 +181,7 @@ export default function SellerProfile() {
             <Label htmlFor="seller-name">Display name</Label>
             <Input
               id="seller-name"
-              defaultValue={store.storeName}
+              defaultValue={store.store_name}
               className="inset-well rounded-xl border-border/60"
             />
           </div>

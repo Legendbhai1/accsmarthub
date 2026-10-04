@@ -1,11 +1,10 @@
-import { useQuery } from "convex/react";
 import { Link } from "react-router";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/site/BrandMark";
 import { SectionHeading } from "@/components/common/Primitives";
 import { categories, useDb } from "@/lib/db";
-import { api as convexApi } from "@/convex/_generated/api";
+import { useLiveStock } from "@/lib/supabaseQueries";
 
 /**
  * /categories — the full platform directory.
@@ -16,9 +15,7 @@ import { api as convexApi } from "@/convex/_generated/api";
  */
 export default function Categories() {
   const { listings } = useDb();
-  const liveStock = useQuery(convexApi.marketplace.liveStock, {
-    listingIds: listings.map((l) => l.id),
-  });
+  const liveStock = useLiveStock(listings.map((l) => l.id)).data;
 
   const isLive = (brand: string) =>
     listings.filter(

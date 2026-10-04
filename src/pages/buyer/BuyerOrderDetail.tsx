@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { useMutation } from "convex/react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -27,15 +26,20 @@ import { buyerNav } from "@/components/dash/navs";
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
-import { api, getSeller, useDb } from "@/lib/db";
-import { api as convexApi } from "@/convex/_generated/api";
+import { fetchOrder, useDispute, type OrderRow } from "@/lib/supabaseQueries";
+import {
+  openDispute as openDisputeRpc,
+  completeOrder,
+  fileReport,
+} from "@/lib/supabaseMutations";
 import { toast } from "sonner";
 
+// Supabase has no `transferring` state: an order goes straight from escrow to
+// completed when the buyer confirms.
 const TIMELINE: { key: string; label: string }[] = [
-  { key: "pending", label: "Order placed" },
-  { key: "in_escrow", label: "Funds in escrow" },
-  { key: "transferring", label: "Transfer in progress" },
-  { key: "completed", label: "Completed" },
+  { key: "in_escrow", label: "Order placed & funds in escrow" },
+  { key: "confirm", label: "Buyer confirms the transfer" },
+  { key: "completed", label: "Completed — escrow released" },
 ];
 
 const DISPUTE_REASONS = ["Not as described", "Transfer failed", "Seller unresponsive", "Other"];
@@ -51,9 +55,10 @@ const REPORT_REASONS = [
 
 export default function BuyerOrderDetail() {
   const { orderId } = useParams<{ orderId: string }>();
-  const { orders, disputes } = useDb();
-  const order = orders.find((o) => o.id === orderId);
+  const orderNo = orderId ? decodeURIComponent(orderId) : "";
 
+  const [order, setOrder] = useState<OrderRow | null>(null);
+  const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [advancing, setAdvancing] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
@@ -62,7 +67,31 @@ export default function BuyerOrderDetail() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<string>("shared_contact");
   const [reportDetail, setReportDetail] = useState("");
-  const reportOffPlatform = useMutation(convexApi.reports.reportOffPlatform);
+  const disputeQuery = useDispute(orderNo);
+
+  const reload = useCallback(async () => {
+    if (!orderNo) return;
+    setLoading(true);
+    try {
+      setOrder(await fetchOrder(orderNo));
+    } catch {
+      setOrder(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [orderNo]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  if (loading) {
+    return (
+      <DashLayout title="Order" nav={buyerNav}>
+        <p className="text-sm text-muted-foreground">Loading this order…</p>
+      </DashLayout>
+    );
+  }
 
   if (!order) {
     return (
@@ -80,30 +109,50 @@ export default function BuyerOrderDetail() {
     );
   }
 
-  const seller = getSeller(order.sellerId);
-  const dispute = disputes.find((d) => d.orderId === order.id);
-  const timelineIdx = TIMELINE.findIndex((t) => t.key === order.status);
-  const canConfirm = order.status === "transferring";
-  const canDispute = ["in_escrow", "transferring"].includes(order.status);
+  const dispute = disputeQuery.data;
+  const timelineIdx =
+    order.status === "completed" ? 2 : order.status === "confirm" ? 1 : 0;
+  const canConfirm = order.status === "in_escrow";
+  const canDispute = order.status === "in_escrow" && !dispute;
 
-  const confirmTransfer = () => {
+  const confirmTransfer = async () => {
     setAdvancing(true);
-    window.setTimeout(() => {
-      api.advanceOrder(order.id);
+    try {
+      await completeOrder({ orderNo });
+      await reload();
+      toast.success("Transfer confirmed", {
+        description: "Escrow has been released to the seller.",
+      });
+    } catch (err) {
+      toast.error("Could not confirm the transfer", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
       setAdvancing(false);
       setConfirmOpen(false);
-    }, 800);
+    }
   };
 
-  const openDispute = () => {
+  const openDispute = async () => {
     if (!detail.trim()) return;
-    api.openDispute(order.id, reason, detail.trim());
-    setDetail("");
-    setDisputeOpen(false);
+    try {
+      await openDisputeRpc(order.order_no, reason, detail.trim());
+      setDetail("");
+      setDisputeOpen(false);
+      await reload();
+      void disputeQuery.refresh();
+      toast.success("Dispute opened", {
+        description: "Escrow is frozen while our trust team reviews.",
+      });
+    } catch (err) {
+      toast.error("Could not open the dispute", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    }
   };
 
   return (
-    <DashLayout title={`Order ${order.id}`} nav={buyerNav}>
+    <DashLayout title={`Order ${order.order_no}`} nav={buyerNav}>
       <div className="space-y-6">
         <Link
           to="/account/orders"
@@ -120,15 +169,15 @@ export default function BuyerOrderDetail() {
                 <BrandMark brand={order.brand} colored className="size-6" />
               </span>
               <div>
-                <h2 className="text-lg font-bold tracking-tight">{order.listingTitle}</h2>
+                <h2 className="text-lg font-bold tracking-tight">{order.listing_title}</h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Order #{order.id} · placed {new Date(order.createdAt).toLocaleDateString()} · Qty {order.quantity}
+                  Order #{order.order_no} · placed {new Date(order.created_at).toLocaleDateString()} · Qty {order.quantity}
                 </p>
               </div>
             </div>
             <div className="text-right">
               <StatusBadge status={order.status} />
-              <p className="mt-2 text-xl font-bold tabular-nums">{formatPrice(order.total)}</p>
+              <p className="mt-2 text-xl font-bold tabular-nums">{formatPrice(order.total_usd)}</p>
             </div>
           </div>
         </div>
@@ -188,7 +237,7 @@ export default function BuyerOrderDetail() {
             <dl className="mt-4 space-y-2.5 text-sm">
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Unit price</dt>
-                <dd className="tabular-nums">{formatPrice(order.unitPrice)}</dd>
+                <dd className="tabular-nums">{formatPrice(order.unit_price_usd)}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Quantity</dt>
@@ -196,7 +245,7 @@ export default function BuyerOrderDetail() {
               </div>
               <div className="flex justify-between border-t border-border/60 pt-2.5 font-bold">
                 <dt>Total (escrowed)</dt>
-                <dd className="tabular-nums">{formatPrice(order.total)}</dd>
+                <dd className="tabular-nums">{formatPrice(order.total_usd)}</dd>
               </div>
             </dl>
           </div>
@@ -205,12 +254,12 @@ export default function BuyerOrderDetail() {
             <h3 className="font-semibold">Seller</h3>
             <div className="mt-4 flex items-center gap-3">
               <span className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-sm font-bold text-primary">
-                {seller.name.charAt(0)}
+                {(order.listing_title ?? "?").charAt(0).toUpperCase()}
               </span>
               <div>
-                <p className="text-sm font-medium">{seller.name}</p>
+                <p className="text-sm font-medium">AccsMartHub seller</p>
                 <p className="text-xs text-muted-foreground">
-                  {seller.rating.toFixed(1)} rating · {seller.responseTime}
+                  Verified by AccsMartHub escrow
                 </p>
               </div>
             </div>
@@ -306,19 +355,25 @@ export default function BuyerOrderDetail() {
               <div className="flex items-center gap-3 text-sm">
                 <StatusBadge status={dispute.status} />
                 <span className="font-medium">{dispute.reason}</span>
-                <span className="text-muted-foreground">{formatPrice(dispute.amount)} in escrow</span>
+                <span className="text-muted-foreground">
+                  {formatPrice(order.total_usd)} in escrow
+                </span>
               </div>
               <p className="rounded-xl bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
                 {dispute.detail}
               </p>
-              <ul className="space-y-2.5">
-                {dispute.responses.map((r, i) => (
-                  <li key={i} className="inset-well rounded-xl px-4 py-3 text-sm">
-                    <p className="font-medium capitalize">{r.author} · {r.role}</p>
-                    <p className="mt-1 text-muted-foreground">{r.text}</p>
-                  </li>
-                ))}
-              </ul>
+              {dispute.messages.length > 0 && (
+                <ul className="space-y-2.5">
+                  {dispute.messages.map((m) => (
+                    <li key={m.id} className="inset-well rounded-xl px-4 py-3 text-sm">
+                      <p className="font-medium">
+                        {m.author_id === dispute.opened_by ? "You" : "Seller"}
+                      </p>
+                      <p className="mt-1 text-muted-foreground">{m.body}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
@@ -379,9 +434,9 @@ export default function BuyerOrderDetail() {
                 disabled={reportDetail.trim().length < 10}
                 onClick={async () => {
                   try {
-                    await reportOffPlatform({
-                      orderNo: order.id,
-                      reportedUserId: order.sellerId,
+                    await fileReport({
+                      orderNo: order.order_no,
+                      reportedUserId: order.seller_id,
                       reason: reportReason as (typeof REPORT_REASONS)[number]["value"],
                       detail: reportDetail.trim(),
                     });

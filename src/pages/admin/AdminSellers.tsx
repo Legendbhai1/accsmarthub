@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
-import type { GenericId } from "convex/values";
 import { BadgeCheck, BadgeX, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,33 +13,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
-import { api } from "@/convex/_generated/api";
-import { sellers } from "@/lib/db";
+import { useReviewQueue } from "@/lib/supabaseQueries";
+import { reviewStore, publicAssetUrl } from "@/lib/supabaseMutations";
 import { toast } from "sonner";
 
 type Filter = "pending" | "approved" | "rejected";
 
 /**
  * The approval gate. Until an admin presses Approve, the applicant's store
- * stays "pending" and `publishListing` rejects their attempts server-side.
+ * stays "pending" and the server rejects their listing inserts. Ratings, sales
+ * counts and KYC flags are deliberately absent: none of those are recorded
+ * anywhere in the database, so they are not shown.
  */
 export default function AdminSellers() {
   const [filter, setFilter] = useState<Filter>("pending");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<{
-    id: GenericId<"stores">;
+    id: string;
     name: string;
   } | null>(null);
   const [rejectNote, setRejectNote] = useState("");
 
-  const queue = useQuery(api.stores.reviewQueue, { status: filter });
-  const approveStore = useMutation(api.stores.approveStore);
-  const rejectStore = useMutation(api.stores.rejectStore);
+  const queueQuery = useReviewQueue(filter);
+  const approvedQuery = useReviewQueue("approved");
+  const visible = queueQuery.data ?? [];
+  const approved = approvedQuery.data ?? [];
 
-  const approve = async (storeId: GenericId<"stores">, storeName: string) => {
+  const approve = async (storeId: string, storeName: string) => {
     setBusyId(storeId);
     try {
-      await approveStore({ storeId });
+      await reviewStore({ storeId, approve: true });
+      void queueQuery.refresh();
+      void approvedQuery.refresh();
       toast.success(`${storeName} approved`, {
         description: "The seller can now create listings.",
       });
@@ -58,7 +61,9 @@ export default function AdminSellers() {
     if (!rejecting) return;
     setBusyId(rejecting.id);
     try {
-      await rejectStore({ storeId: rejecting.id, note: rejectNote });
+      await reviewStore({ storeId: rejecting.id, approve: false, note: rejectNote });
+      void queueQuery.refresh();
+      void approvedQuery.refresh();
       toast("Store rejected", { description: "Any live listings were paused." });
       setRejecting(null);
       setRejectNote("");
@@ -71,7 +76,17 @@ export default function AdminSellers() {
     }
   };
 
-  const visible = queue ?? [];
+  /** The buyer-facing answers live as columns on the store row. */
+  const answersFor = (a: (typeof visible)[number]) =>
+    [
+      ["Delivery speed", a.delivery_speed],
+      ["Access format", a.access_format],
+      ["Replacement policy", a.replacement_policy],
+      ["Restricted regions", a.restricted_regions],
+      ["Sourcing", a.sourcing],
+    ]
+      .filter((pair): pair is [string, string] => !!pair[1])
+      .map(([question, answer]) => ({ question, answer }));
 
   return (
     <DashLayout title="Seller management" nav={adminNav}>
@@ -110,25 +125,25 @@ export default function AdminSellers() {
             <ul className="mt-4 divide-y divide-border/60">
               {visible.map((a) => (
                 <li
-                  key={a._id}
+                  key={a.id}
                   className="flex flex-col gap-3 py-4 lg:flex-row lg:items-start"
                 >
                   <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-muted/40">
-                    {a.logoUrl ? (
+                    {a.logo_path ? (
                       <img
-                        src={a.logoUrl}
-                        alt={a.storeName}
+                        src={publicAssetUrl("store-assets", a.logo_path)}
+                        alt={a.store_name}
                         className="size-full object-cover"
                       />
                     ) : (
                       <span className="text-xs font-semibold text-muted-foreground">
-                        {a.storeName.slice(0, 2).toUpperCase()}
+                        {a.store_name.slice(0, 2).toUpperCase()}
                       </span>
                     )}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium">{a.storeName}</p>
+                      <p className="font-medium">{a.store_name}</p>
                       {a.status === "pending" ? (
                         <Badge className="bg-amber-500/15 text-[11px] font-medium text-amber-700">
                           <Clock className="mr-1 size-3" /> Pending
@@ -144,11 +159,11 @@ export default function AdminSellers() {
                       )}
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Submitted {new Date(a.createdAt).toLocaleDateString()}
-                      {a.reviewNote && ` · Note: ${a.reviewNote}`}
+                      Submitted {new Date(a.created_at).toLocaleDateString()}
+                      {a.review_note && ` · Note: ${a.review_note}`}
                     </p>
                     <dl className="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
-                      {a.answers.map((ans) => (
+                      {answersFor(a).map((ans) => (
                         <div key={ans.question}>
                           <dt className="text-xs font-medium text-muted-foreground">
                             {ans.question}
@@ -159,7 +174,7 @@ export default function AdminSellers() {
                     </dl>
                     <p className="mt-3 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700">
                       No-off-platform-contact policy:{" "}
-                      {a.contactPolicy ? "accepted" : "not accepted"}
+                      {a.contact_policy ? "accepted" : "not accepted"}
                     </p>
                   </div>
                   {a.status === "pending" && (
@@ -167,8 +182,8 @@ export default function AdminSellers() {
                       <Button
                         size="sm"
                         className="rounded-lg"
-                        disabled={busyId === a._id}
-                        onClick={() => approve(a._id, a.storeName)}
+                        disabled={busyId === a.id}
+                        onClick={() => approve(a.id, a.store_name)}
                       >
                         <BadgeCheck className="size-4" />
                         Approve
@@ -177,8 +192,8 @@ export default function AdminSellers() {
                         variant="outline"
                         size="sm"
                         className="rounded-lg text-muted-foreground hover:text-destructive"
-                        disabled={busyId === a._id}
-                        onClick={() => setRejecting({ id: a._id, name: a.storeName })}
+                        disabled={busyId === a.id}
+                        onClick={() => setRejecting({ id: a.id, name: a.store_name })}
                       >
                         <BadgeX className="size-4" />
                         Reject
@@ -191,51 +206,48 @@ export default function AdminSellers() {
           )}
         </section>
 
-        {/* Existing sellers */}
-        <section aria-label="Sellers" className="glass overflow-x-auto">
-          <table className="w-full min-w-[44rem] text-sm">
+        {/* Approved sellers */}
+        <section aria-label="Approved sellers" className="glass overflow-x-auto">
+          <table className="w-full min-w-[40rem] text-sm">
             <thead>
               <tr className="border-b border-border/70 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <th className="px-6 py-3.5">Seller</th>
-                <th className="px-6 py-3.5">Rating</th>
-                <th className="px-6 py-3.5">Sales</th>
-                <th className="px-6 py-3.5">KYC</th>
-                <th className="px-6 py-3.5 text-right">Actions</th>
+                <th className="px-6 py-3.5">Platforms</th>
+                <th className="px-6 py-3.5">Approved</th>
+                <th className="px-6 py-3.5">Contact policy</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {sellers.map((s) => (
-                <tr key={s.id} className="transition-colors hover:bg-accent/30">
-                  <td className="px-6 py-4">
-                    <p className="font-medium">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Member since{" "}
-                      {new Date(s.memberSince).toLocaleDateString("en-US", {
+              {approved.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-sm text-muted-foreground">
+                    No approved sellers yet.
+                  </td>
+                </tr>
+              ) : (
+                approved.map((s) => (
+                  <tr key={s.id} className="transition-colors hover:bg-accent/30">
+                    <td className="px-6 py-4">
+                      <p className="font-medium">{s.store_name}</p>
+                      <p className="text-xs text-muted-foreground">/{s.slug}</p>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-muted-foreground">
+                      {(s.platforms ?? []).join(", ") || "—"}
+                    </td>
+                    <td className="px-6 py-4 text-xs text-muted-foreground">
+                      {new Date(s.created_at).toLocaleDateString("en-US", {
                         month: "short",
                         year: "numeric",
                       })}
-                    </p>
-                  </td>
-                  <td className="px-6 py-4 tabular-nums">
-                    {s.rating.toFixed(1)} ({s.reviews.toLocaleString()})
-                  </td>
-                  <td className="px-6 py-4 tabular-nums">{s.sales.toLocaleString()}</td>
-                  <td className="px-6 py-4">
-                    {s.verified ? (
+                    </td>
+                    <td className="px-6 py-4">
                       <span className="inline-flex items-center gap-1.5 text-emerald-600">
-                        <BadgeCheck className="size-4" /> Verified
+                        <BadgeCheck className="size-4" /> Accepted
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 text-amber-600">
-                        <BadgeX className="size-4" /> Pending
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <Badge variant="secondary">Managed in Stores tab</Badge>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </section>

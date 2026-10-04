@@ -1,6 +1,5 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
-import { ConvexClientProvider } from "@/lib/convex";
 import { SessionProvider } from "@/lib/session";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
@@ -19,7 +18,6 @@ const Trust = lazy(() => import("./pages/public/Trust.tsx"));
 const Faq = lazy(() => import("./pages/public/Faq.tsx"));
 const Categories = lazy(() => import("./pages/public/Categories.tsx"));
 const Disputes = lazy(() => import("./pages/public/Disputes.tsx"));
-const Auth = lazy(() => import("./pages/flow/Auth.tsx"));
 const SupabaseAuth = lazy(() => import("./pages/flow/SupabaseAuth.tsx"));
 const ForgotPassword = lazy(() => import("./pages/flow/ForgotPassword.tsx"));
 const ResetPassword = lazy(() => import("./pages/flow/ResetPassword.tsx"));
@@ -150,8 +148,7 @@ createRoot(document.getElementById("root")!).render(
       <ToolbarErrorBoundary>
         <VlyToolbar />
       </ToolbarErrorBoundary>
-      <ConvexClientProvider>
-        <SessionProvider>
+      <SessionProvider>
           <BrowserRouter>
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
@@ -172,11 +169,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/marketplace" element={<Marketplace />} />
 
               {/* Auth & purchase flow */}
-              {/* Supabase-backed email verification. Sign-in now goes through
-                  Supabase Auth; the Convex Auth page stays on /auth/convex
-                  only until the remaining pages are migrated. */}
+              {/* Supabase-backed email OTP. Every page now reads the Supabase
+                  backend, so there is no Convex provider or route left. */}
               <Route path="/auth" element={<SupabaseAuth />} />
-              <Route path="/auth/convex" element={<Auth />} />
               {/* Password recovery. /reset-password is opened from the email
                   link, so it must stay outside the auth guards. */}
               <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -224,8 +219,7 @@ createRoot(document.getElementById("root")!).render(
             </PageTransition>
           </Suspense>
         </BrowserRouter>
-        </SessionProvider>
-      </ConvexClientProvider>
+      </SessionProvider>
       <Toaster />
     </RootErrorBoundary>
   </StrictMode>,

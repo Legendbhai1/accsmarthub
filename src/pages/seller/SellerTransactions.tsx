@@ -1,11 +1,10 @@
-import { useQuery } from "convex/react";
 import { Download, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { sellerNav } from "@/components/dash/navs";
 import { EmptyState, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { api as convexApi } from "@/convex/_generated/api";
+import { useMyOrders } from "@/lib/supabaseQueries";
 import { toast } from "sonner";
 
 /**
@@ -16,27 +15,28 @@ import { toast } from "sonner";
  * listed but not yet payable, so the seller can see what is coming.
  */
 export default function SellerTransactions() {
-  const orders = useQuery(convexApi.marketplace.salesOrders);
-  const loading = orders === undefined;
+  const ordersQuery = useMyOrders("seller");
+  const orders = ordersQuery.data ?? [];
+  const loading = ordersQuery.loading;
 
-  const gross = (orders ?? []).reduce((s, o) => s + o.grossAmount, 0);
-  const commission = (orders ?? []).reduce((s, o) => s + o.commissionAmount, 0);
-  const escrow = (orders ?? [])
-    .filter((o) => ["in_escrow", "transferring", "disputed"].includes(o.status))
-    .reduce((s, o) => s + o.grossAmount, 0);
-  const paid = (orders ?? [])
+  const gross = orders.reduce((s, o) => s + o.gross_amount, 0);
+  const commission = orders.reduce((s, o) => s + o.commission_amount, 0);
+  const escrow = orders
+    .filter((o) => ["in_escrow", "disputed"].includes(o.status))
+    .reduce((s, o) => s + o.gross_amount, 0);
+  const paid = orders
     .filter((o) => o.status === "completed")
-    .reduce((s, o) => s + o.sellerNetAmount, 0);
+    .reduce((s, o) => s + o.seller_net_amount, 0);
 
   const exportCsv = () => {
-    const rows = (orders ?? []).map((o) =>
+    const rows = orders.map((o) =>
       [
-        o.orderNo,
-        o.listingTitle,
-        new Date(o.createdAt).toISOString(),
-        o.grossAmount,
-        o.commissionAmount,
-        o.sellerNetAmount,
+        o.order_no,
+        o.listing_title,
+        new Date(o.created_at).toISOString(),
+        o.gross_amount,
+        o.commission_amount,
+        o.seller_net_amount,
         o.status,
       ].join(","),
     );
@@ -67,7 +67,7 @@ export default function SellerTransactions() {
             variant="outline"
             className="rounded-xl"
             onClick={exportCsv}
-            disabled={loading || (orders ?? []).length === 0}
+            disabled={loading || orders.length === 0}
           >
             <Download className="size-4" />
             Export CSV
@@ -102,7 +102,7 @@ export default function SellerTransactions() {
 
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading transactions…</p>
-        ) : (orders ?? []).length === 0 ? (
+        ) : orders.length === 0 ? (
           <EmptyState
             title="No transactions yet"
             description="When a buyer purchases one of your listings, the payment appears here with its full commission breakdown."
@@ -117,27 +117,27 @@ export default function SellerTransactions() {
               <span className="text-right">Status</span>
             </div>
             <ul className="divide-y divide-border/60">
-              {(orders ?? []).map((o) => (
+              {orders.map((o) => (
                 <li
-                  key={o._id}
+                  key={o.order_no}
                   className="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">
-                      {o.listingTitle}
+                      {o.listing_title}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {o.orderNo} · {new Date(o.createdAt).toLocaleDateString()}
+                      {o.order_no} · {new Date(o.created_at).toLocaleDateString()}
                     </span>
                   </span>
                   <span className="w-20 text-right text-sm tabular-nums">
-                    {formatPrice(o.grossAmount)}
+                    {formatPrice(o.gross_amount)}
                   </span>
                   <span className="w-20 text-right text-sm tabular-nums text-destructive">
-                    −{formatPrice(o.commissionAmount)}
+                    −{formatPrice(o.commission_amount)}
                   </span>
                   <span className="w-20 text-right text-sm font-semibold tabular-nums">
-                    {formatPrice(o.sellerNetAmount)}
+                    {formatPrice(o.seller_net_amount)}
                   </span>
                   <span className="ml-auto">
                     <StatusBadge status={o.status} />

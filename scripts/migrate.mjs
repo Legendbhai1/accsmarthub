@@ -1,7 +1,10 @@
 /**
- * Applies supabase/migrations/0001_core.sql to a Supabase project.
+ * Applies a Supabase migration to a project.
  *
- *   SUPABASE_ACCESS_TOKEN=sbp_... bun scripts/migrate.mjs
+ *   SUPABASE_PROJECT_REF=<ref> SUPABASE_ACCESS_TOKEN=sbp_... \
+ *     bun scripts/migrate.mjs [path/to/migration.sql]
+ *
+ * Defaults to supabase/migrations/0001_core.sql.
  *
  * The splitter understands dollar-quoted bodies ($$ ... $$) and single
  * quotes, so a semicolon inside a function body never splits a statement.
@@ -140,7 +143,8 @@ if (!REF || !TOKEN) {
   process.exit(1);
 }
 
-const sql = await Bun.file("supabase/migrations/0001_core.sql").text();
+const file = process.argv[2] ?? "supabase/migrations/0001_core.sql";
+const sql = await Bun.file(file).text();
 const statements = splitStatements(sql);
 console.log(`Parsed ${statements.length} statements.`);
 

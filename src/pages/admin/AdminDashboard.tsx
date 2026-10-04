@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { Link } from "react-router";
 import { ArrowRight, Receipt, ShieldAlert, Store, Tags, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,16 +5,17 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState, StatCard, SectionHeading, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { api as convexApi } from "@/convex/_generated/api";
+import { usePlatformStats, useAllOrders } from "@/lib/supabaseQueries";
 
 export default function AdminDashboard() {
   // Counted server-side from the real ledger. Zeros here mean the platform
   // genuinely has no activity yet.
-  const stats = useQuery(convexApi.stats.platformStats);
-  const orders = useQuery(convexApi.marketplace.allOrders);
+  const statsQuery = usePlatformStats();
+  const ordersQuery = useAllOrders();
 
-  const loading = stats === undefined;
-  const latest = (orders ?? []).slice(0, 5);
+  const stats = statsQuery.data;
+  const loading = statsQuery.loading || ordersQuery.loading;
+  const latest = (ordersQuery.data ?? []).slice(0, 5);
 
   return (
     <DashLayout title="Admin overview" nav={adminNav}>
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
               </Button>
             }
           />
-          {loading || orders === undefined ? (
+          {loading ? (
             <p className="mt-4 text-sm text-muted-foreground">Loading orders…</p>
           ) : latest.length === 0 ? (
             <div className="mt-4">
@@ -110,19 +110,19 @@ export default function AdminDashboard() {
           ) : (
             <ul className="mt-4 divide-y divide-border/60">
               {latest.map((order) => (
-                <li key={order._id} className="flex items-center gap-3 py-3">
+                <li key={order.order_no} className="flex items-center gap-3 py-3">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">
-                      {order.listingTitle}
+                      {order.listing_title}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {order.orderNo} ·{" "}
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      {order.order_no} ·{" "}
+                      {new Date(order.created_at).toLocaleDateString()}
                     </span>
                   </span>
                   <StatusBadge status={order.status} />
                   <span className="w-20 text-right text-sm font-semibold tabular-nums">
-                    {formatPrice(order.totalUsd)}
+                    {formatPrice(order.total_usd)}
                   </span>
                 </li>
               ))}

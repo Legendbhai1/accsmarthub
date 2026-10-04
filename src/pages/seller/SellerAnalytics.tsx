@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
 import { BarChart3, TrendingUp, Users } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { sellerNav } from "@/components/dash/navs";
 import { EmptyState, StatCard } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
-import { api as convexApi } from "@/convex/_generated/api";
+import { useMyOrders, useSellerListings } from "@/lib/supabaseQueries";
 
 /**
  * Analytics — performance derived from the real order ledger.
@@ -17,11 +16,11 @@ import { api as convexApi } from "@/convex/_generated/api";
  * honest empty state rather than a flattering sample graph.
  */
 export default function SellerAnalytics() {
-  const orders = useQuery(convexApi.marketplace.salesOrders);
-  const listings = useQuery(convexApi.marketplace.sellerListings);
-  const loading = orders === undefined || listings === undefined;
+  const ordersQuery = useMyOrders("seller");
+  const listingsQuery = useSellerListings();
+  const loading = ordersQuery.loading || listingsQuery.loading;
   // Stable identity so the memos below are not invalidated on every render.
-  const rows = useMemo(() => orders ?? [], [orders]);
+  const rows = useMemo(() => ordersQuery.data ?? [], [ordersQuery.data]);
 
   const byListing = useMemo(() => {
     const map = new Map<
@@ -29,17 +28,17 @@ export default function SellerAnalytics() {
       { title: string; brand: string; units: number; gross: number; net: number }
     >();
     for (const o of rows) {
-      const entry = map.get(o.listingId) ?? {
-        title: o.listingTitle,
+      const entry = map.get(o.listing_id) ?? {
+        title: o.listing_title,
         brand: o.brand,
         units: 0,
         gross: 0,
         net: 0,
       };
       entry.units += o.quantity;
-      entry.gross += o.grossAmount;
-      entry.net += o.sellerNetAmount;
-      map.set(o.listingId, entry);
+      entry.gross += o.gross_amount;
+      entry.net += o.seller_net_amount;
+      map.set(o.listing_id, entry);
     }
     return [...map.entries()]
       .map(([listingId, v]) => ({ listingId, ...v }))
@@ -51,7 +50,7 @@ export default function SellerAnalytics() {
     for (const o of rows) {
       const entry = map.get(o.brand) ?? { units: 0, gross: 0 };
       entry.units += o.quantity;
-      entry.gross += o.grossAmount;
+      entry.gross += o.gross_amount;
       map.set(o.brand, entry);
     }
     return [...map.entries()]
@@ -69,9 +68,14 @@ export default function SellerAnalytics() {
       day.setDate(day.getDate() - i);
       const next = new Date(day);
       next.setDate(next.getDate() + 1);
+      const from = day.getTime();
+      const to = next.getTime();
       const gross = rows
-        .filter((o) => o.createdAt >= day.getTime() && o.createdAt < next.getTime())
-        .reduce((s, o) => s + o.grossAmount, 0);
+        .filter((o) => {
+          const t = new Date(o.created_at).getTime();
+          return t >= from && t < to;
+        })
+        .reduce((s, o) => s + o.gross_amount, 0);
       days.push({
         label: day.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         gross,
@@ -82,10 +86,11 @@ export default function SellerAnalytics() {
 
   const maxGross = Math.max(1, ...series.map((d) => d.gross));
   const totalUnits = rows.reduce((s, o) => s + o.quantity, 0);
-  const avgOrder = rows.length ? rows.reduce((s, o) => s + o.grossAmount, 0) / rows.length : 0;
-  const totalGross = rows.reduce((s, o) => s + o.grossAmount, 0);
-  const activeListings = (listings ?? []).filter((l) => l.status === "active").length;
-  const stockLeft = (listings ?? []).reduce((s, l) => s + l.stock, 0);
+  const avgOrder = rows.length ? rows.reduce((s, o) => s + o.gross_amount, 0) / rows.length : 0;
+  const totalGross = rows.reduce((s, o) => s + o.gross_amount, 0);
+  const listings = listingsQuery.data ?? [];
+  const activeListings = listings.filter((l) => l.status === "active").length;
+  const stockLeft = listings.reduce((s, l) => s + l.stock, 0);
 
   return (
     <DashLayout title="Analytics" nav={sellerNav}>

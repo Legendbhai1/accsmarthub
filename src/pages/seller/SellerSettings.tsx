@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
 import { Link } from "react-router";
 import { CheckCircle2, Store } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,17 +9,18 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { sellerNav } from "@/components/dash/navs";
 import { StatusBadge } from "@/components/common/Primitives";
 import { SERVICE_CATEGORIES } from "@/lib/db";
-import { api as convexApi } from "@/convex/_generated/api";
+import { useMyStore } from "@/lib/supabaseQueries";
+import { updateStore, publicAssetUrl } from "@/lib/supabaseMutations";
 import { toast } from "sonner";
 
 /**
  * Store settings — edit the answers buyers see on every one of your
- * listings. Saving re-submits the store for admin review, because the
- * answers are part of what a buyer relies on.
+ * listings. The moderation trigger pins the approval status on seller
+ * writes, so saving content never changes whether the store is approved.
  */
 export default function SellerSettings() {
-  const store = useQuery(convexApi.stores.myStore);
-  const submitStore = useMutation(convexApi.stores.submitStore);
+  const storeQuery = useMyStore();
+  const store = storeQuery.data;
 
   const [saving, setSaving] = useState(false);
   const [accepted, setAccepted] = useState(true);
@@ -36,16 +36,16 @@ export default function SellerSettings() {
 
   // Seed the form from the server record the first time it arrives.
   const current = form ?? {
-    storeName: store?.storeName ?? "",
+    storeName: store?.store_name ?? "",
     platforms: (store?.platforms ?? []).join(", "),
-    deliverySpeed: store?.deliverySpeed ?? "",
-    accessFormat: store?.accessFormat ?? "",
-    replacementPolicy: store?.replacementPolicy ?? "",
-    restrictedRegions: store?.restrictedRegions ?? "",
+    deliverySpeed: store?.delivery_speed ?? "",
+    accessFormat: store?.access_format ?? "",
+    replacementPolicy: store?.replacement_policy ?? "",
+    restrictedRegions: store?.restricted_regions ?? "",
     sourcing: store?.sourcing ?? "",
   };
 
-  if (store === undefined) {
+  if (storeQuery.loading) {
     return (
       <DashLayout title="Store settings" nav={sellerNav}>
         <p className="text-sm text-muted-foreground">Loading your store…</p>
@@ -79,7 +79,7 @@ export default function SellerSettings() {
   const save = async () => {
     setSaving(true);
     try {
-      await submitStore({
+      await updateStore(store.id, {
         storeName: current.storeName,
         platforms: current.platforms.split(",").map((p) => p.trim()).filter(Boolean),
         deliverySpeed: current.deliverySpeed,
@@ -90,9 +90,10 @@ export default function SellerSettings() {
         contactPolicyAccepted: accepted,
       });
       setForm(null);
-      toast.success("Store updated and sent for review", {
+      void storeQuery.refresh();
+      toast.success("Store details saved", {
         description:
-          "Your listings keep selling while an admin checks the new answers.",
+          "Your approval status is unchanged — only an admin can change it.",
       });
     } catch (err) {
       toast.error("Could not save your store", {
@@ -115,19 +116,19 @@ export default function SellerSettings() {
 
         <div className="glass flex flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div className="flex items-center gap-3">
-            {store.logoUrl ? (
+            {store.logo_path ? (
               <img
-                src={store.logoUrl}
+                src={publicAssetUrl("store-assets", store.logo_path)}
                 alt=""
                 className="size-11 rounded-xl object-cover"
               />
             ) : (
               <span className="flex size-11 items-center justify-center rounded-xl bg-muted text-sm font-bold">
-                {store.storeName.charAt(0)}
+                {store.store_name.charAt(0)}
               </span>
             )}
             <div>
-              <p className="text-sm font-semibold">{store.storeName}</p>
+              <p className="text-sm font-semibold">{store.store_name}</p>
               <p className="text-xs text-muted-foreground">/{store.slug}</p>
             </div>
           </div>
@@ -140,12 +141,12 @@ export default function SellerSettings() {
           </div>
         </div>
 
-        {store.status === "rejected" && store.reviewNote && (
+        {store.status === "rejected" && store.review_note && (
           <div className="rounded-xl border border-destructive/25 bg-destructive/[0.05] px-4 py-3.5 text-sm">
             <p className="font-semibold text-destructive">
               Changes needed before you can list
             </p>
-            <p className="mt-1 text-destructive/90">{store.reviewNote}</p>
+            <p className="mt-1 text-destructive/90">{store.review_note}</p>
           </div>
         )}
 
@@ -238,7 +239,7 @@ export default function SellerSettings() {
           </label>
 
           <Button className="rounded-xl" onClick={save} disabled={saving}>
-            {saving ? "Saving…" : "Save and resubmit for review"}
+            {saving ? "Saving…" : "Save store details"}
           </Button>
         </div>
       </div>

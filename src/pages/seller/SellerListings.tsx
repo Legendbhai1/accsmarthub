@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { useMutation, useQuery } from "convex/react";
 import { KeyRound } from "lucide-react";
-import { Lock, Minus, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { Lock, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,8 +26,20 @@ import { sellerNav } from "@/components/dash/navs";
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
-import { api, useDb, type Listing, DEMO_SELLER_ID, SERVICE_CATEGORIES } from "@/lib/db";
-import { api as convexApi } from "@/convex/_generated/api";
+import { SERVICE_CATEGORIES } from "@/lib/db";
+import {
+  useSellerListings,
+  useCredentialStatuses,
+  type SellerListingsRow,
+} from "@/lib/supabaseQueries";
+import {
+  createListing,
+  updateListing,
+  deleteListing,
+  uploadCredentials,
+  uploadSellerAsset,
+  publicAssetUrl,
+} from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 
@@ -39,11 +50,7 @@ const emptyDraft = {
   summary: "",
   category: "instagram",
   price: "",
-  followers: "",
-  niche: "",
-  description: "",
   features: "",
-  stock: "1",
   discount: "0",
   warranty: "24",
   hidden: false,
@@ -54,32 +61,29 @@ const emptyDraft = {
  * Listings and inventory.
  *
  * Creating a listing requires a store an admin has approved — the server
- * rejects it otherwise. Once a listing is registered, its stock lives in the
- * server ledger, so restocking here is reflected instantly in the
- * marketplace and in checkout.
+ * rejects it otherwise, and every new listing lands in `pending`.
+ *
+ * Stock is NOT set by hand. The moderation trigger pins `listings.stock` on
+ * seller writes, and `upload_credentials` resets it to the number of credential
+ * units nobody has claimed yet. So the real inventory control is the credential
+ * vault: attach N accounts and you have N units to sell. That is deliberate —
+ * a seller cannot advertise inventory they have not actually attached.
  */
 export default function SellerListings() {
-  const { listings } = useDb();
   const { user } = useSession();
   const [params] = useSearchParams();
-  const catalogue = listings.filter((l) => l.sellerId === DEMO_SELLER_ID);
+  const listingsQuery = useSellerListings();
+  const myListings = listingsQuery.data ?? [];
 
-  const ledger = useQuery(
-    convexApi.marketplace.sellerListings,
-    user?.sellerStatus === "approved" ? {} : "skip",
-  );
-  const publishListing = useMutation(convexApi.marketplace.publishListing);
-  const adjustStock = useMutation(convexApi.marketplace.adjustStock);
-  const generateListingUploadUrl = useMutation(
-    convexApi.marketplace.generateListingUploadUrl,
-  );
-  const setCredentials = useMutation(convexApi.credentials.setCredentials);
+  const credentialStatusQuery = useCredentialStatuses(myListings.map((l) => l.id));
+  const credentialStatus = credentialStatusQuery.data ?? {};
+
   const [imageFile, setImageFile] = useState<File | null>(null);
-
   const [editorOpen, setEditorOpen] = useState(() => params.get("new") === "1");
-  const [editing, setEditing] = useState<Listing | null>(null);
+  const [editing, setEditing] = useState<SellerListingsRow | null>(null);
   const [draft, setDraft] = useState(emptyDraft);
-  const [deleteTarget, setDeleteTarget] = useState<Listing | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<SellerListingsRow | null>(null);
   const [vaultFor, setVaultFor] = useState<string | null>(null);
   const [vaultText, setVaultText] = useState("");
   const [vaultName, setVaultName] = useState("");
@@ -90,48 +94,30 @@ export default function SellerListings() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const approved = user?.sellerStatus === "approved";
-  const ledgerByListing = new Map((ledger ?? []).map((row) => [row.listingId, row]));
-  const myListings = catalogue;
 
-  // Which listings already have a credential file attached.
-  const credentialStatus = useQuery(
-    convexApi.credentials.credentialStatus,
-    myListings.length ? { listingIds: myListings.map((l) => l.id) } : "skip",
-  );
-
-  const openEdit = (listing: Listing) => {
-    const row = ledgerByListing.get(listing.id);
+  const openEdit = (listing: SellerListingsRow) => {
     setEditing(listing);
     setDraft({
       title: listing.title,
-      summary: row?.summary ?? "",
-      category: listing.category,
-      price: String(listing.price),
-      followers: String(listing.followers),
-      niche: listing.niche,
-      description: listing.description,
-      features: (row?.features ?? listing.features ?? []).join("\n"),
-      stock: String(row?.stock ?? listing.stock),
-      discount: String(row?.discountPercent ?? 0),
-      warranty: String(row?.warrantyHours ?? 24),
-      hidden: row?.hidden ?? false,
-      faq: (row?.faq ?? []).map((f) => ({ ...f })),
+      summary: listing.summary ?? "",
+      category: listing.service_category ?? SERVICE_CATEGORIES[0]?.slug ?? "instagram",
+      price: String(listing.price_usd),
+      features: (listing.features ?? []).join("\n"),
+      discount: String(listing.discount_percent ?? 0),
+      warranty: String(listing.warranty_hours ?? 24),
+      hidden: Boolean(listing.hidden),
+      faq: (listing.faq ?? []).map((f) => ({ ...f })),
     });
+    setImageFile(null);
     setEditorOpen(true);
   };
 
   const save = async () => {
     const price = Number(draft.price);
-    const followers = Number(draft.followers);
-    const stock = Math.floor(Number(draft.stock));
     const discount = Number(draft.discount);
     const warranty = Number(draft.warranty);
-    if (!draft.title.trim() || !price || !followers) {
-      toast.error("Please fill in title, price and follower count.");
-      return;
-    }
-    if (!Number.isFinite(stock) || stock < 0) {
-      toast.error("Stock must be zero or more.");
+    if (!draft.title.trim() || !price || price <= 0) {
+      toast.error("Please fill in a title and a price.");
       return;
     }
     if (!Number.isFinite(discount) || discount < 0 || discount > 90) {
@@ -160,7 +146,6 @@ export default function SellerListings() {
     const copy = [
       draft.title,
       draft.summary,
-      draft.description,
       ...features,
       ...faq.map((f) => `${f.question} ${f.answer}`),
     ];
@@ -177,109 +162,92 @@ export default function SellerListings() {
       return;
     }
 
-    const uploadImage = async () => {
-      const file = imageFile;
-      if (!file) return undefined;
-      const url = await generateListingUploadUrl();
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!res.ok) throw new Error("Image upload failed. Try a smaller file.");
-      const { storageId } = (await res.json()) as { storageId: string };
-      return storageId;
-    };
-
+    setSaving(true);
     try {
-      const imageStorageId = await uploadImage();
+      const imagePath = imageFile
+        ? await uploadSellerAsset(imageFile, "listing-assets")
+        : (editing?.image_path ?? null);
+
+      const payload = {
+        title: draft.title.trim(),
+        brand: category?.brand ?? editing?.brand ?? "instagram",
+        summary: draft.summary.trim(),
+        features,
+        faq,
+        imagePath,
+        serviceCategory: draft.category,
+        discountPercent: discount,
+        warrantyHours: warranty,
+        hidden: draft.hidden,
+        priceUsd: price,
+      };
 
       if (editing) {
-        api.updateListing(editing.id, {
-          title: draft.title.trim(),
-          category: draft.category,
-          brand: category?.brand ?? editing.brand,
-          price,
-          followers,
-          niche: draft.niche.trim() || editing.niche,
-          description: draft.description.trim() || editing.description,
-          features,
-          stock,
-          status: stock > 0 && editing.status === "sold" ? "active" : "pending",
-        });
-        await publishListing({
-          listingId: editing.id,
-          title: draft.title.trim(),
-          brand: category?.brand ?? editing.brand,
-          priceUsd: price,
-          stock,
-          summary: draft.summary,
-          features,
-          faq,
-          imageStorageId,
-          discountPercent: discount,
-          warrantyHours: warranty,
-          hidden: draft.hidden,
-        });
-        toast.success("Listing updated — sent for review.");
+        await updateListing(editing.id, payload);
+        toast.success("Listing updated.");
       } else {
-        const created = api.createListing({
-          title: draft.title.trim(),
-          category: draft.category,
-          brand: category?.brand ?? "instagram",
-          sellerId: DEMO_SELLER_ID,
-          price,
-          rating: 0,
-          reviewCount: 0,
-          followers,
-          niche: draft.niche.trim() || "General",
-          description: draft.description.trim() || "Description pending.",
-          features,
-          stock,
-          deliveryTime: "Within 24 hours",
-        });
-        await publishListing({
-          listingId: created.id,
-          title: created.title,
-          brand: created.brand,
-          priceUsd: price,
-          stock,
-          summary: draft.summary,
-          features,
-          faq,
-          imageStorageId,
-          discountPercent: discount,
-          warrantyHours: warranty,
-          hidden: draft.hidden,
-        });
+        await createListing(payload);
         toast.success("Listing submitted for review.", {
-          description: "An admin reviews new listings before they go live.",
+          description:
+            "An admin reviews new listings before they go live. Attach credentials to give it stock.",
         });
       }
       setEditorOpen(false);
       setImageFile(null);
+      void listingsQuery.refresh();
     } catch (err) {
       toast.error("Could not save the listing", {
         description: err instanceof Error ? err.message : "Please try again.",
       });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const step = async (listing: Listing, delta: number) => {
-    const row = ledgerByListing.get(listing.id);
-    if (!row) {
-      api.adjustStock(listing.id, delta);
-      return;
-    }
-    setBusyId(listing.id);
+  const toggleVisibility = async (l: SellerListingsRow) => {
+    setBusyId(l.id);
     try {
-      await adjustStock({ listingId: listing.id, delta });
+      // A seller cannot change `status` — the moderation trigger pins it and
+      // only an admin may pause/activate. `hidden` is the one visibility lever
+      // a seller controls, so that is what this toggles.
+      await updateListing(l.id, {
+        title: l.title,
+        brand: l.brand,
+        summary: l.summary ?? "",
+        features: l.features ?? [],
+        faq: l.faq ?? [],
+        imagePath: l.image_path,
+        serviceCategory: l.service_category,
+        discountPercent: l.discount_percent ?? 0,
+        warrantyHours: l.warranty_hours ?? 0,
+        hidden: !l.hidden,
+        priceUsd: Number(l.price_usd),
+      });
+      void listingsQuery.refresh();
+      toast.success(l.hidden ? "Listing is now visible" : "Listing hidden from the storefront");
     } catch (err) {
-      toast.error("Could not update stock", {
+      toast.error("Could not update the listing", {
         description: err instanceof Error ? err.message : "Please try again.",
       });
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const remove = async () => {
+    if (!deleteTarget) return;
+    setBusyId(deleteTarget.id);
+    try {
+      await deleteListing(deleteTarget.id);
+      void listingsQuery.refresh();
+      toast("Listing deleted");
+    } catch (err) {
+      toast.error("Could not delete the listing", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setBusyId(null);
+      setDeleteTarget(null);
     }
   };
 
@@ -312,18 +280,16 @@ export default function SellerListings() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             {myListings.length} listing{myListings.length === 1 ? "" : "s"} ·{" "}
-            {myListings.reduce(
-              (sum, l) => sum + (ledgerByListing.get(l.id)?.stock ?? l.stock),
-              0,
-            )}{" "}
-            units in stock · stock is tracked on the server, so it updates in
-            real time across the marketplace.
+            {myListings.reduce((sum, l) => sum + l.stock, 0)} units in stock ·
+            stock is the number of credential accounts nobody has claimed yet, so
+            it updates in real time across the marketplace.
           </p>
           <Button
             className="rounded-xl"
             onClick={() => {
               setEditing(null);
               setDraft(emptyDraft);
+              setImageFile(null);
               setEditorOpen(true);
             }}
           >
@@ -339,7 +305,9 @@ export default function SellerListings() {
           reported to our trust team.
         </p>
 
-        {myListings.length === 0 ? (
+        {listingsQuery.loading ? (
+          <p className="text-sm text-muted-foreground">Loading your listings…</p>
+        ) : myListings.length === 0 ? (
           <EmptyState
             title="No listings yet"
             description="Create your first listing — it goes live after a quick moderation check."
@@ -355,49 +323,50 @@ export default function SellerListings() {
             </div>
             <ul className="divide-y divide-border/60">
               {myListings.map((l) => {
-                const row = ledgerByListing.get(l.id);
-                const stock = row?.stock ?? l.stock;
                 const busy = busyId === l.id;
+                const creds = credentialStatus[l.id];
                 return (
                   <li
                     key={l.id}
                     className="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6"
                   >
-                    <span className="flex size-10 items-center justify-center rounded-xl border border-border/60 bg-muted/40">
-                      <BrandMark brand={l.brand} colored className="size-5" />
+                    <span className="flex size-10 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted/40">
+                      {l.image_path ? (
+                        <img
+                          src={publicAssetUrl("listing-assets", l.image_path)}
+                          alt=""
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <BrandMark brand={l.brand} colored className="size-5" />
+                      )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">{l.title}</span>
+                      <span className="block truncate text-sm font-medium">
+                        {l.title}
+                        {l.hidden ? (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (hidden)
+                          </span>
+                        ) : null}
+                      </span>
                       <span className="text-xs text-muted-foreground">
-                        {l.followers.toLocaleString()} followers · {l.niche}
-                        {row ? "" : " · not yet synced to inventory"}
+                        {l.service_category ?? l.brand}
+                        {creds?.attached
+                          ? ` · ${creds.totalUnits} account${
+                              creds.totalUnits === 1 ? "" : "s"
+                            } attached`
+                          : " · no credentials attached yet"}
                       </span>
                     </span>
                     <span className="w-16 text-sm font-semibold tabular-nums">
-                      {formatPrice(row?.priceUsd ?? l.price)}
+                      {formatPrice(l.price_usd)}
                     </span>
-                    <span className="inline-flex items-center justify-center gap-1 rounded-full border border-border bg-white p-0.5">
-                      <button
-                        type="button"
-                        aria-label={`Remove one unit of ${l.title}`}
-                        disabled={busy || stock === 0}
-                        onClick={() => step(l, -1)}
-                        className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
-                      >
-                        <Minus className="size-3.5" />
-                      </button>
-                      <span className="w-7 text-center text-sm font-bold tabular-nums">
-                        {stock}
+                    <span className="w-16 text-center">
+                      <span className="text-sm font-bold tabular-nums">{l.stock}</span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        units
                       </span>
-                      <button
-                        type="button"
-                        aria-label={`Add one unit of ${l.title}`}
-                        disabled={busy}
-                        onClick={() => step(l, 1)}
-                        className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
-                      >
-                        <Plus className="size-3.5" />
-                      </button>
                     </span>
                     <StatusBadge status={l.status} />
                     <span className="flex w-full justify-end gap-1.5 lg:w-auto">
@@ -407,51 +376,34 @@ export default function SellerListings() {
                         className="size-8 rounded-lg"
                         aria-label={`Manage credentials for ${l.title}`}
                         title={
-                          credentialStatus?.[l.id]?.attached
-                            ? `${credentialStatus[l.id].availableUnits} of ${
-                                credentialStatus[l.id].totalUnits
-                              } accounts still unsold — click to manage`
+                          creds?.attached
+                            ? `${creds.availableUnits} of ${creds.totalUnits} accounts still unsold — click to manage`
                             : "Attach the credentials buyers will download"
                         }
                         onClick={() => {
                           setVaultFor(l.id);
                           setVaultText("");
-                          setVaultName(`${l.id}-unit-1.txt`);
+                          setVaultName("");
+                          setVaultFiles([]);
                         }}
                       >
                         <KeyRound
                           className={
-                            credentialStatus?.[l.id]?.attached
+                            creds?.attached
                               ? "size-3.5 text-emerald-600"
                               : "size-3.5 text-amber-600"
                           }
                         />
                       </Button>
-                      {l.status === "active" ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-lg"
-                          onClick={() => {
-                            api.updateListing(l.id, { status: "paused" });
-                            toast("Listing paused");
-                          }}
-                        >
-                          Pause
-                        </Button>
-                      ) : l.status === "paused" ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-lg"
-                          onClick={() => {
-                            api.updateListing(l.id, { status: "active" });
-                            toast.success("Listing active");
-                          }}
-                        >
-                          Activate
-                        </Button>
-                      ) : null}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg"
+                        disabled={busy}
+                        onClick={() => toggleVisibility(l)}
+                      >
+                        {l.hidden ? "Show" : "Hide"}
+                      </Button>
                       <Button
                         variant="outline"
                         size="icon"
@@ -486,7 +438,7 @@ export default function SellerListings() {
             <DialogTitle>{editing ? "Edit listing" : "Create listing"}</DialogTitle>
             <DialogDescription>
               {editing
-                ? "Price and stock are re-validated on the server when you save."
+                ? "Price and content are re-validated on the server when you save."
                 : "New listings are reviewed before appearing in the marketplace."}
             </DialogDescription>
           </DialogHeader>
@@ -505,8 +457,10 @@ export default function SellerListings() {
                   sale price. Your payout is calculated on the server.
                 </li>
                 <li>
-                  <strong>Review window.</strong> New listings go to admin
-                  review before they appear in the marketplace.
+                  <strong>Stock comes from the vault.</strong> Attach one
+                  account per unit you want to sell — stock is the number of
+                  unclaimed accounts, so you cannot advertise what you do not
+                  have.
                 </li>
               </ol>
             </div>
@@ -572,6 +526,7 @@ export default function SellerListings() {
                   id="draft-price"
                   type="number"
                   min={1}
+                  step="0.01"
                   value={draft.price}
                   onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
                   className="inset-well rounded-xl border-border/60"
@@ -579,34 +534,6 @@ export default function SellerListings() {
                 />
                 <p className="text-xs text-muted-foreground">
                   What the buyer pays before the escrow fee.
-                </p>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="draft-followers">Followers / audience size</Label>
-                <Input
-                  id="draft-followers"
-                  type="number"
-                  min={1}
-                  value={draft.followers}
-                  onChange={(e) => setDraft((d) => ({ ...d, followers: e.target.value }))}
-                  className="inset-well rounded-xl border-border/60"
-                  placeholder="120000"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="draft-stock">Units available</Label>
-                <Input
-                  id="draft-stock"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={draft.stock}
-                  onChange={(e) => setDraft((d) => ({ ...d, stock: e.target.value }))}
-                  className="inset-well rounded-xl border-border/60"
-                  placeholder="1"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Set 0 to mark it sold out.
                 </p>
               </div>
               <div className="grid gap-2">
@@ -635,16 +562,6 @@ export default function SellerListings() {
                   placeholder="24"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="draft-niche">Niche</Label>
-                <Input
-                  id="draft-niche"
-                  value={draft.niche}
-                  onChange={(e) => setDraft((d) => ({ ...d, niche: e.target.value }))}
-                  className="inset-well rounded-xl border-border/60"
-                  placeholder="Fitness, travel, finance…"
-                />
-              </div>
             </div>
 
             <label className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm">
@@ -660,17 +577,6 @@ export default function SellerListings() {
                 pages.
               </span>
             </label>
-
-            <div className="grid gap-2">
-              <Label htmlFor="draft-description">Description</Label>
-              <Textarea
-                id="draft-description"
-                value={draft.description}
-                onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-                className="inset-well min-h-28 rounded-xl border-border/60"
-                placeholder="Describe the product — quality, warranty, what's included…"
-              />
-            </div>
 
             <div className="grid gap-2">
               <Label htmlFor="draft-features">Features</Label>
@@ -769,8 +675,8 @@ export default function SellerListings() {
             <Button variant="ghost" className="rounded-xl" onClick={() => setEditorOpen(false)}>
               Cancel
             </Button>
-            <Button className="rounded-xl" onClick={save}>
-              {editing ? "Save changes" : "Submit for approval"}
+            <Button className="rounded-xl" onClick={save} disabled={saving}>
+              {saving ? "Saving…" : editing ? "Save changes" : "Submit for approval"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -784,7 +690,7 @@ export default function SellerListings() {
             <DialogDescription>
               Paste the credentials buyers receive after they pay. Stored
               encrypted and shared from one copy, no matter how many people buy
-              this listing.
+              this listing. Each account you attach adds one unit of stock.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
@@ -798,9 +704,9 @@ export default function SellerListings() {
                 onChange={async (e) => {
                   const files = Array.from(e.target.files ?? []);
                   if (files.length === 0) return;
-                  const tooBig = files.find((f) => f.size > 20_000);
+                  const tooBig = files.find((f) => f.size > 60_000);
                   if (tooBig) {
-                    toast.error(`${tooBig.name} is too large (20KB maximum).`);
+                    toast.error(`${tooBig.name} is too large (60KB maximum).`);
                     return;
                   }
                   const loaded = await Promise.all(
@@ -899,20 +805,27 @@ export default function SellerListings() {
                             credentials: vaultText,
                           },
                         ];
-                  const result = await setCredentials({ listingId: vaultFor, files });
+                  const result = await uploadCredentials({
+                    listingId: vaultFor,
+                    units: files,
+                  });
                   toast.success("Credentials saved", {
-                    description: `${result.unclaimedUnits} account${
-                      result.unclaimedUnits === 1 ? "" : "s"
-                    } ready to sell${
-                      result.reservedUnits
-                        ? ` · ${result.reservedUnits} already reserved by paid orders`
+                    description: `${result.uploaded} account${
+                      result.uploaded === 1 ? "" : "s"
+                    } encrypted and stored.${
+                      result.availableUnits !== undefined
+                        ? ` ${result.availableUnits} unit${
+                            result.availableUnits === 1 ? "" : "s"
+                          } now available to sell.`
                         : ""
-                    }.`,
+                    }`,
                   });
                   setVaultFor(null);
                   setVaultText("");
                   setVaultName("");
                   setVaultFiles([]);
+                  void listingsQuery.refresh();
+                  void credentialStatusQuery.refresh();
                 } catch (err) {
                   toast.error("Could not save credentials", {
                     description: err instanceof Error ? err.message : "Please try again.",
@@ -936,12 +849,7 @@ export default function SellerListings() {
         description="This permanently removes the listing. Orders already in escrow are unaffected."
         confirmLabel="Delete listing"
         destructive
-        onConfirm={() => {
-          if (deleteTarget) {
-            api.deleteListing(deleteTarget.id);
-            toast("Listing deleted");
-          }
-        }}
+        onConfirm={remove}
       />
     </DashLayout>
   );

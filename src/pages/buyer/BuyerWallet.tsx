@@ -25,7 +25,8 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { buyerNav } from "@/components/dash/navs";
 import { StatCard } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { readWallet, readDeposits, type Deposit, verifyDeposit, createDeposit } from "@/lib/supabaseQueries";
+import { readDeposits, readLedger, type Deposit, type LedgerRow } from "@/lib/supabaseData";
+import { verifyDeposit, createDeposit } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 
@@ -46,6 +47,8 @@ export default function BuyerWallet() {
   const [amountStr, setAmountStr] = useState("50");
 
   const [deposits, setDeposits] = useState<Deposit[]>([]);
+  const [ledger, setLedger] = useState<LedgerRow[]>([]);
+  const [loadingLedger, setLoadingLedger] = useState(true);
   const [loadingDeposits, setLoadingDeposits] = useState(true);
 
   // The webhook credits the wallet on its own; this only re-checks the
@@ -74,7 +77,7 @@ export default function BuyerWallet() {
     void (async () => {
       try {
         const rows = await readDeposits();
-        setDeposits(rows);
+        setDeposits(rows ?? []);
       } catch {
         setDeposits([]);
       } finally {
@@ -83,9 +86,19 @@ export default function BuyerWallet() {
     })();
   }, []);
 
-  // The old convex deposit state was `phase: "creating"`, `phase: "awaiting"`.
-  // While migrating, keep the same UX shape but back it with the Supabase
-  // deposit helpers instead of the old convex actions.
+  useEffect(() => {
+    setLoadingLedger(true);
+    void (async () => {
+      try {
+        const rows = await readLedger(20);
+        setLedger(rows ?? []);
+      } catch {
+        setLedger([]);
+      } finally {
+        setLoadingLedger(false);
+      }
+    })();
+  }, []);
 
   const startDeposit = async () => {
     const amount = Math.round(Number(amountStr) * 100) / 100;
@@ -197,69 +210,80 @@ export default function BuyerWallet() {
             Every top-up is confirmed by OxaPay and credited to your wallet
             automatically.
           </p>
-          {!deposits || deposits.length === 0 ? (
+          {loadingDeposits ? (
+            <p className="mt-4 rounded-xl bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+              Loading deposits…
+            </p>
+          ) : deposits.length === 0 ? (
             <p className="mt-4 rounded-xl bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
               No deposits yet.
             </p>
-          ) : (              <ul className="mt-4 divide-y divide-border/60 text-sm">
-              {loadingDeposits ? (
-                <li className="py-6 text-center text-sm text-muted-foreground">
-                  Loading deposits…
+          ) : (
+            <ul className="mt-4 divide-y divide-border/60 text-sm">
+              {deposits.map((d) => (
+                <li key={d.track_id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="font-medium">{formatPrice(d.amount_usd)}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {new Date(d.created_at).toLocaleString()} ·{" "}
+                      <span className="font-mono">{d.track_id}</span>
+                    </p>
+                  </div>
+                  <span
+                    className={
+                      d.status === "paid"
+                        ? "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-700"
+                        : "rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-700"
+                    }
+                  >
+                    {d.status === "paid" ? "Credited" : "Awaiting payment"}
+                  </span>
                 </li>
-              ) : deposits.length === 0 ? (
-                <li className="py-6 text-center text-sm text-muted-foreground">
-                  No deposits yet.
-                </li>
-              ) : (
-                deposits.map((d) => (
-                  <li key={d.track_id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="min-w-0">
-                      <p className="font-medium">{formatPrice(d.amount_usd)}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {new Date(d.created_at).toLocaleString()} ·{" "}
-                        <span className="font-mono">{d.track_id}</span>
-                      </p>
-                    </div>
-                    <span
-                      className={
-                        d.status === "paid"
-                          ? "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-700"
-                          : "rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-700"
-                      }
-                    >
-                      {d.status === "paid" ? "Credited" : "Awaiting payment"}
-                    </span>
-                  </li>
-                ))
-              )}
+              ))}
             </ul>
           )}
         </div>
 
         <div className="glass p-6">
           <h3 className="font-semibold">Transaction history</h3>
-          <ul className="mt-4 divide-y divide-border/60 text-sm">
-            {mine.length === 0 ? (
-              <li className="py-6 text-center text-muted-foreground">
-                No transactions yet.
-              </li>
-            ) : (
-              mine.slice(0, 6).map((order) => (
-                <li key={order.id} className="flex items-center justify-between py-3">
-                  <div>
-                    <p className="font-medium">{order.listingTitle}</p>
-                    <p className="text-xs text-muted-foreground">
-                      #{order.id} · {new Date(order.createdAt).toLocaleDateString()}
+          {loadingLedger ? (
+            <p className="mt-4 py-6 text-center text-sm text-muted-foreground">
+              Loading transactions…
+            </p>
+          ) : ledger.length === 0 ? (
+            <p className="mt-4 py-6 text-center text-sm text-muted-foreground">
+              No transactions yet.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y divide-border/60 text-sm">
+              {ledger.slice(0, 8).map((row) => (
+                <li key={row.id} className="flex items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <p className="font-medium capitalize">
+                      {row.kind.replace(/_/g, " ")}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {new Date(row.created_at).toLocaleString()}
+                      {row.order_no ? ` · ${row.order_no}` : ""}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold tabular-nums">−{formatPrice(order.total)}</p>
-                    <p className="text-xs capitalize text-muted-foreground">{order.status.replace(/_/g, " ")}</p>
+                    <p
+                      className={`font-semibold tabular-nums ${
+                        Number(row.balance_delta) >= 0 ? "text-emerald-600" : ""
+                      }`}
+                    >
+                      {Number(row.balance_delta) >= 0 ? "+" : "−"}
+                      {formatPrice(Math.abs(Number(row.balance_delta)))}
+                    </p>
+                    <p className="text-xs tabular-nums text-muted-foreground">
+                      {formatPrice(Number(row.balance_after))}
+                    </p>
                   </div>
                 </li>
-              ))
-            )}
-          </ul>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { Link } from "react-router";
 import { ArrowRight, Package, Receipt, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,22 +5,25 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { buyerNav } from "@/components/dash/navs";
 import { EmptyState, SectionHeading, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { api as convexApi } from "@/convex/_generated/api";
+import { useMyOrders } from "@/lib/supabaseQueries";
 import { useSession } from "@/lib/session";
 
 export default function BuyerDashboard() {
   const { user } = useSession();
-  // Real order ledger — not seeded demo rows.
-  const orders = useQuery(convexApi.marketplace.myOrders);
+  // Real order ledger read from Supabase — not seeded demo rows.
+  const ordersQuery = useMyOrders("buyer");
+  const orders = ordersQuery.data ?? [];
 
-  const active = (orders ?? []).filter((o) =>
-    ["in_escrow", "transferring"].includes(o.status),
+  // Supabase has no `transferring` state: an order is active while it sits in
+  // escrow or has been opened as a dispute.
+  const active = orders.filter((o) =>
+    ["in_escrow", "disputed"].includes(o.status),
   );
-  const spent = (orders ?? [])
+  const spent = orders
     .filter((o) => o.status !== "refunded")
-    .reduce((sum, o) => sum + o.totalUsd, 0);
-  const recent = (orders ?? []).slice(0, 4);
-  const loading = orders === undefined;
+    .reduce((sum, o) => sum + o.total_usd, 0);
+  const recent = orders.slice(0, 4);
+  const loading = ordersQuery.loading;
 
   return (
     <DashLayout title="Buyer overview" nav={buyerNav}>
@@ -40,7 +42,7 @@ export default function BuyerDashboard() {
             label="Active orders"
             value={loading ? "—" : String(active.length)}
             icon={Receipt}
-            hint="In escrow or transferring"
+            hint="In escrow or disputed"
           />
           <StatCard
             label="Lifetime purchases"
@@ -83,23 +85,23 @@ export default function BuyerDashboard() {
           ) : (
             <ul className="mt-4 divide-y divide-border/60">
               {recent.map((order) => (
-                <li key={order._id}>
+                <li key={order.order_no}>
                   <Link
-                    to={`/account/orders/${order.orderNo}`}
+                    to={`/account/orders/${order.order_no}`}
                     className="flex items-center gap-3 py-3.5 transition-colors hover:text-primary"
                   >
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">
-                        {order.listingTitle}
+                        {order.listing_title}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {order.orderNo} ·{" "}
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        {order.order_no} ·{" "}
+                        {new Date(order.created_at).toLocaleDateString()}
                       </span>
                     </span>
                     <StatusBadge status={order.status} />
                     <span className="w-20 text-right text-sm font-semibold tabular-nums">
-                      {formatPrice(order.totalUsd)}
+                      {formatPrice(order.total_usd)}
                     </span>
                   </Link>
                 </li>

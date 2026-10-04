@@ -1,4 +1,3 @@
-import { useQuery } from "convex/react";
 import { Link } from "react-router";
 import { ArrowRight, Eye, Receipt, Wallet, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,19 +5,22 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { sellerNav } from "@/components/dash/navs";
 import { SectionHeading, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { api as convexApi } from "@/convex/_generated/api";
+import { useMyOrders, useSellerListings, useEarningsSummary } from "@/lib/supabaseQueries";
 
 export default function SellerDashboard() {
-  // All three figures come from the signed-in seller's own server rows.
-  const orders = useQuery(convexApi.marketplace.salesOrders);
-  const listings = useQuery(convexApi.marketplace.sellerListings);
-  const summary = useQuery(convexApi.marketplace.earningsSummary);
+  // All three figures come from the signed-in seller's own Supabase rows.
+  const ordersQuery = useMyOrders("seller");
+  const listingsQuery = useSellerListings();
+  const summaryQuery = useEarningsSummary();
 
-  const escrowHeld = (orders ?? [])
-    .filter((o) => ["in_escrow", "transferring"].includes(o.status))
-    .reduce((s, o) => s + o.grossAmount, 0);
-  const activeListings = (listings ?? []).filter((l) => l.status === "active").length;
-  const loading = orders === undefined || listings === undefined;
+  const orders = ordersQuery.data ?? [];
+  const escrowHeld = orders
+    .filter((o) => ["in_escrow", "disputed"].includes(o.status))
+    .reduce((s, o) => s + o.gross_amount, 0);
+  const activeListings = (listingsQuery.data ?? []).filter(
+    (l) => l.status === "active",
+  ).length;
+  const loading = ordersQuery.loading || listingsQuery.loading;
 
   return (
     <DashLayout title="Seller overview" nav={sellerNav}>
@@ -52,13 +54,13 @@ export default function SellerDashboard() {
           />
           <StatCard
             label="Earned (completed)"
-            value={summary ? formatPrice(summary.netUsd) : "—"}
+            value={summaryQuery.data ? formatPrice(summaryQuery.data.netUsd) : "—"}
             icon={Wallet}
             hint="After the 10% platform commission"
           />
           <StatCard
             label="Orders"
-            value={loading ? "—" : String(orders?.length ?? 0)}
+            value={loading ? "—" : String(orders.length)}
             icon={Receipt}
           />
         </div>
@@ -76,26 +78,26 @@ export default function SellerDashboard() {
           />
           {loading ? (
             <p className="mt-4 text-sm text-muted-foreground">Loading your orders…</p>
-          ) : (orders ?? []).length === 0 ? (
+          ) : orders.length === 0 ? (
             <p className="mt-4 py-6 text-center text-sm text-muted-foreground">
               No orders yet — publish a listing to get started.
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-border/60">
-              {(orders ?? []).slice(0, 4).map((order) => (
-                <li key={order._id} className="flex items-center gap-3 py-3.5">
+              {orders.slice(0, 4).map((order) => (
+                <li key={order.order_no} className="flex items-center gap-3 py-3.5">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">
-                      {order.listingTitle}
+                      {order.listing_title}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {order.orderNo} ·{" "}
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      {order.order_no} ·{" "}
+                      {new Date(order.created_at).toLocaleDateString()}
                     </span>
                   </span>
                   <StatusBadge status={order.status} />
                   <span className="w-20 text-right text-sm font-semibold tabular-nums">
-                    {formatPrice(order.grossAmount)}
+                    {formatPrice(order.gross_amount)}
                   </span>
                 </li>
               ))}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { motion } from "framer-motion";
 import {
@@ -25,11 +25,9 @@ export default function OrderConfirmed() {
   const orderNo = orderId ? decodeURIComponent(orderId) : "";
   const { user } = useSession();
 
-  // The confirmed page shows the same data a buyer sees in their order list.
-  // During migration we still render the UI for a fresh order that exists only
-  // in Supabase, but the demo catalogue did not create that row, so we fall
-  // back to the checkout pass-through and let the real order appear once it is
-  // in the Supabase `orders` table.
+  // The order row is read straight from Supabase. It is fetched on mount (the
+  // buyer lands here right after checkout) and re-read after any action that
+  // changes escrow state, so the page always reflects the authoritative row.
   const [order, setOrder] = useState<{
     order_no: string;
     listing_title: string;
@@ -45,16 +43,22 @@ export default function OrderConfirmed() {
   const [confirming, setConfirming] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  const refreshOrder = async () => {
+  const refreshOrder = useCallback(async () => {
     if (!orderNo) return;
     setLoading("checking");
     try {
       const row = await fetchOrder(orderNo);
-      if (row) setOrder(row);
+      setOrder(row);
+    } catch {
+      setOrder(null);
     } finally {
       setLoading("ok");
     }
-  };
+  }, [orderNo]);
+
+  useEffect(() => {
+    void refreshOrder();
+  }, [refreshOrder]);
 
   const confirm = async () => {
     if (!orderNo) return;

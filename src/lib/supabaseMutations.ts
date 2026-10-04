@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
 import { friendlyError, type Deposit, type Report } from "@/lib/supabaseData";
 
 /**
@@ -34,16 +34,10 @@ export async function completeOrder(input: CompleteOrderInput) {
   if (error) throw new Error(friendlyError(error));
 }
 
-export type AdvanceOrderInput = {
-  orderNo: string;
-};
-
-export async function advanceOrder(input: AdvanceOrderInput) {
-  const { error } = await supabase.rpc("advance_order", {
-    p_order_no: input.orderNo,
-  });
-  if (error) throw new Error(friendlyError(error));
-}
+// NOTE: the Convex build had `marketplace.advanceOrder` to move an order from
+// `in_escrow` -> `transferring`. Supabase's `orders.status` constraint has no
+// `transferring` state, so escrow release is a single step: the buyer calls
+// `complete_order`. There is deliberately no `advance_order` wrapper here.
 
 export type OpenDepositInput = {
   amountUsd: number;
@@ -99,7 +93,7 @@ export async function createDeposit(amountUsd: number, returnUrl: string): Promi
   if (error) throw new Error(friendlyError(error));
 
   const oxapayKey = import.meta.env.VITE_OXAPAY_MERCHANT_API_KEY;
-  const baseUrl = import.meta.env.VITE_SUPABASE_URL ?? "https://fbalfkvimlfmcpsfzrvn.supabase.co";
+  const baseUrl = SUPABASE_PROJECT_URL;
 
   if (!oxapayKey) {
     return { trackId, amountUsd };
@@ -143,10 +137,111 @@ export type SubmitStoreInput = {
   bannerPath?: string | null;
 };
 
+/** Slugify a store name for the unique `stores.slug` column. */
+function slugify(name: string) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "store";
+}
+
+/**
+ * Upload a seller-owned image (store logo / listing photo) to Supabase Storage.
+ *
+ * Files land under `<user id>/…` inside a public bucket, which is what the
+ * storage RLS policies allow: the seller may write only their own folder, and
+ * anyone may read. Returns the storage path (NOT a public URL) to store in
+ * `logo_path` / `image_path`.
+ */
+export async function uploadSellerAsset(
+  file: File,
+  folder: "store-assets" | "listing-assets",
+): Promise<string> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) throw new Error("You need to be signed in to upload files.");
+
+  const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage.from(folder).upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type || undefined,
+  });
+  if (error) throw new Error(friendlyError(error));
+  return path;
+}
+
+/** Absolute, browser-usable URL for a stored asset path. */
+export function publicAssetUrl(
+  folder: "store-assets" | "listing-assets",
+  path: string,
+) {
+  return `${SUPABASE_PROJECT_URL}/storage/v1/object/public/${folder}/${path}`;
+}
+
+/**
+ * Create the seller's store application.
+ *
+ * New applications always land as `pending` — the RLS insert policy and the
+ * `contact_policy` check enforce that a seller cannot self-approve.
+ */
 export async function submitStore(input: SubmitStoreInput) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) throw new Error("You need to be signed in to apply.");
+
+  if (!input.contactPolicyAccepted) {
+    throw new Error("You must accept the contact policy to apply.");
+  }
+
   const { data, error } = await supabase
     .from("stores")
-    .insert({ ...input, status: "pending" })
+    .insert({
+      user_id: userId,
+      store_name: input.storeName,
+      slug: slugify(input.storeName),
+      logo_path: input.logoPath ?? null,
+      banner_path: input.bannerPath ?? null,
+      platforms: input.platforms,
+      delivery_speed: input.deliverySpeed || null,
+      access_format: input.accessFormat || null,
+      replacement_policy: input.replacementPolicy || null,
+      restricted_regions: input.restrictedRegions || null,
+      sourcing: input.sourcing || null,
+      contact_policy: true,
+      status: "pending",
+    })
+    .select()
+    .single();
+  if (error) throw new Error(friendlyError(error));
+  return data;
+}
+
+/**
+ * Update an existing store.
+ *
+ * The `guard_store_moderation` trigger pins `status`, `review_note`,
+ * `reviewed_at` and `reviewed_by` to their current values for non-admin
+ * writes, so editing content can never silently re-open or self-grant
+ * approval — an admin has to do that explicitly.
+ */
+export async function updateStore(storeId: string, input: SubmitStoreInput) {
+  const { data, error } = await supabase
+    .from("stores")
+    .update({
+      store_name: input.storeName,
+      platforms: input.platforms,
+      delivery_speed: input.deliverySpeed || null,
+      access_format: input.accessFormat || null,
+      replacement_policy: input.replacementPolicy || null,
+      restricted_regions: input.restrictedRegions || null,
+      sourcing: input.sourcing || null,
+      contact_policy: input.contactPolicyAccepted,
+    })
+    .eq("id", storeId)
     .select()
     .single();
   if (error) throw new Error(friendlyError(error));
@@ -181,32 +276,141 @@ export async function setListingStatus(input: SetListingStatusInput) {
   if (error) throw new Error(friendlyError(error));
 }
 
-export type UploadCredentialsInput = {
-  listingId: string;
-  units: unknown[];
+export type CredentialUnit = {
+  unitKey: string;
+  fileName: string;
+  credentials: string;
 };
 
-export async function uploadCredentials(input: UploadCredentialsInput) {
-  const { data, error } = await supabase.rpc("upload_credentials", {
-    p_listing_id: input.listingId,
-    p_units: input.units,
+/**
+ * Encrypt and store seller-submitted credentials.
+ *
+ * Goes through the `upload-credentials` Edge Function rather than calling the
+ * `upload_credentials` RPC directly, because the RPC expects base64 AES-GCM
+ * ciphertext and the encryption passphrase is a function SECRET the browser
+ * must never hold. The function encrypts, then calls the RPC as the caller so
+ * the ownership check still applies.
+ */
+export async function uploadCredentials(input: {
+  listingId: string;
+  units: CredentialUnit[];
+}) {
+  const { data, error } = await supabase.functions.invoke("upload-credentials", {
+    body: { listingId: input.listingId, units: input.units },
   });
   if (error) throw new Error(friendlyError(error));
-  return data;
+  return (data ?? {}) as {
+    uploaded: number;
+    attached?: boolean;
+    totalUnits?: number;
+    availableUnits?: number;
+  };
+}
+
+export type ListingDraft = {
+  title: string;
+  brand: string;
+  summary: string;
+  features: string[];
+  faq: { question: string; answer: string }[];
+  imagePath: string | null;
+  serviceCategory: string | null;
+  discountPercent: number;
+  warrantyHours: number;
+  hidden: boolean;
+  priceUsd: number;
+};
+
+function listingRow(draft: ListingDraft, sellerId: string) {
+  return {
+    seller_id: sellerId,
+    title: draft.title,
+    brand: draft.brand,
+    summary: draft.summary || null,
+    features: draft.features.length ? draft.features : null,
+    faq: draft.faq.length ? draft.faq : null,
+    image_path: draft.imagePath,
+    service_category: draft.serviceCategory,
+    discount_percent: draft.discountPercent || null,
+    warranty_hours: draft.warrantyHours,
+    hidden: draft.hidden,
+    price_usd: draft.priceUsd,
+  };
+}
+
+/**
+ * Create a listing. The RLS insert policy forces `status = 'pending'` and
+ * `stock = 0`, so a seller cannot self-publish or fake availability — an admin
+ * has to approve it via `set_listing_status`.
+ */
+export async function createListing(draft: ListingDraft): Promise<string> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) throw new Error("You need to be signed in to create a listing.");
+
+  const { data, error } = await supabase
+    .from("listings")
+    .insert({
+      ...listingRow(draft, userId),
+      listing_key: crypto.randomUUID(),
+      status: "pending",
+      stock: 0,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(friendlyError(error));
+  return data.id as string;
+}
+
+/**
+ * Update a listing's content.
+ *
+ * `stock` and `status` are intentionally NOT writable here: the moderation
+ * trigger pins both on seller writes, because stock is derived from attached
+ * credentials and status is an admin decision.
+ */
+export async function updateListing(listingId: string, draft: ListingDraft) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) throw new Error("You need to be signed in.");
+
+  const { error } = await supabase
+    .from("listings")
+    .update(listingRow(draft, userId))
+    .eq("id", listingId);
+  if (error) throw new Error(friendlyError(error));
+}
+
+/** Delete one of the seller's own listings. */
+export async function deleteListing(listingId: string) {
+  const { error } = await supabase.from("listings").delete().eq("id", listingId);
+  if (error) throw new Error(friendlyError(error));
 }
 
 export type FileReportInput = {
   orderNo?: string;
   listingId?: string;
   reportedUserId?: string;
+  /** Must be one of the reason values the DB check constraint allows. */
   reason: string;
   detail: string;
 };
 
 export async function fileReport(input: FileReportInput): Promise<Report> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const reporterId = sessionData.session?.user.id;
+  if (!reporterId) throw new Error("You need to be signed in to file a report.");
+
   const { data, error } = await supabase
     .from("off_platform_reports")
-    .insert(input)
+    .insert({
+      order_no: input.orderNo ?? null,
+      listing_id: input.listingId ?? null,
+      reporter_id: reporterId,
+      reported_user_id: input.reportedUserId ?? null,
+      reason: input.reason,
+      detail: input.detail,
+    })
     .select()
     .single();
   if (error) throw new Error(friendlyError(error));
@@ -233,6 +437,54 @@ export async function resolveReport(input: ResolveReportInput) {
     p_report_id: input.reportId,
     p_status: input.status,
     p_penalty: input.penalty ?? null,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+// Re-exported so callers that already import their mutations from this module
+// do not need a second import for the order fetch / credential download.
+export { fetchOrder, type OrderRow } from "@/lib/supabaseQueries";
+export { downloadCredentials } from "@/lib/supabaseData";
+
+/**
+ * Buyer opens a dispute. Escrow freezes by flipping the order to 'disputed';
+ * nothing moves until an admin resolves it.
+ */
+export async function openDispute(
+  orderNo: string,
+  reason: string,
+  detail: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("open_dispute", {
+    p_order_no: orderNo,
+    p_reason: reason,
+    p_detail: detail,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/** Add evidence to an open dispute. */
+export async function addDisputeMessage(
+  disputeId: string,
+  body: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("add_dispute_message", {
+    p_dispute_id: disputeId,
+    p_body: body,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/** Admin resolves a dispute: refund the buyer or release to the seller. */
+export async function resolveDispute(
+  disputeId: string,
+  outcome: "resolved_buyer" | "resolved_seller" | "dismissed",
+  note: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("resolve_dispute", {
+    p_dispute_id: disputeId,
+    p_outcome: outcome,
+    p_note: note,
   });
   if (error) throw new Error(friendlyError(error));
 }

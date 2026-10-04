@@ -8,8 +8,7 @@ import { BrandMark } from "@/components/site/BrandMark";
 import { ListingCard } from "@/components/common/ListingCard";
 import { SectionHeading } from "@/components/common/Primitives";
 import { categories, useDb } from "@/lib/db";
-import { useQuery } from "convex/react";
-import { api as convexApi } from "@/convex/_generated/api";
+import { useLiveStock } from "@/lib/supabaseQueries";
 
 const containerVariants = {
   hidden: {},
@@ -30,9 +29,8 @@ const cardVariants = {
 export default function Home() {
   const navigate = useNavigate();
   const { listings } = useDb();
-  const liveStock = useQuery(convexApi.marketplace.liveStock, {
-    listingIds: listings.map((l) => l.id),
-  });
+  const liveStockQuery = useLiveStock(listings.map((l) => l.id));
+  const liveStock = liveStockQuery.data;
   const [query, setQuery] = useState("");
 
   const active = listings.filter((l) => l.status === "active");

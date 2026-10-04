@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMemo, useState } from "react";
 import { CircleDollarSign, RotateCcw, Percent, ShieldAlert } from "lucide-react";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState, SectionHeading, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/format";
-import { categories, payments, useDb } from "@/lib/db";
-import { api as convexApi } from "@/convex/_generated/api";
+import { categories } from "@/lib/db";
+import { useReports, usePlatformStats, useAllOrders } from "@/lib/supabaseQueries";
+import { resolveReport } from "@/lib/supabaseMutations";
 import { toast } from "sonner";
 
 const REPORT_LABELS: Record<string, string> = {
@@ -19,25 +19,38 @@ const REPORT_LABELS: Record<string, string> = {
 };
 
 export default function AdminReports() {
-  const { orders, listings } = useDb();
   const [filter, setFilter] = useState<string>("open");
-  const reports = useQuery(convexApi.reports.openReports, { status: filter });
-  const resolveReport = useMutation(convexApi.reports.resolveReport);
+  const reportsQuery = useReports(filter);
+  const statsQuery = usePlatformStats();
+  const ordersQuery = useAllOrders();
 
-  const volume = payments.reduce((s, p) => s + p.amount, 0);
-  const refunded = payments
-    .filter((p) => p.status === "refunded")
-    .reduce((s, p) => s + p.amount, 0);
+  const reports = reportsQuery.data ?? [];
+  const orders = ordersQuery.data ?? [];
 
-  // Category share of active listings (simple demo report)
-  const active = listings.filter((l) => l.status === "active");
-  const byCategory = categories
-    .map((c) => ({
-      name: c.name,
-      brand: c.brand,
-      count: active.filter((l) => l.category === c.slug).length,
-    }))
-    .sort((a, b) => b.count - a.count);
+  const volume = statsQuery.data?.grossVolumeUsd ?? 0;
+  const refunded = orders
+    .filter((o) => o.status === "refunded")
+    .reduce((s, o) => s + o.gross_amount, 0);
+  const disputed = orders.filter((o) => o.status === "disputed").length;
+  const finished = orders.filter((o) =>
+    ["completed", "disputed", "refunded"].includes(o.status),
+  ).length;
+  const disputeRate = finished ? (disputed / finished) * 100 : 0;
+
+  const refresh = () => {
+    void reportsQuery.refresh();
+    void ordersQuery.refresh();
+    void statsQuery.refresh();
+  };
+
+  // Category share of active listings.
+  const byCategory = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const o of orders) counts.set(o.brand, (counts.get(o.brand) ?? 0) + o.quantity);
+    return categories
+      .map((c) => ({ name: c.name, count: counts.get(c.brand) ?? 0 }))
+      .sort((a, b) => b.count - a.count);
+  }, [orders]);
   const max = Math.max(1, ...byCategory.map((c) => c.count));
 
   return (
@@ -46,7 +59,12 @@ export default function AdminReports() {
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard label="Payment volume" value={formatPrice(volume)} icon={CircleDollarSign} />
           <StatCard label="Refunded" value={formatPrice(refunded)} icon={RotateCcw} />
-          <StatCard label="Dispute rate" value="2.1%" icon={Percent} hint="Of completed orders" />
+          <StatCard
+            label="Dispute rate"
+            value={`${disputeRate.toFixed(1)}%`}
+            icon={Percent}
+            hint={`${disputed} disputed of ${finished} settled orders`}
+          />
         </div>
 
         {/* Off-platform contact enforcement queue */}
@@ -71,7 +89,9 @@ export default function AdminReports() {
             </div>
           </div>
 
-          {!reports || reports.length === 0 ? (
+          {reportsQuery.loading ? (
+            <p className="mt-4 text-sm text-muted-foreground">Loading reports…</p>
+          ) : reports.length === 0 ? (
             <EmptyState
               title="Nothing in this queue"
               description="Buyer reports of off-platform contact land here."
@@ -79,7 +99,7 @@ export default function AdminReports() {
           ) : (
             <ul className="mt-4 divide-y divide-border/60">
               {reports.map((r) => (
-                <li key={r._id} className="flex flex-col gap-3 py-4 lg:flex-row lg:items-start">
+                <li key={r.id} className="flex flex-col gap-3 py-4 lg:flex-row lg:items-start">
                   <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -89,8 +109,8 @@ export default function AdminReports() {
                       <StatusBadge status={r.status} />
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(r.createdAt).toLocaleString()}
-                      {r.orderId && ` · order ${r.orderId}`}
+                      {new Date(r.created_at).toLocaleString()}
+                      {r.order_no && ` · order ${r.order_no}`}
                       {r.penalty && ` · penalty: ${r.penalty}`}
                     </p>
                     <p className="mt-2 text-sm text-muted-foreground">{r.detail}</p>
@@ -102,11 +122,11 @@ export default function AdminReports() {
                       onClick={async () => {
                         try {
                           await resolveReport({
-                            reportId: r._id,
-                            outcome: "resolved",
-                            suspendSellerListings: true,
+                            reportId: r.id,
+                            status: "resolved",
                             penalty: "Listings paused and payout held pending review",
                           });
+                          refresh();
                           toast.success("Report actioned", {
                             description: "The seller's listings were paused.",
                           });
@@ -127,10 +147,10 @@ export default function AdminReports() {
                       onClick={async () => {
                         try {
                           await resolveReport({
-                            reportId: r._id,
-                            outcome: "dismissed",
-                            suspendSellerListings: false,
+                            reportId: r.id,
+                            status: "dismissed",
                           });
+                          refresh();
                           toast("Report dismissed");
                         } catch (err) {
                           toast.error("Could not dismiss", {
@@ -152,7 +172,7 @@ export default function AdminReports() {
         <section className="glass p-6">
           <SectionHeading
             title="Active listings by platform"
-            subtitle="Distribution across the top categories."
+            subtitle="Units sold, by platform."
           />
           <ul className="mt-5 space-y-3">
             {byCategory.map((c) => (
@@ -175,12 +195,12 @@ export default function AdminReports() {
         <section className="glass p-6">
           <SectionHeading
             title="Order outcomes"
-            subtitle="All orders in the current demo period."
+            subtitle="All orders on the platform."
           />
           <ul className="mt-5 grid gap-3 sm:grid-cols-3">
             {[
               { label: "Completed", value: orders.filter((o) => o.status === "completed").length },
-              { label: "In progress", value: orders.filter((o) => ["in_escrow", "transferring"].includes(o.status)).length },
+              { label: "In progress", value: orders.filter((o) => o.status === "in_escrow").length },
               { label: "Disputed / refunded", value: orders.filter((o) => ["disputed", "refunded"].includes(o.status)).length },
             ].map((row) => (
               <li key={row.label} className="inset-well rounded-xl px-4 py-3.5">

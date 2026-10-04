@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQuery } from "convex/react";
 import { Percent, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +24,7 @@ import { sellerNav } from "@/components/dash/navs";
 import { StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { useDb } from "@/lib/db";
-import { api as convexApi } from "@/convex/_generated/api";
+import { useEarningsSummary } from "@/lib/supabaseQueries";
 import { toast } from "sonner";
 
 export default function SellerEarnings() {
@@ -36,13 +35,13 @@ export default function SellerEarnings() {
 
   // Authoritative figures come from the order ledger on the server. No
   // demo-seeded fallback: an empty ledger legitimately reads as zero.
-  const summary = useQuery(convexApi.marketplace.earningsSummary);
-  const loading = summary === undefined;
+  const summaryQuery = useEarningsSummary();
+  const loading = summaryQuery.loading;
 
-  const completed = summary?.grossUsd ?? 0;
-  const commission = summary?.commissionUsd ?? 0;
-  const escrow = summary?.escrowUsd ?? 0;
-  const available = summary?.netUsd ?? 0;
+  const completed = summaryQuery.data?.grossUsd ?? 0;
+  const commission = summaryQuery.data?.commissionUsd ?? 0;
+  const escrow = summaryQuery.data?.escrowUsd ?? 0;
+  const available = summaryQuery.data?.netUsd ?? 0;
   const myWithdrawals = withdrawals;
   const paidOut = myWithdrawals
     .filter((w) => w.status === "paid")

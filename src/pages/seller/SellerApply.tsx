@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { Navigate } from "react-router";
-import { useMutation, useQuery } from "convex/react";
 import {
   AlertTriangle,
   ClipboardList,
@@ -19,7 +18,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { buyerNav } from "@/components/dash/navs";
-import { api } from "@/convex/_generated/api";
+import { useMyStore } from "@/lib/supabaseQueries";
+import {
+  submitStore,
+  uploadSellerAsset,
+  publicAssetUrl,
+} from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 
@@ -44,9 +48,8 @@ const emptyForm = {
  */
 export default function SellerApply() {
   const { user } = useSession();
-  const store = useQuery(api.stores.myStore);
-  const submitStore = useMutation(api.stores.submitStore);
-  const requestUploadUrl = useMutation(api.stores.generateUploadUrl);
+  const storeQuery = useMyStore();
+  const store = storeQuery.data;
   const logoInput = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState(emptyForm);
@@ -65,15 +68,8 @@ export default function SellerApply() {
     if (!file) return;
     setUploading(true);
     try {
-      const uploadUrl = await requestUploadUrl();
-      const res = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!res.ok) throw new Error("Upload rejected by storage.");
-      const { storageId } = (await res.json()) as { storageId: string };
-      setLogoStorageId(storageId);
+      const storagePath = await uploadSellerAsset(file, "store-assets");
+      setLogoStorageId(storagePath);
       setLogoPreview(URL.createObjectURL(file));
       toast.success("Logo uploaded");
     } catch (err) {
@@ -126,7 +122,7 @@ export default function SellerApply() {
         restrictedRegions: form.restrictedRegions.trim(),
         sourcing: form.sourcing.trim(),
         contactPolicyAccepted: true,
-        logoStorageId,
+        logoPath: logoStorageId ?? null,
       });
       toast.success("Store submitted for approval", {
         description:
@@ -143,7 +139,9 @@ export default function SellerApply() {
 
   const previewLogo = logoStorageId
     ? logoPreview
-    : store?.logoUrl ?? null;
+    : store?.logo_path
+      ? publicAssetUrl("store-assets", store.logo_path)
+      : null;
 
   return (
     <DashLayout title="Set up your store" nav={buyerNav}>
@@ -374,10 +372,10 @@ export default function SellerApply() {
                 </label>
               </div>
 
-              {status === "rejected" && store?.reviewNote && (
+              {status === "rejected" && store?.review_note && (
                 <div className="grid gap-2 rounded-xl bg-destructive/10 p-4 text-xs text-destructive">
                   <p className="font-medium">Your last submission was rejected</p>
-                  <p>{store.reviewNote}</p>
+                  <p>{store.review_note}</p>
                 </div>
               )}
 
