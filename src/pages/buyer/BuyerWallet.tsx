@@ -26,7 +26,7 @@ import { buyerNav } from "@/components/dash/navs";
 import { StatCard } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { readDeposits, readLedger, type Deposit, type LedgerRow } from "@/lib/supabaseData";
-import { verifyDeposit, createDeposit } from "@/lib/supabaseMutations";
+import { verifyDeposit, createDeposit, type DepositConfigError } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 
@@ -42,6 +42,7 @@ export default function BuyerWallet() {
   const { user } = useSession();
 
   const [depositState, setDepositState] = useState<DepositState>({ phase: "idle" });
+  const [providerDown, setProviderDown] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [amountStr, setAmountStr] = useState("50");
@@ -107,6 +108,7 @@ export default function BuyerWallet() {
       return;
     }
     setDepositState({ phase: "creating" });
+    setProviderDown(false);
     try {
       const res = await createDeposit(amount, `${window.location.origin}/account/wallet`);
       setDepositState({ phase: "awaiting", trackId: res.trackId, paymentUrl: res.paymentUrl ?? "", amount });
@@ -115,18 +117,17 @@ export default function BuyerWallet() {
       } catch {
         // storage unavailable — the manual check still works
       }
-      if (res.paymentUrl) {
-        window.open(res.paymentUrl, "_blank", "noopener,noreferrer");
-      } else {
-        toast.info("Deposit created — no payment URL available.", {
-          description: "Enter a manual deposit amount or check the deposit status below.",
-        });
-      }
-      toast.info("Complete the payment in the OxaPay window", {
+      window.open(res.paymentUrl, "_blank", "noopener,noreferrer");
+      toast.info("Complete the payment in the new tab", {
         description: "We'll verify your deposit when you return.",
       });
     } catch (err) {
       setDepositState({ phase: "idle" });
+      // A provider that is not configured is a different problem from a
+      // transient failure, so say so instead of implying a retry will help.
+      if ((err as DepositConfigError).configured === false) {
+        setProviderDown(true);
+      }
       toast.error("Could not start deposit", {
         description: err instanceof Error ? err.message : "Please try again.",
       });
@@ -185,7 +186,13 @@ export default function BuyerWallet() {
                 major cryptocurrencies.
               </p>
             </div>
-            <Button className="rounded-xl" onClick={() => { setDialogOpen(true); }}>
+            <Button
+              className="rounded-xl"
+              onClick={() => {
+                setProviderDown(false);
+                setDialogOpen(true);
+              }}
+            >
               <CircleDollarSign className="size-4" />
               Deposit funds
             </Button>
@@ -195,12 +202,25 @@ export default function BuyerWallet() {
             Funds appear in your wallet as soon as OxaPay confirms the
             payment — the balance is spendable immediately at checkout.
           </div>
-          <p className="mt-3 rounded-xl bg-muted/60 px-4 py-3 text-xs text-muted-foreground">
-            Deposits are credited by the server the moment the payment
-            provider confirms. Add{" "}
-            <code className="font-mono">OXAPAY_MERCHANT_API_KEY</code> in the
-            Keys tab to switch the crypto gateway on.
-          </p>
+          {providerDown && (
+            <p
+              role="alert"
+              className="mt-3 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700"
+            >
+              Deposits are not switched on yet. Add your OxaPay merchant API
+              key in the Keys tab (env var{" "}
+              <code className="font-mono">OXAPAY_MERCHANT_API_KEY</code>) and
+              restart the Edge Function. Until then no payment page can be
+              created and no funds will move.
+            </p>
+          )}
+          {!providerDown && (
+            <p className="mt-3 rounded-xl bg-muted/60 px-4 py-3 text-xs text-muted-foreground">
+              Deposits are credited by the server the moment the payment
+              provider confirms. The provider key is held server-side as an
+              Edge Function secret — it is never sent to your browser.
+            </p>
+          )}
         </div>
 
         {/* Live deposit status — the webhook flips these in real time. */}

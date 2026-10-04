@@ -26,12 +26,19 @@ const MERCHANT_KEY = Deno.env.get("OXAPAY_MERCHANT_API_KEY");
 /** OxaPay reports these as "paid"; anything else is ignored. */
 const PAID_STATUSES = new Set(["paid", "Paid", "completed", "finished"]);
 
-/** Hex HMAC-SHA256 of the raw body. */
+/**
+ * Hex HMAC-SHA512 of the raw body.
+ *
+ * OxaPay documents the callback signature as HMAC **sha512** keyed with the
+ * Merchant API key, sent in the `HMAC` header. The previous implementation
+ * used SHA-256, which could never match a genuine callback — every real
+ * webhook was rejected with 401 and no deposit was ever credited.
+ */
 async function sign(raw: string): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(MERCHANT_KEY!),
-    { name: "HMAC", hash: "SHA-256" },
+    { name: "HMAC", hash: "SHA-512" },
     false,
     ["sign"],
   );
@@ -85,7 +92,7 @@ Deno.serve(async (req) => {
     return new Response("ok");
   }
 
-  const trackId = String(body.track_id ?? "").trim();
+  const trackId = String(body.track_id ?? body.order_id ?? "").trim();
   const status = String(body.status ?? "").trim();
   if (!trackId || !PAID_STATUSES.has(status)) return new Response("ok");
 

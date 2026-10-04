@@ -43,34 +43,32 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 export const SUPABASE_PROJECT_URL = SUPABASE_URL;
 
 /**
- * Email sign-in: asks Supabase to email a 6-digit code.
+ * Email sign-in / registration: emails the user a sign-in link.
+ *
+ * WHY A LINK AND NOT A 6-DIGIT CODE
+ *
+ * The six-digit code only appears if the auth email template renders
+ * `{{ .Token }}`. Writing that template needs a paid plan or a custom SMTP
+ * provider — on the free tier with Supabase's default provider the template
+ * API rejects the change outright. The default template is a *link* template,
+ * so magic links are the flow that actually works on this project today.
+ *
+ * The cost is that `emailRedirectTo` MUST be set, otherwise GoTrue falls back
+ * to the project's `SITE_URL`. That is what produced
+ * `redirect_to=http://localhost:5173` in real users' inboxes, sending
+ * production signups to a dead address.
  *
  * `shouldCreateUser: true` lets the same endpoint both register a brand new
  * account and log in an existing one, which is why the sign-in screen needs
  * no separate "create account" mode.
  */
-export async function sendEmailCode(email: string) {
+export async function sendMagicLink(email: string, redirectTo: string) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: true,
-      // OTP template sends a 6-digit code. Do NOT set emailRedirectTo here
-      // for OTP flow — setting it switches Supabase toward a redirect magic-link
-      // and is what produced the long /auth/v1/verify?token=… URL in your inbox.
-      // If you prefer a clickable confirm-email link instead, remove this file's
-      // verifyEmailCode flow and set emailRedirectTo to your site URL in the
-      // Supabase dashboard instead.
+      emailRedirectTo: redirectTo,
     },
-  });
-  if (error) throw error;
-}
-
-/** Exchanges the emailed 6-digit code for a real session. */
-export async function verifyEmailCode(email: string, token: string) {
-  const { error } = await supabase.auth.verifyOtp({
-    email,
-    token: token.trim(),
-    type: "email",
   });
   if (error) throw error;
 }

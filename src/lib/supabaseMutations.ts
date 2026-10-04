@@ -82,9 +82,24 @@ export type DepositCreateResult = {
   trackId: string;
   amountUsd: number;
   paymentUrl?: string;
+  /** False when the provider is not configured, so the UI can say so plainly. */
+  configured?: boolean;
 };
 
-export async function createDeposit(amountUsd: number, returnUrl: string): Promise<DepositCreateResult> {
+export type DepositConfigError = Error & { configured: false };
+
+/**
+ * Open a deposit and ask the provider for a payment URL.
+ *
+ * The OxaPay merchant API key lives ONLY in the `create-deposit-invoice` Edge
+ * Function. It must never be a `VITE_` variable: everything prefixed `VITE_`
+ * is inlined into the public JavaScript bundle, which would let anyone mint
+ * invoices against your merchant account.
+ */
+export async function createDeposit(
+  amountUsd: number,
+  returnUrl: string,
+): Promise<DepositCreateResult> {
   const trackId = crypto.randomUUID();
   const { error } = await supabase.rpc("open_deposit", {
     p_amount: amountUsd,
@@ -92,35 +107,43 @@ export async function createDeposit(amountUsd: number, returnUrl: string): Promi
   });
   if (error) throw new Error(friendlyError(error));
 
-  const oxapayKey = import.meta.env.VITE_OXAPAY_MERCHANT_API_KEY;
-  const baseUrl = SUPABASE_PROJECT_URL;
+  const { data, error: invokeError } = await supabase.functions.invoke(
+    "create-deposit-invoice",
+    { body: { trackId, returnUrl } },
+  );
 
-  if (!oxapayKey) {
-    return { trackId, amountUsd };
+  if (invokeError) {
+    // The deposit row exists but has no invoice. That is recoverable — the
+    // buyer can retry — so report it instead of silently doing nothing.
+    throw new Error(
+      `Your deposit is open but the payment page could not be created: ${
+        invokeError.message || "please try again."
+      }`,
+    );
   }
 
-  const webhookUrl = `${baseUrl}/functions/v1/oxapay-webhook`;
+  const result = data as {
+    trackId?: string;
+    amountUsd?: number;
+    paymentUrl?: string;
+    error?: string;
+    configured?: boolean;
+  } | null;
 
-  const { data: initRes, error: initError } = await supabase.functions.invoke("oxapay-webhook", {
-    body: {
-      action: "create_invoice",
-      track_id: trackId,
-      amount_usd: amountUsd,
-      return_url: returnUrl,
-      webhook_url: webhookUrl,
-    },
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (initError) {
-    console.warn("OxaPay invoice creation failed, deposit is open but unpaid:", initError);
-    return { trackId, amountUsd };
+  if (!result?.paymentUrl) {
+    const err = new Error(
+      result?.error ??
+        "Card and crypto deposits are not switched on yet. Add your payment provider key to enable them.",
+    ) as DepositConfigError;
+    err.configured = false;
+    throw err;
   }
 
   return {
-    trackId,
-    amountUsd,
-    paymentUrl: (initRes as { paymentUrl?: string }).paymentUrl,
+    trackId: result.trackId ?? trackId,
+    amountUsd: result.amountUsd ?? amountUsd,
+    paymentUrl: result.paymentUrl,
+    configured: true,
   };
 }
 
