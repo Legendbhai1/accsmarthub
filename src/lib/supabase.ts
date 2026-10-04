@@ -52,7 +52,15 @@ export const SUPABASE_PROJECT_URL = SUPABASE_URL;
 export async function sendEmailCode(email: string) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: true, emailRedirectTo: window.location.origin },
+    options: {
+      shouldCreateUser: true,
+      // OTP template sends a 6-digit code. Do NOT set emailRedirectTo here
+      // for OTP flow — setting it switches Supabase toward a redirect magic-link
+      // and is what produced the long /auth/v1/verify?token=… URL in your inbox.
+      // If you prefer a clickable confirm-email link instead, remove this file's
+      // verifyEmailCode flow and set emailRedirectTo to your site URL in the
+      // Supabase dashboard instead.
+    },
   });
   if (error) throw error;
 }

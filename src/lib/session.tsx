@@ -64,23 +64,31 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
+    // Read the current session first so the page can render before the
+    // async initial fetch completes.
     void supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
       setUserId(data.session?.user.id ?? null);
-      setEmailVerified(data.session?.user.email_confirmed_at != null);
+      setEmailVerified(!!data.session?.user.email_confirmed_at);
       setSessionResolved(true);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user.id ?? null);
-      setEmailVerified(session?.user.email_confirmed_at != null);
-      setSessionResolved(true);
-      if (!session) {
-        setProfile(null);
-        setWallet(null);
-        setLoadedFor(null);
-      }
-    });
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (cancelled) return;
+        setUserId(session?.user.id ?? null);
+        // email_confirmed_at is the authoritative marker. For a brand-new
+        // account verified via OTP, Supabase sets it when the code is
+        // accepted.
+        setEmailVerified(!!session?.user.email_confirmed_at);
+        setSessionResolved(true);
+        if (!session) {
+          setProfile(null);
+          setWallet(null);
+          setLoadedFor(null);
+        }
+      },
+    );
 
     return () => {
       cancelled = true;

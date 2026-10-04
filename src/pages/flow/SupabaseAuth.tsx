@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/site/Logo";
-import { sendEmailCode, verifyEmailCode } from "@/lib/supabase";
+import { sendEmailCode, verifyEmailCode, supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 import { roleHome } from "@/components/site/guards";
 import { toast } from "sonner";
@@ -35,7 +35,7 @@ type Mode = "email" | "otp" | "done";
 export default function SupabaseAuth() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useSession();
+  const { user, isLoading: sessionLoading } = useSession();
   const [mode, setMode] = useState<Mode>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -43,6 +43,33 @@ export default function SupabaseAuth() {
   const [error, setError] = useState<string | null>(null);
 
   const normalized = email.trim().toLowerCase();
+
+  // If the user landed here from a Supabase email link (for example a
+  // confirm-signup or magic-link redirect), the URL may carry the token.
+  // Supabase's pkce flow emits `type=signup` / `type=magiclink` tokens in
+  // the query string after the redirect. When that happens we let Supabase
+  // Auth complete the handshake automatically and surface a clean success
+  // state instead of showing the raw /auth/v1/verify URL to the user.
+  useEffect(() => {
+    const type = params.get("type");
+    const token = params.get("token");
+    const next = params.get("next");
+
+    if ((type === "signup" || type === "magiclink") && token && !sessionLoading) {
+      // Silently consume the token. Supabase Auth has already persisted the
+      // session by the time it redirects back here, so we just need to
+      // re-read it.
+      void supabase.auth.getSession().then(({ data }) => {
+        if (data.session?.user) {
+          setMode("done");
+          setEmail(data.session.user.email ?? "");
+          if (next) {
+            navigate(next, { replace: true });
+          }
+        }
+      });
+    }
+  }, [params, sessionLoading, navigate]);
 
   // Wait for the session provider to pick up the new Supabase session before
   // navigating, otherwise the destination guard bounces straight back here.
@@ -81,7 +108,16 @@ export default function SupabaseAuth() {
     setBusy(true);
     setError(null);
     try {
+      // Verifying the OTP both confirms the email and, for a new account,
+      // signs the user in. The session provider watches
+      // onAuthStateChange, so it picks up email_confirmed_at once Supabase
+      // has processed the verification.
       await verifyEmailCode(normalized, otp);
+
+      // Give the auth change handler a tick to propagate the confirmed state
+      // before we surface the success screen.
+      await new Promise((r) => setTimeout(r, 0));
+
       setMode("done");
     } catch (err) {
       setError(
