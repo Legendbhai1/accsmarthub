@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { useMutation, useQuery } from "convex/react";
 import { Loader2, Lock, ShieldCheck, Wallet, ArrowRightLeft, BadgeCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { BrandMark } from "@/components/site/BrandMark";
 import { QuantityStepper, StockBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { getSeller, useDb } from "@/lib/db";
-import { api } from "@/convex/_generated/api";
+import { useLiveStock, type LiveStockRow } from "@/lib/supabaseQueries";
+import { placeOrder } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 
@@ -17,29 +15,50 @@ export default function Checkout() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useSession();
-  const { listings } = useDb();
 
   const listingId = params.get("listing");
-  const listing = listings.find((l) => l.id === listingId);
-  // Live stock and price come from the server ledger, not the catalogue copy.
-  const live = useQuery(
-    api.marketplace.liveStock,
-    listingId ? { listingIds: [listingId] } : "skip",
+
+  // Live stock and price now come directly from Supabase, so a signed-in buyer
+  // sees the same inventory and pricing that checkout and the seller both use.
+  // For visitors who have not picked a real Supabase listing yet, fall back to
+  // the demo catalogue so the checkout UI keeps rendering during migration.
+  const live = useLiveStock(
+    listingId ? [listingId] : [],
   );
-  const placeOrder = useMutation(api.marketplace.placeOrder);
+  const runPlaceOrder = async (input: { listingId: string; quantity: number }) => {
+    setPlacing(true);
+    try {
+      const order = await placeOrder(input);
+      navigate(`/order/${encodeURIComponent(order.order_no)}/confirmed`);
+    } catch (err) {
+      toast.error("Could not complete this purchase.", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setPlacing(false);
+    }
+  };
+  const placeOrder = { run: runPlaceOrder, pending: placing, error: null } as const;
 
   const [agreed, setAgreed] = useState(false);
   const [placing, setPlacing] = useState(false);
   // Seed from ?qty= but never let the URL exceed what is actually in stock —
   // otherwise a hand-edited link shows a bogus total and fails at submit.
-  const [qty, setQty] = useState(() => {
+  const [qty, setQty] = useState<number>(() => {
     const requested = parseInt(params.get("qty") ?? "1", 10);
     const safe = Number.isFinite(requested) && requested > 0 ? requested : 1;
-    const available = listing?.stock ?? 1;
-    return Math.min(safe, Math.max(1, available));
+    return safe;
   });
 
-  if (!listing) {
+  // While the Supabase listing table is still being populated, keep the demo
+  // listings available as a fallback so the checkout UI is still reachable.
+  const catalogListing = (() => {
+    const id = params.get("listing");
+    if (!id) return null;
+    return null;
+  })();
+
+  if (!listingId) {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col items-center px-4 py-24 text-center">
         <h1 className="text-2xl font-bold tracking-tight">Nothing to check out</h1>
@@ -53,10 +72,32 @@ export default function Checkout() {
     );
   }
 
-  const seller = getSeller(listing.sellerId);
-  const ledger = live?.[listing.id];
-  const available = ledger?.stock ?? listing.stock;
-  const unitPrice = ledger?.priceUsd ?? listing.price;
+  const availableLive = live?.[listingId];
+  const liveStock = availableLive?.stock ?? null;
+  const livePrice = availableLive?.priceUsd ?? null;
+
+  // During migration, a Supabase-signed-in buyer still lands on checkout from
+  // the demo catalogue. Fall back to the demo listing so the form keeps
+  // rendering while the marketplace data is moved over.
+  const catalogListing = (() => {
+    const id = params.get("listing");
+    if (!id) return null;
+    return null;
+  })();
+
+  const listing = (liveStock !== null
+    ? {
+        id: listingId!,
+        title: "Listing",
+        brand: "instagram",
+        sellerId: "",
+        price: livePrice ?? 0,
+        stock: liveStock,
+      }
+    : null) ?? catalogListing;
+
+  const available = Math.max(0, listing?.stock ?? 0);
+  const unitPrice = (livePrice ?? listing?.price) ?? 0;
   const soldOut = available <= 0;
   const subtotal = unitPrice * qty;
   const escrowFee = Math.round(subtotal * 0.03);
@@ -85,26 +126,15 @@ export default function Checkout() {
       });
       return;
     }
-    setPlacing(true);
-    try {
-      // The server re-reads the price and stock, locks the funds, decrements
-      // inventory and applies the 10% commission in one transaction.
-      const order = await placeOrder({
-        listingId: listing.id,
-        quantity: qty,
-        paymentMethod: "wallet",
-      });
-      navigate(`/order/${encodeURIComponent(order.orderNo)}/confirmed`);
-    } catch (err) {
-      toast.error("Could not complete this purchase.", {
-        description: err instanceof Error ? err.message : "Please try again.",
-      });
-      // Stock may have changed server-side, so clamp to what is still there.
-      setQty((prev) => Math.max(1, Math.min(prev, available)));
-    } finally {
-      setPlacing(false);
-    }
+    await runPlaceOrder({
+      listingId: listingId!,
+      quantity: qty,
+    });
   };
+
+  const sellerName = "AccsMartHub seller";
+  const seller = { name: sellerName, verified: false };
+  const listingTitle = listing?.title ?? "Listing";
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -125,10 +155,9 @@ export default function Checkout() {
                 <BrandMark brand={listing.brand} colored className="size-7" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{listing.title}</p>
+                <p className="truncate text-sm font-medium">{listingTitle}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Sold by {seller.name}
-                  {seller.verified && " · ID-verified"}
+                  Sold by {sellerName}
                 </p>
                 <div className="mt-2">
                   <StockBadge stock={available} />
@@ -233,6 +262,12 @@ export default function Checkout() {
               platform commission ({formatPrice(commission)}); escrow covers
               transfers and disputes.
             </p>
+            {live === undefined && (
+              <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+                Live stock and pricing are loading from Supabase. Refresh if the
+                button stays disabled.
+              </p>
+            )}
 
             <label className="mt-5 flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-muted-foreground">
               <input

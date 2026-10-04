@@ -10,8 +10,6 @@ import {
   RefreshCw,
   Wallet,
 } from "lucide-react";
-import { useAction, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,7 +25,7 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { buyerNav } from "@/components/dash/navs";
 import { StatCard } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { useDb } from "@/lib/db";
+import { readWallet, readDeposits, type Deposit, verifyDeposit, createDeposit } from "@/lib/supabaseQueries";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 
@@ -41,16 +39,14 @@ const PENDING_TRACK_KEY = "accsmarthub.pendingDeposit.v1";
 
 export default function BuyerWallet() {
   const { user } = useSession();
-  const { orders } = useDb();
 
   const [depositState, setDepositState] = useState<DepositState>({ phase: "idle" });
   const [verifying, setVerifying] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [amountStr, setAmountStr] = useState("50");
 
-  const createDeposit = useAction(api.payments.createDeposit);
-  const verifyDeposit = useAction(api.payments.verifyDeposit);
-  const deposits = useQuery(api.payments.myDeposits, {});
+  const [deposits, setDeposits] = useState<Deposit[]>([]);
+  const [loadingDeposits, setLoadingDeposits] = useState(true);
 
   // The webhook credits the wallet on its own; this only re-checks the
   // authoritative status once, in case the webhook was slow or blocked.
@@ -62,18 +58,34 @@ export default function BuyerWallet() {
     autoVerified.current = true;
     void (async () => {
       try {
-        const res = await verifyDeposit({ trackId });
-        if (res.credited) {
+        const row = await verifyDeposit(trackId);
+        if (row.status === "paid") {
           sessionStorage.removeItem(PENDING_TRACK_KEY);
-          toast.success(`Deposit confirmed — ${formatPrice(res.amountUsd ?? 0)} added.`);
+          toast.success(`Deposit confirmed — ${formatPrice(row.amount_usd)} added.`);
         }
       } catch {
         // Leave the marker so the next visit retries; the webhook still credits.
       }
     })();
-  }, [verifyDeposit]);
+  }, []);
 
-  const mine = orders.filter((o) => o.buyerId === "u-me");
+  useEffect(() => {
+    setLoadingDeposits(true);
+    void (async () => {
+      try {
+        const rows = await readDeposits();
+        setDeposits(rows);
+      } catch {
+        setDeposits([]);
+      } finally {
+        setLoadingDeposits(false);
+      }
+    })();
+  }, []);
+
+  // The old convex deposit state was `phase: "creating"`, `phase: "awaiting"`.
+  // While migrating, keep the same UX shape but back it with the Supabase
+  // deposit helpers instead of the old convex actions.
 
   const startDeposit = async () => {
     const amount = Math.round(Number(amountStr) * 100) / 100;
@@ -83,17 +95,20 @@ export default function BuyerWallet() {
     }
     setDepositState({ phase: "creating" });
     try {
-      const res = await createDeposit({
-        amountUsd: amount,
-        returnUrl: `${window.location.origin}/account/wallet`,
-      });
-      setDepositState({ phase: "awaiting", trackId: res.trackId, paymentUrl: res.paymentUrl, amount });
+      const res = await createDeposit(amount, `${window.location.origin}/account/wallet`);
+      setDepositState({ phase: "awaiting", trackId: res.trackId, paymentUrl: res.paymentUrl ?? "", amount });
       try {
         sessionStorage.setItem(PENDING_TRACK_KEY, res.trackId);
       } catch {
         // storage unavailable — the manual check still works
       }
-      window.open(res.paymentUrl, "_blank", "noopener,noreferrer");
+      if (res.paymentUrl) {
+        window.open(res.paymentUrl, "_blank", "noopener,noreferrer");
+      } else {
+        toast.info("Deposit created — no payment URL available.", {
+          description: "Enter a manual deposit amount or check the deposit status below.",
+        });
+      }
       toast.info("Complete the payment in the OxaPay window", {
         description: "We'll verify your deposit when you return.",
       });
@@ -110,17 +125,17 @@ export default function BuyerWallet() {
     const { trackId, amount } = depositState;
     setVerifying(true);
     try {
-      const res = await verifyDeposit({ trackId });
-      if (res.credited) {
+      const row = await verifyDeposit(trackId);
+      if (row.status === "paid") {
         // The wallet is credited server-side; the reactive query updates the
         // balance shown above the moment this returns.
-        const creditedAmount = res.amountUsd ?? amount;
+        const creditedAmount = row.amount_usd ?? amount;
         toast.success(`Deposit confirmed — ${formatPrice(creditedAmount)} added to your wallet.`);
         sessionStorage.removeItem(PENDING_TRACK_KEY);
         setDepositState({ phase: "idle" });
         setDialogOpen(false);
       } else {
-        toast.info(`Payment status: ${res.status}`, {
+        toast.info(`Payment status: ${row.status}`, {
           description: "Once OxaPay confirms, your wallet updates automatically.",
         });
       }
@@ -186,28 +201,37 @@ export default function BuyerWallet() {
             <p className="mt-4 rounded-xl bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
               No deposits yet.
             </p>
-          ) : (
-            <ul className="mt-4 divide-y divide-border/60 text-sm">
-              {deposits.map((d) => (
-                <li key={d._id} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="font-medium">{formatPrice(d.amountUsd)}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {new Date(d.createdAt).toLocaleString()} ·{" "}
-                      <span className="font-mono">{d.trackId}</span>
-                    </p>
-                  </div>
-                  <span
-                    className={
-                      d.status === "paid"
-                        ? "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-700"
-                        : "rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-700"
-                    }
-                  >
-                    {d.status === "paid" ? "Credited" : "Awaiting payment"}
-                  </span>
+          ) : (              <ul className="mt-4 divide-y divide-border/60 text-sm">
+              {loadingDeposits ? (
+                <li className="py-6 text-center text-sm text-muted-foreground">
+                  Loading deposits…
                 </li>
-              ))}
+              ) : deposits.length === 0 ? (
+                <li className="py-6 text-center text-sm text-muted-foreground">
+                  No deposits yet.
+                </li>
+              ) : (
+                deposits.map((d) => (
+                  <li key={d.track_id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <p className="font-medium">{formatPrice(d.amount_usd)}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {new Date(d.created_at).toLocaleString()} ·{" "}
+                        <span className="font-mono">{d.track_id}</span>
+                      </p>
+                    </div>
+                    <span
+                      className={
+                        d.status === "paid"
+                          ? "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-700"
+                          : "rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-700"
+                      }
+                    >
+                      {d.status === "paid" ? "Credited" : "Awaiting payment"}
+                    </span>
+                  </li>
+                ))
+              )}
             </ul>
           )}
         </div>
@@ -215,22 +239,25 @@ export default function BuyerWallet() {
         <div className="glass p-6">
           <h3 className="font-semibold">Transaction history</h3>
           <ul className="mt-4 divide-y divide-border/60 text-sm">
-            {mine.slice(0, 6).map((order) => (
-              <li key={order.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-medium">{order.listingTitle}</p>
-                  <p className="text-xs text-muted-foreground">
-                    #{order.id} · {new Date(order.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold tabular-nums">−{formatPrice(order.total)}</p>
-                  <p className="text-xs capitalize text-muted-foreground">{order.status.replace(/_/g, " ")}</p>
-                </div>
+            {mine.length === 0 ? (
+              <li className="py-6 text-center text-muted-foreground">
+                No transactions yet.
               </li>
-            ))}
-            {mine.length === 0 && (
-              <li className="py-6 text-center text-muted-foreground">No transactions yet.</li>
+            ) : (
+              mine.slice(0, 6).map((order) => (
+                <li key={order.id} className="flex items-center justify-between py-3">
+                  <div>
+                    <p className="font-medium">{order.listingTitle}</p>
+                    <p className="text-xs text-muted-foreground">
+                      #{order.id} · {new Date(order.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold tabular-nums">−{formatPrice(order.total)}</p>
+                    <p className="text-xs capitalize text-muted-foreground">{order.status.replace(/_/g, " ")}</p>
+                  </div>
+                </li>
+              ))
             )}
           </ul>
         </div>
