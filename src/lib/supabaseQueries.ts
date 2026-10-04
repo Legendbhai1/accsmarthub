@@ -1,8 +1,6 @@
-import { useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import { useSBQuery, friendlyError } from "@/lib/supabaseData";
 import { useSession } from "@/lib/session";
-import type { Listing, Profile } from "@/lib/supabaseData";
 
 /**
  * Supabase-backed live-stock / price lookup for the catalogue.
@@ -554,4 +552,109 @@ export function useMyStore() {
     },
     [user?.id ?? ""],
   );
+}
+
+/* ------------------------- public catalogue (real data) -------------------- */
+
+/**
+ * A catalogue row built ONLY from columns that actually exist in the schema.
+ *
+ * The old demo `Listing` type carried `rating`, `reviewCount`, `followers`,
+ * `niche` and `deliveryTime`. None of those are stored anywhere, so mapping a
+ * real row onto that type would mean inventing them again — which is exactly
+ * the fabrication this module exists to remove. Fields with no source are
+ * omitted and the UI shows an honest empty state instead.
+ */
+export type PublicListing = {
+  id: string;
+  title: string;
+  brand: string;
+  summary: string | null;
+  features: string[] | null;
+  faq: { question: string; answer: string }[] | null;
+  imagePath: string | null;
+  serviceCategory: string | null;
+  discountPercent: number | null;
+  warrantyHours: number | null;
+  priceUsd: number;
+  stock: number;
+  createdAt: string;
+};
+
+type PublicListingRow = {
+  id: string;
+  title: string;
+  brand: string;
+  summary: string | null;
+  features: string[] | null;
+  faq: { question: string; answer: string }[] | null;
+  image_path: string | null;
+  service_category: string | null;
+  discount_percent: number | null;
+  warranty_hours: number | null;
+  price_usd: number | string;
+  stock: number;
+  created_at: string;
+};
+
+const COLUMNS =
+  "id, title, brand, summary, features, faq, image_path, service_category, discount_percent, warranty_hours, price_usd, stock, created_at";
+
+function toPublic(r: PublicListingRow): PublicListing {
+  return {
+    id: r.id,
+    title: r.title,
+    brand: r.brand,
+    summary: r.summary ?? null,
+    features: r.features ?? null,
+    faq: r.faq ?? null,
+    imagePath: r.image_path ?? null,
+    serviceCategory: r.service_category ?? null,
+    discountPercent: r.discount_percent ?? null,
+    warrantyHours: r.warranty_hours ?? null,
+    priceUsd: Number(r.price_usd ?? 0),
+    stock: Number(r.stock ?? 0),
+    createdAt: r.created_at,
+  };
+}
+
+/**
+ * Public catalogue.
+ *
+ * Only `status = 'active'`, non-hidden, in-stock rows are ever returned —
+ * matching the `listings` SELECT RLS policy, so a seller cannot surface a
+ * paused or under-review listing by manipulating the client.
+ */
+async function fetchPublicListings(): Promise<PublicListing[]> {
+  const { data, error } = await supabase
+    .from("listings")
+    .select(COLUMNS)
+    .eq("status", "active")
+    .eq("hidden", false)
+    .gt("stock", 0)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map((r) => toPublic(r as unknown as PublicListingRow));
+}
+
+export function usePublicListings() {
+  return useSBQuery(fetchPublicListings, []);
+}
+
+/** One catalogue row, or null when it does not exist / is not public. */
+async function fetchPublicListing(id: string): Promise<PublicListing | null> {
+  if (!id) return null;
+  const { data, error } = await supabase
+    .from("listings")
+    .select(COLUMNS)
+    .eq("id", id)
+    .eq("status", "active")
+    .eq("hidden", false)
+    .maybeSingle();
+  if (error) throw new Error(friendlyError(error));
+  return data ? toPublic(data as unknown as PublicListingRow) : null;
+}
+
+export function usePublicListing(id: string | undefined) {
+  return useSBQuery(() => fetchPublicListing(id ?? ""), [id ?? ""]);
 }

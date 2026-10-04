@@ -23,7 +23,6 @@ import { toast } from "sonner";
 export default function OrderConfirmed() {
   const { orderId } = useParams<{ orderId: string }>();
   const orderNo = orderId ? decodeURIComponent(orderId) : "";
-  const { user } = useSession();
 
   // The order row is read straight from Supabase. It is fetched on mount (the
   // buyer lands here right after checkout) and re-read after any action that

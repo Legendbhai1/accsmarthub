@@ -1,5 +1,5 @@
 import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
-import { friendlyError, type Deposit, type Report } from "@/lib/supabaseData";
+import { friendlyError, type Report } from "@/lib/supabaseData";
 
 /**
  * Supabase-backed mutation helpers.

@@ -1,19 +1,26 @@
 /**
  * AccsMartHub — OxaPay payment webhook (Supabase Edge Function)
  *
- * Replaces the old Convex webhook. Confirms a deposit and credits the
- * buyer's wallet exactly once.
+ * Settles a top-up in ONE atomic database call.
  *
  * Security properties:
- *   - The request body is verified against OxaPay's HMAC-SHA512 signature
- *     BEFORE anything is read or written. An unsigned or forged ping is
+ *   - The raw body is verified against OxaPay's HMAC-SHA512 signature BEFORE
+ *     anything is parsed or written. An unsigned or forged callback is
  *     rejected outright, so nobody can credit themselves money.
- *   - The track_id must already exist as a pending deposit created by the
- *     buyer's own session. A webhook cannot invent a deposit.
- *   - credit_wallet() is EXECUTE-granted to service_role only, so this is the
- *     only code path that can move money in.
- *   - Re-delivery is safe: a deposit already marked paid is ignored, so OxaPay
- *     retrying a callback cannot double-credit a buyer.
+ *   - This function runs with `verify_jwt: false` because OxaPay has no
+ *     Supabase JWT. Without that the gateway rejects every genuine callback
+ *     with UNAUTHORIZED_NO_AUTH_HEADER before the HMAC is ever checked. The
+ *     HMAC is what actually authenticates the caller.
+ *   - All money movement lives in `settle_deposit()`, which is EXECUTE-granted
+ *     to service_role only. This function cannot credit a wallet on its own.
+ *   - Idempotent: OxaPay retries up to five times, and concurrent callbacks
+ *     are serialised by a row lock inside the function.
+ *
+ * RESPONSE CONTRACT
+ *   OxaPay retries any non-200. A business rejection (unknown deposit,
+ *     already paid, amount mismatch) is terminal, so it gets a 200 plus a
+ *   logged reason. Only a genuine infrastructure failure returns 500, which
+ *   is the one case where a retry is the correct response.
  *
  * Configure once:
  *   Edge Functions → Secrets → OXAPAY_MERCHANT_API_KEY = <your OxaPay key>
@@ -23,16 +30,27 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MERCHANT_KEY = Deno.env.get("OXAPAY_MERCHANT_API_KEY");
 
-/** OxaPay reports these as "paid"; anything else is ignored. */
+/** OxaPay terminal-paid states. Anything else is not money in the bank. */
 const PAID_STATUSES = new Set(["paid", "Paid", "completed", "finished"]);
 
-/**
- * Hex HMAC-SHA512 of the raw body.
+function db(path: string, init: RequestInit = {}) {
+  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      "Content-Type": "application/json",
+      ...(init.headers ?? {}),
+    },
+  });
+}
+
+/** Hex HMAC-SHA512 of the raw body.
  *
  * OxaPay documents the callback signature as HMAC **sha512** keyed with the
- * Merchant API key, sent in the `HMAC` header. The previous implementation
- * used SHA-256, which could never match a genuine callback — every real
- * webhook was rejected with 401 and no deposit was ever credited.
+ * Merchant API key and sent in the `HMAC` header. The previous implementation
+ * used SHA-256, which can never match a genuine callback — every real webhook
+ * was rejected with 401 and no deposit was ever credited.
  */
 async function sign(raw: string): Promise<string> {
   const key = await crypto.subtle.importKey(
@@ -54,31 +72,25 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
-function db(path: string, init: RequestInit = {}) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...init,
-    headers: {
-      apikey: SERVICE_KEY,
-      Authorization: `Bearer ${SERVICE_KEY}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-      ...(init.headers ?? {}),
-    },
-  });
-}
+const str = (v: unknown): string => (v == null ? "" : String(v).trim());
+const num = (v: unknown): number | null => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok");
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
 
-  // Always answer 200 for a body we cannot parse, so OxaPay stops retrying.
+  // Read the body as text first: the signature covers the RAW bytes.
   const raw = await req.text();
 
   if (!MERCHANT_KEY) {
+    console.error("OXAPAY_MERCHANT_API_KEY is not set on this function");
     return new Response("webhook not configured", { status: 500 });
   }
 
-  // 1. Verify the signature BEFORE trusting anything in the payload.
+  // 1. Authenticate BEFORE trusting anything in the payload.
   const provided = (req.headers.get("HMAC") ?? req.headers.get("hmac") ?? "").trim();
   const expected = await sign(raw);
   if (!provided || !safeEqual(provided.toLowerCase(), expected)) {
@@ -89,48 +101,66 @@ Deno.serve(async (req) => {
   try {
     body = JSON.parse(raw);
   } catch {
+    // Signature was valid but the payload is not JSON. Nothing to settle and
+    // nothing a retry would fix.
+    console.error("valid HMAC but unparseable body");
     return new Response("ok");
   }
 
-  const trackId = String(body.track_id ?? body.order_id ?? "").trim();
-  const status = String(body.status ?? "").trim();
-  if (!trackId || !PAID_STATUSES.has(status)) return new Response("ok");
+  // `order_id` is the track_id WE supplied when creating the invoice.
+  // `track_id` in the callback is OxaPay's own transaction reference — that is
+  // what we persist as provider_txn_id so one provider payment can never be
+  // replayed against a second deposit.
+  const trackId = str(body.order_id) || str(body.track_id);
+  const providerTxnId = str(body.track_id);
+  const status = str(body.status);
 
-  // 2. The deposit must already exist and still be pending. This is what
-  //    stops a webhook from inventing a top-up.
-  const found = await db(
-    `deposits?track_id=eq.${encodeURIComponent(trackId)}&status=eq.pending&select=track_id,user_id,amount_usd`,
-  );
-  if (!found.ok) return new Response("db error", { status: 500 });
-
-  const deposit = (await found.json()) as Array<{
-    track_id: string;
-    user_id: string;
-    amount_usd: number | string;
-  }>;
-  if (!deposit.length) return new Response("ok"); // unknown or already paid
-
-  const row = deposit[0];
-  const amount = Number(row.amount_usd);
-
-  // 3. Mark paid FIRST. If crediting then fails, the retry finds nothing
-  //    pending and stops — the admin can reconcile that rare case by hand
-  //    rather than a buyer being silently short-changed twice.
-  const marked = await db(`deposits?track_id=eq.${encodeURIComponent(trackId)}`, {
-    method: "PATCH",
-    body: JSON.stringify({ status: "paid", paid_at: new Date().toISOString() }),
-  });
-  if (!marked.ok) return new Response("db error", { status: 500 });
-
-  // 4. Credit the buyer.
-  const credited = await db("rpc/credit_wallet", {
-    method: "POST",
-    body: JSON.stringify({ p_user_id: row.user_id, p_amount: amount }),
-  });
-  if (!credited.ok) {
-    console.error("credit_wallet failed for", trackId, await credited.text());
-    return new Response("credit failed", { status: 500 });
+  // "Paying" and friends: not terminal, nothing to do. 200 stops the retries.
+  if (!trackId || !PAID_STATUSES.has(status)) {
+    return new Response("ok");
   }
 
+  // Validate what the customer ACTUALLY paid, not just what the invoice
+  // echoed. An underpaid crypto transfer therefore fails the amount check and
+  // is recorded as a mismatch instead of silently crediting a full top-up.
+  const paidAmount = num(body.pay_amount ?? body.amount);
+  const paidCurrency = str(body.pay_currency) || str(body.currency) || "USD";
+  const paidAt = str(body.paid_at);
+
+  // 2. One atomic, idempotent call: lock -> validate -> credit + ledger ->
+  //    mark paid, all in a single transaction. The old code marked the deposit
+  //    paid in one REST call and credited the wallet in a second; if the
+  //    second failed the buyer was permanently short-changed because the
+  //    retry could no longer find a pending row.
+  const res = await db("rpc/settle_deposit", {
+    method: "POST",
+    body: JSON.stringify({
+      p_track_id: trackId,
+      p_provider_txn_id: providerTxnId,
+      p_provider_amount: paidAmount,
+      p_currency: paidCurrency,
+      p_paid_at: paidAt ? new Date(paidAt).toISOString() : null,
+    }),
+  });
+
+  if (!res.ok) {
+    // Infrastructure failure. 500 is correct here: a retry is safe because
+    // the whole settlement rolled back and the deposit is still pending.
+    console.error("settle_deposit failed", res.status, trackId, await res.text());
+    return new Response("settlement failed", { status: 500 });
+  }
+
+  const rows = (await res.json()) as Array<{ settled: boolean; reason: string; credited: number }>;
+  const outcome = rows?.[0];
+
+  if (outcome?.settled) {
+    console.log(`deposit settled track=${trackId} txn=${providerTxnId} credited=${outcome.credited}`);
+    return new Response("ok");
+  }
+
+  // Terminal business rejections. Logged with the reason so an operator can
+  // reconcile, and answered 200 so OxaPay stops retrying a callback that will
+  // never succeed.
+  console.warn(`deposit not settled track=${trackId} reason=${outcome?.reason ?? "no_result"}`);
   return new Response("ok");
 });

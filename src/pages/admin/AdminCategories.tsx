@@ -22,7 +22,11 @@ export default function AdminCategories() {
                   <p className="truncate text-xs text-muted-foreground">{c.description}</p>
                 </div>
                 <span className="text-sm tabular-nums text-muted-foreground">
-                  {c.listingCount.toLocaleString()} listings
+                  {/* No listing_count column exists on `listings` and no
+                      aggregate is stored, so this used to render a hardcoded
+                      demo number (512, 438, …). Until a real COUNT query backs
+                      it, say nothing rather than invent an inventory figure. */}
+                  &nbsp;
                 </span>
                 <Button
                   variant="outline"

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import {
   ArrowLeft,
@@ -47,7 +47,11 @@ export default function SupabaseAuth() {
   const [error, setError] = useState<string | null>(null);
   // Set once we know this render is the post-click return trip, so a fresh
   // "sent" screen is not shown to someone who just arrived signed in.
-  const returning = useRef(false);
+  // State, not a ref: this value is read during render to switch the copy and
+  // the resend button. A ref mutated in the effect below would not schedule a
+  // re-render, so the screen could keep showing "Check your email" while the
+  // user is actually mid sign-in.
+  const [returning, setReturning] = useState(false);
 
   const normalized = email.trim().toLowerCase();
 
@@ -86,7 +90,7 @@ export default function SupabaseAuth() {
     } else if (!sessionLoading && (params.get("code") || params.get("token"))) {
       // Arrived with a token but no session yet. Keep the user on the waiting
       // screen instead of bouncing them back to the email form.
-      returning.current = true;
+      setReturning(true);
       setMode("sent");
     }
   }, [user, sessionLoading, navigate, destination, params]);
@@ -203,10 +207,10 @@ export default function SupabaseAuth() {
                 )}
               </div>
               <h1 className="mt-4 text-xl font-bold tracking-tight">
-                {returning.current && !user ? "Finishing sign-in…" : "Check your email"}
+                {returning && !user ? "Finishing sign-in…" : "Check your email"}
               </h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                {normalized && !returning.current
+                {normalized && !returning
                   ? `We sent a sign-in link to ${normalized}. Click it to verify your address and continue — the link works once and expires shortly.`
                   : "Signing you in and taking you to your account…"}
               </p>
@@ -220,7 +224,7 @@ export default function SupabaseAuth() {
                 </p>
               )}
 
-              {!returning.current && (
+              {!returning && (
                 <div className="mt-6 flex flex-col gap-2">
                   <Button
                     type="button"

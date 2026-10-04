@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { Loader2, Lock, ShieldCheck, Wallet, ArrowRightLeft, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";

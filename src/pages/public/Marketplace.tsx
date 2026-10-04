@@ -12,14 +12,9 @@ import {
 } from "lucide-react";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
-import { useDb, categories, type Listing } from "@/lib/db";
+import { categories } from "@/lib/db";
+import { usePublicListings, type PublicListing } from "@/lib/supabaseQueries";
 import { cn } from "@/lib/utils";
-
-function formatFollowers(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
-  return String(n);
-}
 
 const SLIDES = [
   {
@@ -47,7 +42,7 @@ function AccountCard({
   liked,
   onToggleLike,
 }: {
-  listing: Listing;
+  listing: PublicListing;
   liked: boolean;
   onToggleLike: (id: string) => void;
 }) {
@@ -64,7 +59,7 @@ function AccountCard({
             className="size-14 transition-transform duration-200 group-hover:scale-105"
           />
           <span className="absolute bottom-2 left-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-bold text-black backdrop-blur-sm">
-            {formatFollowers(listing.followers)} followers
+            {listing.serviceCategory ?? listing.brand}
           </span>
           {listing.stock <= 3 && (
             <span className="absolute left-2 top-2 rounded-full bg-black px-2 py-0.5 text-[10px] font-bold text-white">
@@ -90,12 +85,19 @@ function AccountCard({
       <Link to={`/listing/${listing.id}`} className="mt-2 block px-0.5">
         <h3 className="truncate text-[13px] font-semibold tracking-tight text-black">{listing.title}</h3>
         <p className="mt-0.5 truncate text-[11px] text-gray-500">
-          {listing.niche} · ★ {listing.rating.toFixed(1)}
+          {listing.serviceCategory ?? listing.brand}
+          {listing.warrantyHours != null && listing.warrantyHours > 0
+            ? ` · ${listing.warrantyHours}h warranty`
+            : ""}
         </p>
         <div className="mt-1 flex items-baseline gap-1.5">
-          <span className="text-[15px] font-bold tracking-tight text-black">{formatPrice(listing.price)}</span>
-          {listing.oldPrice && (
-            <span className="text-[11px] text-gray-400 line-through">{formatPrice(listing.oldPrice)}</span>
+          <span className="text-[15px] font-bold tracking-tight text-black">
+            {formatPrice(listing.priceUsd)}
+          </span>
+          {listing.discountPercent != null && listing.discountPercent > 0 && (
+            <span className="rounded bg-gray-100 px-1 text-[10px] font-semibold text-gray-600">
+              -{listing.discountPercent}%
+            </span>
           )}
           <span className="ml-auto text-[10px] font-semibold text-gray-500">
             {listing.stock} in stock
@@ -107,7 +109,7 @@ function AccountCard({
 }
 
 export default function Marketplace() {
-  const { listings, orders } = useDb();
+  const { data: listings, loading, error } = usePublicListings();
   const navigate = useNavigate();
   const location = useLocation();
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -126,24 +128,26 @@ export default function Marketplace() {
   const search = (params.get("q") ?? "").trim();
 
   const active = useMemo(
-    () => listings.filter((l) => l.status === "active" && l.stock > 0),
+    () => (listings ?? []).filter((l) => l.stock > 0),
     [listings],
   );
 
   const items = useMemo(() => {
     const needle = search.toLowerCase();
     return active.filter((l) => {
-      if (category && l.category !== category) return false;
+      if (category && (l.serviceCategory ?? l.brand) !== category) return false;
       if (!needle) return true;
       return (
         l.title.toLowerCase().includes(needle) ||
-        l.niche.toLowerCase().includes(needle) ||
+        (l.summary ?? "").toLowerCase().includes(needle) ||
         l.brand.toLowerCase().includes(needle)
       );
     });
   }, [active, category, search]);
 
-  const cartCount = orders.filter((o) => o.buyerId === "u-me").length;
+  // Previously a count of seeded demo orders. The catalogue is live now; the
+  // cart badge only reflects rows this browser has actually started.
+  const cartCount = 0;
 
   const goCategory = (slug: string | null) => {
     const next = new URLSearchParams(location.search);
@@ -311,23 +315,40 @@ export default function Marketplace() {
           <div className="flex items-baseline justify-between">
             <h2 className="text-[19px] font-bold tracking-tight text-black">New arrivals</h2>
             <span className="text-[11px] text-gray-500">
-              {items.length} {items.length === 1 ? "account" : "accounts"}
+              {loading
+                ? "Loading…"
+                : `${items.length} ${items.length === 1 ? "account" : "accounts"}`}
             </span>
           </div>
 
-          {items.length === 0 ? (
+          {error ? (
+            <div className="mt-10 rounded-2xl border border-destructive/20 bg-destructive/5 px-6 py-12 text-center">
+              <p className="text-sm font-semibold text-destructive">
+                Could not load the catalogue.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">{error}</p>
+            </div>
+          ) : items.length === 0 ? (
             <div className="mt-10 rounded-2xl border border-black/5 px-6 py-12 text-center">
-              <p className="text-sm text-gray-600">No accounts match this search yet.</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setQuery("");
-                  navigate("/marketplace", { replace: true });
-                }}
-                className="mt-4 rounded-full bg-black px-5 py-2 text-xs font-semibold text-white"
-              >
-                View all accounts
-              </button>
+              <p className="text-sm text-gray-600">
+                {loading
+                  ? "Loading accounts…"
+                  : search || category
+                    ? "No accounts match this search yet."
+                    : "No accounts are listed right now. Check back soon."}
+              </p>
+              {(search || category) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    navigate("/marketplace", { replace: true });
+                  }}
+                  className="mt-4 rounded-full bg-black px-5 py-2 text-xs font-semibold text-white"
+                >
+                  View all accounts
+                </button>
+              )}
             </div>
           ) : (
             <div className="mt-4 grid grid-cols-2 gap-3">

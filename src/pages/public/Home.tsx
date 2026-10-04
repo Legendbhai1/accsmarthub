@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/site/BrandMark";
 import { ListingCard } from "@/components/common/ListingCard";
 import { SectionHeading } from "@/components/common/Primitives";
-import { categories, useDb } from "@/lib/db";
-import { useLiveStock } from "@/lib/supabaseQueries";
+import { categories } from "@/lib/db";
+import { usePublicListings } from "@/lib/supabaseQueries";
 
 const containerVariants = {
   hidden: {},
@@ -28,22 +28,16 @@ const cardVariants = {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { listings } = useDb();
-  const liveStockQuery = useLiveStock(listings.map((l) => l.id));
-  const liveStock = liveStockQuery.data;
+  const { data: listings = [] } = usePublicListings();
   const [query, setQuery] = useState("");
 
-  const active = listings.filter((l) => l.status === "active");
-  // Only surface catalogue entries a seller has actually stocked, so the
-  // landing page never advertises inventory that cannot be bought.
-  const stocked = active.filter((l) => {
-    const row = liveStock?.[l.id];
-    return row ? row.stock > 0 && row.status === "active" : true;
-  });
-  const featured = stocked.slice(0, 8);
+  // `usePublicListings` already filters to active, non-hidden, in-stock rows,
+  // and carries live stock, so the landing page cannot advertise inventory
+  // that cannot be bought.
+  const featured = listings.slice(0, 8);
   // Real per-category counts of live inventory, never a seeded headline.
   const countFor = (brand: string) =>
-    stocked.filter((l) => l.brand === brand).length;
+    featured.filter((l) => l.brand === brand).length;
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();

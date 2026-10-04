@@ -180,7 +180,7 @@ export const SERVICE_CATEGORIES = [
   { slug: "offline", name: "Offline", brand: "offline" },
 ];
 
-const sellers: Seller[] = [
+const sellers: Seller[] = import.meta.env.DEV ? [
   { id: "s-1", name: "Meridian Digital", rating: 4.9, reviews: 1240, sales: 3120, verified: true, memberSince: "2024-03-12", responseTime: "Under 1 hour" },
   { id: "s-2", name: "Harborlight Accounts", rating: 4.8, reviews: 986, sales: 2450, verified: true, memberSince: "2024-01-20", responseTime: "Under 2 hours" },
   { id: "s-3", name: "Crescent Row Media", rating: 4.7, reviews: 742, sales: 1890, verified: true, memberSince: "2024-07-05", responseTime: "Under 3 hours" },
@@ -189,7 +189,7 @@ const sellers: Seller[] = [
   { id: "s-6", name: "NorthGate Trading", rating: 4.5, reviews: 322, sales: 810, verified: true, memberSince: "2025-05-19", responseTime: "Under 2 hours" },
   { id: "s-7", name: "Solstice Brokers", rating: 4.6, reviews: 547, sales: 1340, verified: true, memberSince: "2024-11-11", responseTime: "Under 5 hours" },
   { id: "s-8", name: "Lumenpath Listings", rating: 4.3, reviews: 189, sales: 420, verified: false, memberSince: "2025-04-27", responseTime: "Under 6 hours" },
-];
+] : [];
 
 const categories: Category[] = [
   { slug: "instagram", name: "Instagram", brand: "instagram", description: "Theme pages, niche hubs and creator accounts.", listingCount: 512 },
@@ -239,7 +239,7 @@ const L = (
   deliveryTime: "Within 24 hours",
 });
 
-export const listings: Listing[] = [
+export const listings: Listing[] = import.meta.env.DEV ? [
   L("l-001", "Aurora Lifestyle Theme Page", "instagram", "instagram", "s-1", 7400, 892000, "Lifestyle", 4.8, 214, 2, 12, "active", 8900),
   L("l-002", "FitFuel Daily Fitness Account", "tiktok", "tiktok", "s-2", 3900, 340000, "Fitness", 4.6, 143, 1, 25, "active", 4600),
   L("l-003", "The Workshop Tool Reviews", "youtube", "youtube", "s-5", 9800, 64000, "DIY & Tools", 4.9, 241, 4, 6, "active", 11500),
@@ -262,7 +262,7 @@ export const listings: Listing[] = [
   L("l-020", "HustleHub Business Page", "facebook", "facebook", "s-8", 2250, 96000, "Entrepreneurship", 4.4, 52, 30, 10, "pending"),
   L("l-021", "Prime Clips Highlight Hub", "youtube", "youtube", "s-2", 4300, 88000, "Sports", 4.7, 95, 6, 0, "sold"),
   L("l-022", "Daily Grind Coffee Community", "instagram", "instagram", "s-6", 1950, 54000, "Food & Drink", 4.5, 77, 16, 27, "active"),
-];
+] : [];
 
 for (const item of listings) {
   item.description = `${item.title} is a well-maintained ${item.niche.toLowerCase()} account with ${item.followers.toLocaleString()} followers and a clean, documented history. Engagement is organic and consistent, with no strikes, restrictions or policy violations on record. Ownership documentation and a full analytics export are included with the transfer.`;
@@ -275,7 +275,7 @@ for (const item of listings) {
   ];
 }
 
-const reviews: Review[] = [
+const reviews: Review[] = import.meta.env.DEV ? [
   { id: "r-1", listingId: "l-001", author: "Priya S.", rating: 5, date: "2026-09-12", text: "Escrow released the same day and the transfer finished in under two hours. Analytics matched the listing exactly." },
   { id: "r-2", listingId: "l-001", author: "Marcus T.", rating: 5, date: "2026-09-08", text: "Follower quality, engagement, sponsorship pipeline — everything checked out. The onboarding call was a nice touch." },
   { id: "r-3", listingId: "l-001", author: "Lena K.", rating: 4, date: "2026-08-30", text: "Flawless transfer. Would have liked region-level media kit numbers, but the seller compiled them when asked." },
@@ -291,17 +291,17 @@ const reviews: Review[] = [
   { id: "r-13", listingId: "l-012", author: "Nadia H.", rating: 4, date: "2026-08-27", text: "Clean monetization documentation. Formats transfer-ready and well organized." },
   { id: "r-14", listingId: "l-015", author: "Owen C.", rating: 5, date: "2026-09-04", text: "Bots, roles, moderation guidelines — everything inherited in one pass." },
   { id: "r-15", listingId: "l-018", author: "Grace H.", rating: 5, date: "2026-09-07", text: "Watch time never dipped after the transfer. License portfolio handled perfectly." },
-];
+] : [];
 
-const orders: Order[] = [
+const orders: Order[] = import.meta.env.DEV ? [
   { id: "o-1001", listingId: "l-021", listingTitle: "Prime Clips Highlight Hub", brand: "youtube", buyerId: "u-me", sellerId: "s-2", quantity: 1, unitPrice: 4300, total: 4300, status: "in_escrow", createdAt: "2026-09-20T10:24:00Z", updatedAt: "2026-09-20T10:24:00Z" },
   { id: "o-0996", listingId: "l-004", listingTitle: "UrbanX Finance Commentary", brand: "x", buyerId: "u-me", sellerId: "s-4", quantity: 1, unitPrice: 4200, total: 4200, status: "completed", createdAt: "2026-09-08T14:02:00Z", updatedAt: "2026-09-09T09:15:00Z" },
   { id: "o-0971", listingId: "l-006", listingTitle: "Kitchen & Craft Traffic Account", brand: "pinterest", buyerId: "u-me", sellerId: "s-5", quantity: 1, unitPrice: 1850, total: 1850, status: "completed", createdAt: "2026-08-27T09:40:00Z", updatedAt: "2026-08-28T11:05:00Z" },
   { id: "o-1004", listingId: "l-010", listingTitle: "Clutch Arena Partnered Channel", brand: "twitch", buyerId: "u-buyer2", sellerId: "s-6", quantity: 1, unitPrice: 6900, total: 6900, status: "transferring", createdAt: "2026-09-25T16:12:00Z", updatedAt: "2026-09-26T08:30:00Z" },
   { id: "o-0998", listingId: "l-011", listingTitle: "Runway Notes Beauty Account", brand: "tiktok", buyerId: "u-buyer3", sellerId: "s-3", quantity: 1, unitPrice: 4600, total: 4600, status: "disputed", createdAt: "2026-09-10T12:00:00Z", updatedAt: "2026-09-12T10:45:00Z" },
-];
+] : [];
 
-const disputes: Dispute[] = [
+const disputes: Dispute[] = import.meta.env.DEV ? [
   {
     id: "d-01",
     orderId: "o-0998",
@@ -351,21 +351,21 @@ const disputes: Dispute[] = [
       { author: "AccsMartHub Trust", role: "admin", text: "Reviewed analytics from both sides. Partial refund of 40% approved and processed from escrow.", date: "2026-08-21T17:25:00Z" },
     ],
   },
-];
+] : [];
 
-const withdrawals: Withdrawal[] = [
+const withdrawals: Withdrawal[] = import.meta.env.DEV ? [
   { id: "w-01", sellerId: "s-1", amount: 12500, method: "Bank transfer", status: "paid", requestedAt: "2026-09-15T09:00:00Z" },
   { id: "w-02", sellerId: "s-1", amount: 6800, method: "USDT (TRC-20)", status: "pending", requestedAt: "2026-09-26T14:30:00Z" },
   { id: "w-03", sellerId: "s-5", amount: 4300, method: "Bank transfer", status: "paid", requestedAt: "2026-09-10T11:20:00Z" },
-];
+] : [];
 
-const notifications: Notification[] = [
+const notifications: Notification[] = import.meta.env.DEV ? [
   { id: "n-1", userId: "u-me", title: "Escrow funded", body: "Your payment for Prime Clips Highlight Hub is held in escrow. The seller has been notified to begin the transfer.", date: "2026-09-20T10:25:00Z", read: false },
   { id: "n-2", userId: "u-me", title: "Transfer completed", body: "UrbanX Finance Commentary has been marked completed. Funds released to the seller.", date: "2026-09-09T09:16:00Z", read: true },
   { id: "n-3", userId: "u-me", title: "Welcome to AccsMartHub", body: "Verify your email to unlock higher purchase limits and seller tools.", date: "2026-08-20T08:00:00Z", read: true },
-];
+] : [];
 
-const tickets: Ticket[] = [
+const tickets: Ticket[] = import.meta.env.DEV ? [
   {
     id: "t-01",
     userId: "u-me",
@@ -377,16 +377,16 @@ const tickets: Ticket[] = [
       { author: "Support Team", role: "support", text: "Escrow window extended by 72 hours at the seller's request. No action needed from you.", date: "2026-09-19T13:40:00Z" },
     ],
   },
-];
+] : [];
 
-const auditLog: AuditEntry[] = [
+const auditLog: AuditEntry[] = import.meta.env.DEV ? [
   { id: "a-01", action: "listing.suspend", actor: "admin", target: "l-020 · HustleHub Business Page", date: "2026-09-24T11:00:00Z" },
   { id: "a-02", action: "user.suspend", actor: "admin", target: "u-7721 · member", date: "2026-09-22T15:20:00Z" },
   { id: "a-03", action: "dispute.resolve", actor: "admin", target: "d-03 · partial refund 40%", date: "2026-08-21T17:25:00Z" },
   { id: "a-04", action: "seller.verify", actor: "admin", target: "s-6 · NorthGate Trading", date: "2026-08-14T10:05:00Z" },
-];
+] : [];
 
-const sellerApplications: SellerApplication[] = [
+const sellerApplications: SellerApplication[] = import.meta.env.DEV ? [
   {
     id: "sa-01",
     userId: "u-1001",
@@ -399,7 +399,7 @@ const sellerApplications: SellerApplication[] = [
     status: "pending",
     createdAt: "2026-09-27T09:30:00Z",
   },
-];
+] : [];
 
 /* --------------------------------- store ---------------------------------- */
 
@@ -414,13 +414,13 @@ export type UserRow = {
   spent: number;
 };
 
-export const users: UserRow[] = [
+export const users: UserRow[] = import.meta.env.DEV ? [
   { id: "u-1001", name: "Jordan Ellis", email: "jordan@example.com", role: "buyer", status: "active", joined: "2026-06-14", orders: 3, spent: 10450 },
   { id: "u-1002", name: "Casey Nguyen", email: "casey@example.com", role: "seller", status: "active", joined: "2026-05-02", orders: 12, spent: 0 },
   { id: "u-1003", name: "Riley Fox", email: "riley@example.com", role: "buyer", status: "suspended", joined: "2026-08-19", orders: 1, spent: 320 },
   { id: "u-1004", name: "Morgan Diaz", email: "morgan@example.com", role: "seller", status: "active", joined: "2026-03-28", orders: 27, spent: 0 },
   { id: "u-1005", name: "Avery Kim", email: "avery@example.com", role: "buyer", status: "active", joined: "2026-07-08", orders: 2, spent: 6150 },
-];
+] : [];
 
 export type PaymentRow = {
   id: string;
@@ -435,13 +435,13 @@ export type PaymentRow = {
   date: string;
 };
 
-export const payments: PaymentRow[] = [
+export const payments: PaymentRow[] = import.meta.env.DEV ? [
   { id: "pay-01", orderId: "o-1001", listingTitle: "Prime Clips Highlight Hub", buyer: "Jordan Ellis", seller: "Harborlight Accounts", amount: 4300, fee: 129, method: "Card", status: "held", date: "2026-09-20" },
   { id: "pay-02", orderId: "o-1004", listingTitle: "Clutch Arena Partnered Channel", buyer: "Avery Kim", seller: "NorthGate Trading", amount: 6900, fee: 207, method: "Crypto", status: "held", date: "2026-09-25" },
   { id: "pay-03", orderId: "o-0996", listingTitle: "UrbanX Finance Commentary", buyer: "Jordan Ellis", seller: "ArcherPeak Holdings", amount: 4200, fee: 126, method: "Card", status: "released", date: "2026-09-09" },
   { id: "pay-04", orderId: "o-0998", listingTitle: "Runway Notes Beauty Account", buyer: "Casey Nguyen", seller: "Crescent Row Media", amount: 4600, fee: 138, method: "Card", status: "held", date: "2026-09-10" },
   { id: "pay-05", orderId: "o-0902", listingTitle: "Pet Lovers Community Group", buyer: "Riley Fox", seller: "Harborlight Accounts", amount: 1500, fee: 45, method: "Bank", status: "refunded", date: "2026-08-21" },
-];
+] : [];
 
 /* ------------------------------ reactive core ------------------------------ */
 
@@ -464,6 +464,51 @@ let state: State = {
   tickets: [...tickets],
   sellerApplications: [...sellerApplications],
 };
+
+/*
+ * Demo data is for LOCAL DEVELOPMENT ONLY.
+ *
+ * Every array below is invented: the sellers have ratings and sales counts
+ * that were never earned, the reviews were written by hand, and the orders,
+ * payments and audit entries never happened. Shipping them to production
+ * means showing visitors and, worse, showing ADMINS a marketplace that does
+ * not exist — including made-up revenue and dispute figures.
+ *
+ * `categories` and `SERVICE_CATEGORIES` are deliberately NOT cleared: those
+ * are product taxonomy (which networks exist), not claims about activity, so
+ * they are safe to render.
+ *
+ * In production every seeded collection is emptied, which puts each screen on
+ * its honest empty state. The real data comes from Supabase via
+ * `src/lib/supabaseQueries.ts`.
+ */
+if (!import.meta.env.DEV) {
+  for (const seed of [
+    sellers,
+    listings,
+    reviews,
+    orders,
+    disputes,
+    withdrawals,
+    notifications,
+    tickets,
+    auditLog,
+    sellerApplications,
+    users,
+    payments,
+  ]) {
+    seed.length = 0;
+  }
+  state = {
+    listings: [],
+    orders: [],
+    disputes: [],
+    withdrawals: [],
+    notifications: [],
+    tickets: [],
+    sellerApplications: [],
+  };
+}
 
 const listeners = new Set<() => void>();
 

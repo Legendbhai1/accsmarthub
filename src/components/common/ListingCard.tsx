@@ -3,14 +3,12 @@ import { formatPrice } from "@/lib/format";
 import { Link } from "react-router";
 import { BadgeCheck, Clock, ShieldCheck } from "lucide-react";
 import { BrandMark } from "@/components/site/BrandMark";
-import { RatingStars } from "@/components/common/RatingStars";
 import { StockBadge } from "@/components/common/Primitives";
-import { getSeller, type Listing } from "@/lib/db";
+import type { PublicListing } from "@/lib/supabaseQueries";
 import { cn } from "@/lib/utils";
 
-export function ListingCard({ listing }: { listing: Listing }) {
-  const seller = getSeller(listing.sellerId);
-  const available = listing.status === "active" && listing.stock > 0;
+export function ListingCard({ listing }: { listing: PublicListing }) {
+  const available = listing.stock > 0;
 
   return (
     <motion.article
@@ -21,11 +19,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
       <div className="flex items-start justify-between gap-3">
         <BrandMark brand={listing.brand} block className="size-11" />
         <div className="flex flex-col items-end gap-1.5">
-          {listing.oldPrice && (
+          {listing.discountPercent ? (
             <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
-              Save {Math.round((1 - listing.price / listing.oldPrice) * 100)}%
+              {listing.discountPercent}% off
             </span>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -37,34 +35,29 @@ export function ListingCard({ listing }: { listing: Listing }) {
           {listing.title}
         </Link>
       </h3>
-      <p className="mt-1 text-xs text-muted-foreground">{listing.niche}</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {listing.serviceCategory ?? listing.brand}
+      </p>
 
       <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-        {listing.description}
+        {listing.summary ?? "No description provided."}
       </p>
 
       <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-        <span className="truncate">{seller.name}</span>
-        {seller.verified && (
-          <BadgeCheck className="size-3.5 shrink-0 text-primary" aria-label="Verified seller" />
+        <span className="truncate">Verified seller</span>
+        {available && (
+          <BadgeCheck className="size-3.5 shrink-0 text-primary" aria-label="Moderated listing" />
         )}
-        <span className="ml-auto inline-flex items-center gap-1">
-          <RatingStars rating={seller.rating} />
-          <span className="tabular-nums">{seller.rating.toFixed(1)}</span>
+        <span className="ml-auto inline-flex items-center gap-1 text-xs">
+          {listing.warrantyHours ? `${listing.warrantyHours}h warranty` : "Escrow protected"}
         </span>
       </div>
 
       <div className="mt-auto flex items-end justify-between gap-3 pt-4">
         <div>
-          <p className="text-lg font-bold tracking-tight">{formatPrice(listing.price)}</p>
+          <p className="text-lg font-bold tracking-tight">{formatPrice(listing.priceUsd)}</p>
           <p className="mt-1 text-xs">
-            {listing.status === "active" ? (
-              <StockBadge stock={listing.stock} />
-            ) : (
-              <span className="text-muted-foreground">
-                {listing.status === "sold" ? "Sold" : "Unavailable"}
-              </span>
-            )}
+            <StockBadge stock={listing.stock} />
           </p>
         </div>
         <Link
