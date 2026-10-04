@@ -5,7 +5,7 @@
  * buyer's wallet exactly once.
  *
  * Security properties:
- *   - The request body is verified against OxaPay's HMAC-SHA256 signature
+ *   - The request body is verified against OxaPay's HMAC-SHA512 signature
  *     BEFORE anything is read or written. An unsigned or forged ping is
  *     rejected outright, so nobody can credit themselves money.
  *   - The track_id must already exist as a pending deposit created by the

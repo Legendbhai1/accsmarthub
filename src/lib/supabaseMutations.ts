@@ -88,6 +88,19 @@ export type DepositCreateResult = {
 
 export type DepositConfigError = Error & { configured: false };
 
+const DEPOSIT_UNCONFIGURED =
+  "Card and crypto deposits are not switched on yet. Add your payment provider key to enable them.";
+
+/** Shape returned by `create-deposit-invoice`, on success and on failure. */
+type InvoicePayload = {
+  trackId?: string;
+  amountUsd?: number;
+  paymentUrl?: string;
+  error?: string;
+  /** Present and `false` only on the 503 "merchant key missing" response. */
+  configured?: boolean;
+};
+
 /**
  * Open a deposit and ask the provider for a payment URL.
  *
@@ -112,29 +125,50 @@ export async function createDeposit(
     { body: { trackId, returnUrl } },
   );
 
+  // Every failure path in `create-deposit-invoice` answers with a non-2xx
+  // status and a JSON `{ error, configured }` body (503 not configured,
+  // 502 provider rejected the invoice, 409 already settled, 404 not found).
+  //
+  // supabase-js throws `FunctionsHttpError` for ANY non-2xx and leaves the
+  // Response UNREAD on `error.context`, so `data` is null and the reason is
+  // lost. Reading the body back is what keeps the UI honest: without it the
+  // unconfigured case is indistinguishable from a transient failure and the
+  // user is told to retry against a gateway that can never work.
+  let payload: InvoicePayload | null = (data as InvoicePayload | null) ?? null;
+
   if (invokeError) {
+    const ctx = (invokeError as { context?: unknown }).context;
+    let body: Partial<InvoicePayload> | null = null;
+    if (ctx instanceof Response) {
+      try {
+        // clone() because a failed .json() consumes the body.
+        body = (await ctx.clone().json()) as Partial<InvoicePayload>;
+      } catch {
+        // The Supabase gateway's own 401/429/500 replies are not our JSON;
+        // fall through to the generic message below.
+      }
+    }
+    if (body?.error) payload = { ...(payload ?? {}), ...body };
+
+    if (payload?.configured === false) {
+      const err = new Error(payload.error ?? DEPOSIT_UNCONFIGURED) as DepositConfigError;
+      err.configured = false;
+      throw err;
+    }
+
     // The deposit row exists but has no invoice. That is recoverable — the
     // buyer can retry — so report it instead of silently doing nothing.
     throw new Error(
       `Your deposit is open but the payment page could not be created: ${
-        invokeError.message || "please try again."
+        payload?.error ?? invokeError.message ?? "please try again."
       }`,
     );
   }
 
-  const result = data as {
-    trackId?: string;
-    amountUsd?: number;
-    paymentUrl?: string;
-    error?: string;
-    configured?: boolean;
-  } | null;
+  const result = payload;
 
   if (!result?.paymentUrl) {
-    const err = new Error(
-      result?.error ??
-        "Card and crypto deposits are not switched on yet. Add your payment provider key to enable them.",
-    ) as DepositConfigError;
+    const err = new Error(result?.error ?? DEPOSIT_UNCONFIGURED) as DepositConfigError;
     err.configured = false;
     throw err;
   }
