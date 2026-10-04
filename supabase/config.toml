@@ -1,0 +1,43 @@
+project_id = "fbalfkvimlfmcpsfzrvn"
+
+[api]
+# Public site. Key rotation and brute-force protection stay on.
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+# Statement timeout protects the settlement RPCs from a long-running lock.
+statement_timeout = "30s"
+
+[studio]
+enabled = true
+port = 54323
+
+[functions.oxapay-webhook]
+# MUST stay false.
+#
+# OxaPay is a third-party crypto processor and cannot present a Supabase JWT.
+# With verify_jwt = true the Supabase gateway rejected every genuine callback
+# with UNAUTHORIZED_NO_AUTH_HEADER *before* the function body ran, so the
+# HMAC-SHA512 signature was never even checked and no deposit could settle.
+#
+# Disabling gateway JWT verification does NOT weaken authenticity: this
+# endpoint authenticates the caller itself with a constant-time HMAC-SHA512
+# comparison over the raw body, keyed by OXAPAY_MERCHANT_API_KEY, and every
+# money movement still goes through settle_deposit() which is EXECUTE-granted
+# to service_role only.
+verify_jwt = false
+
+[functions.create-deposit-invoice]
+# Called from the browser with the user's own access token.
+verify_jwt = true
+
+[functions.upload-credentials]
+verify_jwt = true
+
+[functions.download-credentials]
+verify_jwt = true

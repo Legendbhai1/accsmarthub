@@ -78,6 +78,21 @@ const num = (v: unknown): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
+/**
+ * `date` in the IPN is Unix SECONDS, not ISO. Passing it straight to
+ * `new Date()` would build 1970-01-01 and record a nonsense paid_at.
+ */
+function ts(v: unknown): string | null {
+  const n = Number(v);
+  if (Number.isFinite(n) && n > 0) {
+    return new Date(n * 1000).toISOString();
+  }
+  const s = str(v);
+  if (!s) return null;
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok");
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
@@ -107,10 +122,17 @@ Deno.serve(async (req) => {
     return new Response("ok");
   }
 
+  // Only `invoice` callbacks belong here. Payout IPNs arrive on the same URL
+  // but are signed with the PAYOUT_API_KEY, and a merchant key must never be
+  // used to settle a withdrawal.
+  if (str(body.type) !== "invoice") {
+    return new Response("ok");
+  }
+
   // `order_id` is the track_id WE supplied when creating the invoice.
-  // `track_id` in the callback is OxaPay's own transaction reference — that is
-  // what we persist as provider_txn_id so one provider payment can never be
-  // replayed against a second deposit.
+  // `track_id` in the callback is OxaPay's own reference for this payment —
+  // that is what we persist as provider_txn_id so one provider payment can
+  // never be replayed against a second deposit.
   const trackId = str(body.order_id) || str(body.track_id);
   const providerTxnId = str(body.track_id);
   const status = str(body.status);
@@ -120,26 +142,29 @@ Deno.serve(async (req) => {
     return new Response("ok");
   }
 
-  // Validate what the customer ACTUALLY paid, not just what the invoice
-  // echoed. An underpaid crypto transfer therefore fails the amount check and
-  // is recorded as a mismatch instead of silently crediting a full top-up.
-  const paidAmount = num(body.pay_amount ?? body.amount);
-  const paidCurrency = str(body.pay_currency) || str(body.currency) || "USD";
-  const paidAt = str(body.paid_at);
+  // OxaPay's published Paid IPN sample:
+  //   { "track_id":"151811887", "status":"Paid", "type":"invoice",
+  //     "amount":10, "value":3.6839, "sent_value":3.6839, "currency":"POL",
+  //     "order_id":"ORD-12345", "date":1738493900, "txs":[...] }
+  //
+  // `amount` is the INVOICE denomination (10 for a $10 top-up) and is what we
+  // validate. `currency` is the CRYPTOCURRENCY the payer sent ("POL") — it is
+  // NOT the deposit currency, and comparing it to 'USD' rejected every valid
+  // crypto payment. It is recorded for reconciliation and never gates credit.
+  const invoiceAmount = num(body.amount);
+  const payCurrency = str(body.currency);
+  const paidAt = ts(body.date);
 
   // 2. One atomic, idempotent call: lock -> validate -> credit + ledger ->
-  //    mark paid, all in a single transaction. The old code marked the deposit
-  //    paid in one REST call and credited the wallet in a second; if the
-  //    second failed the buyer was permanently short-changed because the
-  //    retry could no longer find a pending row.
+  //    mark paid, all in a single transaction.
   const res = await db("rpc/settle_deposit", {
     method: "POST",
     body: JSON.stringify({
       p_track_id: trackId,
       p_provider_txn_id: providerTxnId,
-      p_provider_amount: paidAmount,
-      p_currency: paidCurrency,
-      p_paid_at: paidAt ? new Date(paidAt).toISOString() : null,
+      p_invoice_amount: invoiceAmount,
+      p_pay_currency: payCurrency || null,
+      p_paid_at: paidAt,
     }),
   });
 

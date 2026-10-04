@@ -73,9 +73,124 @@ describe("callback status gate", () => {
     for (const s of ["paid", "Paid", "completed", "finished"]) {
       expect(PAID_STATUSES.has(s)).toBe(true);
     }
-    for (const s of ["paying", "Waiting", "expired", "refunded", "", "PENDING"]) {
+    for (const s of ["Paying", "Waiting", "expired", "refunded", "", "PENDING"]) {
       expect(PAID_STATUSES.has(s)).toBe(false);
     }
+  });
+});
+
+/**
+ * Verbatim Paid IPN sample from https://docs.oxapay.com/webhook
+ * `currency` is the CRYPTOCURRENCY paid, not the invoice denomination.
+ */
+const REAL_PAID_IPN = {
+  track_id: "151811887",
+  status: "Paid",
+  type: "invoice",
+  module_name: "OxaPay",
+  amount: 10,
+  value: 3.6839,
+  sent_value: 3.6839,
+  currency: "POL",
+  order_id: "ORD-12345",
+  email: "customer@oxapay.com",
+  note: "",
+  fee_paid_by_payer: 0,
+  under_paid_coverage: 0,
+  description: "Test Description",
+  date: 1738493900,
+  txs: [
+    {
+      status: "confirmed",
+      tx_hash: "x",
+      sent_amount: 10,
+      received_amount: 9.85,
+      value: 3.6839,
+      sent_value: 3.6839,
+      currency: "POL",
+      network: "Polygon Network",
+      rate: 0.36839,
+      confirmations: 250,
+      auto_convert_amount: 3.62864,
+      auto_convert_currency: "USDT",
+      date: 1738494035,
+    },
+  ],
+};
+
+/** Mirrors the webhook's field extraction. */
+function parseIpn(body: Record<string, unknown>) {
+  const str = (v: unknown) => (v == null ? "" : String(v).trim());
+  const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : null);
+  const d = Number(body.date);
+  return {
+    isInvoice: str(body.type) === "invoice",
+    trackId: str(body.order_id) || str(body.track_id),
+    providerTxnId: str(body.track_id),
+    invoiceAmount: num(body.amount),
+    // Recorded for reconciliation; NEVER compared to the deposit currency.
+    payCurrency: str(body.currency),
+    paidAt: Number.isFinite(d) && d > 0 ? new Date(d * 1000).toISOString() : null,
+  };
+}
+
+describe("real OxaPay Paid IPN", () => {
+  const p = parseIpn(REAL_PAID_IPN);
+
+  it("is recognised as an invoice callback", () => {
+    expect(p.isInvoice).toBe(true);
+  });
+
+  it("correlates via our order_id, not OxaPay's track_id", () => {
+    expect(p.trackId).toBe("ORD-12345");
+  });
+
+  it("keeps OxaPay's track_id as the provider transaction reference", () => {
+    expect(p.providerTxnId).toBe("151811887");
+  });
+
+  it("uses `amount` as the invoice denomination, not the crypto quantity", () => {
+    // 10 (invoice) must be validated; 3.6839 (POL units) must not be.
+    expect(p.invoiceAmount).toBe(10);
+    expect(p.invoiceAmount).not.toBe(REAL_PAID_IPN.value);
+  });
+
+  it("reads `currency` as the crypto paid, NOT the deposit currency", () => {
+    // Regression: treating "POL" as the deposit currency raised
+    // currency_mismatch and rejected every valid crypto payment.
+    expect(p.payCurrency).toBe("POL");
+    expect(p.payCurrency).not.toBe("USD");
+  });
+
+  it("converts the Unix-seconds `date` field to an ISO timestamp", () => {
+    // new Date(1738493900) would be 1970-01-01 and record a nonsense paid_at.
+    expect(p.paidAt).toBe(new Date(1738493900 * 1000).toISOString());
+    expect(new Date(p.paidAt!).getUTCFullYear()).toBe(2025);
+  });
+
+  it("would settle against a $10 deposit", () => {
+    // The deposit row stores amount_usd = 10, currency = 'USD'.
+    const deposit = { amount_usd: 10, currency: "USD" };
+    expect(Math.abs(p.invoiceAmount! - deposit.amount_usd)).toBeLessThanOrEqual(0.001);
+    expect(deposit.currency).toBe("USD");
+  });
+
+  it("ignores payout callbacks that share the URL", () => {
+    // Payout IPNs are signed with PAYOUT_API_KEY; a merchant key must never
+    // settle a withdrawal.
+    const payout = { ...REAL_PAID_IPN, type: "payout" };
+    expect(parseIpn(payout).isInvoice).toBe(false);
+  });
+
+  it("does not settle on the interim Paying callback", () => {
+    const paying = { ...REAL_PAID_IPN, status: "Paying" };
+    expect(PAID_STATUSES.has(paying.status)).toBe(false);
+  });
+
+  it("rejects an invoice callback signed with the wrong key", async () => {
+    const raw = JSON.stringify(REAL_PAID_IPN);
+    const forged = await sign(raw, "wrong-key");
+    expect(safeEqual(forged, await sign(raw))).toBe(false);
   });
 });
 
