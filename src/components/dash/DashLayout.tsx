@@ -3,6 +3,8 @@ import { NavLink, Outlet, useLocation } from "react-router";
 import { ArrowRightLeft, ShoppingBag, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/site/Logo";
+import { MobileChipNav, MobileTabBar } from "@/components/site/MobileTabBar";
+import { TopMenu } from "@/components/site/TopMenu";
 import { useSession } from "@/lib/session";
 
 export type NavItem = { label: string; to: string; icon: React.ComponentType<{ className?: string }> };
@@ -50,14 +52,11 @@ export function DashLayout({
             { label: "Buyer account", to: "/account", icon: ShoppingBag },
           ];
   const fullNav: NavItem[] = [...nav, ...switchItems];
-  // The floating bottom bar stays on the current area's own pages only — the
-  // cross-role seller/buyer switch lives in the desktop sidebar and header.
-  const mobileNav: NavItem[] = nav.slice(0, 5);
 
   return (
     <div className="flex min-h-screen">
       {/* Sidebar (desktop) — flat white sheet with hairline separators */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-white lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-card lg:flex">
         <div className="flex h-20 items-center px-6">
           <Logo />
         </div>
@@ -70,14 +69,14 @@ export function DashLayout({
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                  isActive && "bg-[#15172b] text-white hover:bg-[#15172b] hover:text-white",
+                  isActive && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
                 )
               }
             >
               <Icon className="size-4.5" />
               {label}
               {badge === label && (
-                <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
+                <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-destructive                  text-[10px] font-bold text-white">
                   1
                 </span>
               )}
@@ -97,7 +96,7 @@ export function DashLayout({
           <button
             type="button"
             onClick={signOut}
-            className="mt-4 w-full rounded-full bg-[#15172b] py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-85"
+            className="mt-4 w-full rounded-full bg-primary py-2.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-85"
           >
             Sign out
           </button>
@@ -106,7 +105,7 @@ export function DashLayout({
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
-        <header className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur-xl">
           <div className="flex h-20 items-center gap-3 px-4 sm:px-6">
             <div className="lg:hidden">
               <Logo />
@@ -114,52 +113,32 @@ export function DashLayout({
             <h1 className="ml-auto text-sm font-medium text-muted-foreground lg:ml-0">
               {title}
             </h1>
-            <span className="rounded-full bg-[#15172b] px-3 py-1.5 text-xs font-semibold capitalize text-white">
+            <span className="hidden rounded-full bg-primary px-3 py-1.5 text-xs font-semibold capitalize text-primary-foreground sm:inline-flex">
               {user?.role}
             </span>
+            <TopMenu className="lg:hidden" />
           </div>
         </header>
-        <main className="flex-1 px-4 pb-32 pt-6 sm:px-6 lg:px-8 lg:pb-8">
+        <main className="flex-1 px-4 pb-32 pt-4 sm:px-6 lg:px-8 lg:pb-8 lg:pt-6">
+          {/* The dashboard's own pages move up here on mobile: the bottom bar
+              now holds the shared Home / Marketplace / Categories / Account
+              buttons, so these must live somewhere else. */}
+          <div className="mb-4">
+            <MobileChipNav
+              nav={fullNav.map(({ label, to, icon: Icon }) => ({
+                label,
+                to,
+                icon: <Icon className="size-3.5" />,
+              }))}
+            />
+          </div>
           {children ?? <Outlet />}
         </main>
       </div>
 
-      {/* Mobile bottom nav */}
-      <MobileDashNav nav={mobileNav} badge={badge} />
+      {/* Mobile bottom nav — the shared app bar, identical to the one on the
+          home page, so tapping Account no longer swaps the buttons out. */}
+      <MobileTabBar />
     </div>
-  );
-}
-
-/** Floating rounded-full bottom pill, matching the app shell navigation. */
-function MobileDashNav({ nav, badge }: { nav: NavItem[]; badge?: string }) {
-  return (
-    <nav
-      aria-label="Dashboard mobile navigation"
-      className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4 lg:hidden"
-    >
-      <div className="flex w-full max-w-md items-center gap-1 overflow-x-auto rounded-full border border-border bg-white p-1.5 shadow-[0_10px_30px_-12px_rgba(21,23,43,0.35)]">
-        {nav.map(({ label, to, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/account" || to === "/seller" || to === "/admin"}
-            className={({ isActive }) =>
-              cn(
-                "relative flex min-w-[4.25rem] flex-1 shrink-0 flex-col items-center gap-0.5 rounded-full px-1 py-2 text-[9px] font-medium text-muted-foreground transition-colors",
-                isActive && "bg-[#15172b] text-white",
-              )
-            }
-          >
-            <span className="relative">
-              <Icon className="size-4.5" />
-              {badge === label && (
-                <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-destructive" />
-              )}
-            </span>
-            <span className="truncate">{label}</span>
-          </NavLink>
-        ))}
-      </div>
-    </nav>
   );
 }

@@ -3,48 +3,67 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import {
   ArrowLeft,
   ArrowRight,
-  KeyRound,
   Loader2,
+  Lock,
   Mail,
   MailCheck,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/site/Logo";
-import { sendMagicLink } from "@/lib/supabase";
+import {
+  PASSWORD_MIN_LENGTH,
+  resendConfirmation,
+  sendMagicLink,
+  signInWithPassword,
+  signUpWithPassword,
+} from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 import { roleHome } from "@/components/site/guards";
 import { toast } from "sonner";
 
-type Mode = "email" | "sent";
+type Mode = "signin" | "register" | "sent";
 
 /** Where to remember the post-sign-in destination across the email round trip. */
 const RETURN_TO_KEY = "accsmarthub.returnTo";
 
 /**
- * Supabase email verification — magic link.
+ * Sign in and registration, both by password.
  *
- * Enter an address, Supabase emails a one-time sign-in link, and clicking it
- * both verifies the address AND creates the account if it is new — so the same
- * screen signs in and registers. There is no password anywhere.
+ * Email verification is no longer part of signing in: you enter the address
+ * and the password you registered with and you are in, with no round trip
+ * through an inbox. The verification link is still used for the two things it
+ * is actually good for —
  *
- * A link (rather than a 6-digit code) because the code requires `{{ .Token }}`
- * in the auth email template, and the free tier refuses template edits unless
- * a custom SMTP provider is connected. See `sendMagicLink` for the detail.
+ *   1. registration — `signUp` sends a confirmation link, and if the address
+ *      has not been confirmed yet that link is what completes the account;
+ *   2. forgot password — `/forgot-password` sends a recovery link that opens
+ *      `/reset-password`, where a new password is set.
  *
- * The return trip lands back on this route with `?code=…`; supabase-js (with
- * `detectSessionInUrl`) exchanges it for a session on boot, after which this
- * component forwards to the intended destination.
+ * Accounts created before passwords existed have no password at all, so a
+ * failed password sign-in offers the old magic link rather than dead-ending.
+ *
+ * The return trip from a verification link lands back on this route with
+ * `?code=…`; supabase-js (with `detectSessionInUrl`) exchanges it for a
+ * session on boot, after which this component forwards to the intended
+ * destination.
  */
 export default function SupabaseAuth() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { user, isLoading: sessionLoading } = useSession();
-  const [mode, setMode] = useState<Mode>("email");
+  const [mode, setMode] = useState<Mode>(() =>
+    params.get("mode") === "register" ? "register" : "signin",
+  );
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set once a password sign-in was rejected, which is what reveals the
+  // "email me a link instead" escape hatch for passwordless accounts.
+  const [passwordRejected, setPasswordRejected] = useState(false);
   // Set once we know this render is the post-click return trip, so a fresh
   // "sent" screen is not shown to someone who just arrived signed in.
   // State, not a ref: this value is read during render to switch the copy and
@@ -52,6 +71,9 @@ export default function SupabaseAuth() {
   // re-render, so the screen could keep showing "Check your email" while the
   // user is actually mid sign-in.
   const [returning, setReturning] = useState(false);
+  // What the "check your inbox" screen is waiting on, so Resend re-sends the
+  // right kind of link: the registration confirmation or the sign-in link.
+  const [sentFor, setSentFor] = useState<"register" | "link">("link");
 
   const normalized = email.trim().toLowerCase();
 
@@ -95,21 +117,93 @@ export default function SupabaseAuth() {
     }
   }, [user, sessionLoading, navigate, destination, params]);
 
+  const rememberDestination = () => {
+    try {
+      sessionStorage.setItem(RETURN_TO_KEY, destination);
+    } catch {
+      // storage unavailable — the redirect URL still carries returnTo
+    }
+  };
+
+  /** Shared by both tabs: hand the form over to the "check your inbox" screen. */
+  const showSent = (what: string, forWhat: "register" | "link") => {
+    setSentFor(forWhat);
+    setMode("sent");
+    setPasswordRejected(false);
+    toast.success(what, {
+      description: `Check ${normalized} and click the link to continue.`,
+    });
+  };
+
+  const signIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await signInWithPassword(normalized, password);
+      // `onAuthStateChange` reports the new session and the effect above
+      // forwards to `destination`; no navigation is needed here.
+      toast.success("Signed in.");
+    } catch (err) {
+      setPasswordRejected(true);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "That email and password did not match.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const register = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setError(`Use at least ${PASSWORD_MIN_LENGTH} characters.`);
+      setBusy(false);
+      return;
+    }
+    try {
+      rememberDestination();
+      const { session } = await signUpWithPassword(
+        normalized,
+        password,
+        redirectTo,
+      );
+      if (session) {
+        // Email autoconfirm is on, so the account is live already. Clearing
+        // the password keeps it out of a later browser autofill for a shared
+        // machine.
+        setPassword("");
+        toast.success("Account created.", {
+          description: "You are signed in — no verification needed.",
+        });
+        return;
+      }
+      // Autoconfirm off: the emailed link is what confirms the address.
+      showSent("Confirmation link sent", "register");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We could not create that account. Try again in a moment.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Fallback for accounts that have no password: the old one-tap link. */
   const sendLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      try {
-        sessionStorage.setItem(RETURN_TO_KEY, destination);
-      } catch {
-        // storage unavailable — the redirect URL still carries returnTo
-      }
+      rememberDestination();
       await sendMagicLink(normalized, redirectTo);
-      setMode("sent");
-      toast.success("Sign-in link sent", {
-        description: `Check ${normalized} and click the link to continue.`,
-      });
+      showSent("Sign-in link sent", "link");
     } catch (err) {
       setError(
         err instanceof Error
@@ -125,13 +219,24 @@ export default function SupabaseAuth() {
     setBusy(true);
     setError(null);
     try {
-      await sendMagicLink(normalized, redirectTo);
-      toast.info("New link sent.");
+      if (sentFor === "register") {
+        await resendConfirmation(normalized, redirectTo);
+        toast.info("New confirmation link sent.");
+      } else {
+        await sendMagicLink(normalized, redirectTo);
+        toast.info("New sign-in link sent.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not resend the link.");
     } finally {
       setBusy(false);
     }
+  };
+
+  const switchMode = (next: Exclude<Mode, "sent">) => {
+    setMode(next);
+    setError(null);
+    setPasswordRejected(false);
   };
 
   return (
@@ -142,17 +247,23 @@ export default function SupabaseAuth() {
 
       <main className="flex flex-1 items-start justify-center px-4 pb-16">
         <div className="glass w-full max-w-md p-8">
-          {mode === "email" && (
+          {mode !== "sent" && (
             <>
               <h1 className="text-xl font-bold tracking-tight">
-                Sign in or create your account
+                {mode === "register"
+                  ? "Create your account"
+                  : "Welcome back"}
               </h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                We&apos;ll email you a secure sign-in link — no password to
-                remember.
+                {mode === "register"
+                  ? "Pick a password. We only email you a link to confirm the address."
+                  : "Sign in with the password you registered with."}
               </p>
 
-              <form onSubmit={sendLink} className="mt-6 space-y-4">
+              <form
+                onSubmit={mode === "register" ? register : signIn}
+                className="mt-6 space-y-4"
+              >
                 <div className="grid gap-2">
                   <Label htmlFor="sb-email">Email</Label>
                   <div className="relative">
@@ -171,6 +282,36 @@ export default function SupabaseAuth() {
                   </div>
                 </div>
 
+                <div className="grid gap-2">
+                  <div className="flex items-baseline justify-between">
+                    <Label htmlFor="sb-password">Password</Label>
+                    {mode === "signin" && (
+                      <Link
+                        to="/forgot-password"
+                        className="text-xs font-medium text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                      >
+                        Forgot password?
+                      </Link>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="sb-password"
+                      type="password"
+                      required
+                      minLength={PASSWORD_MIN_LENGTH}
+                      className="inset-well rounded-xl border-border/60 pl-9"
+                      placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete={
+                        mode === "register" ? "new-password" : "current-password"
+                      }
+                    />
+                  </div>
+                </div>
+
                 {error && (
                   <p
                     role="alert"
@@ -183,17 +324,66 @@ export default function SupabaseAuth() {
                 <Button type="submit" className="w-full rounded-xl" disabled={busy}>
                   {busy ? (
                     <Loader2 className="size-4 animate-spin" />
+                  ) : mode === "register" ? (
+                    <UserPlus className="size-4" />
                   ) : (
                     <ArrowRight className="size-4" />
                   )}
-                  Email me a sign-in link
+                  {mode === "register" ? "Create account" : "Sign in"}
                 </Button>
-                <Button asChild variant="ghost" className="w-full rounded-xl">
-                  <Link to="/forgot-password">
-                    <KeyRound className="size-4" /> I already have an account
-                  </Link>
-                </Button>
+
+                {/* Escape hatch for an account that has no password at all. */}
+                {passwordRejected && mode === "signin" && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full rounded-xl"
+                      disabled={busy}
+                      onClick={sendLink}
+                    >
+                      <Mail className="size-4" /> Email me a sign-in link
+                    </Button>
+                    <p className="text-center text-[11px] leading-snug text-muted-foreground">
+                      No password on this account? Use a one-time link instead,
+                      or{" "}
+                      <Link
+                        to="/forgot-password"
+                        className="underline underline-offset-2 hover:text-foreground"
+                      >
+                        set a new password
+                      </Link>
+                      .
+                    </p>
+                  </>
+                )}
               </form>
+
+              <div className="mt-6 border-t border-border pt-4 text-center text-sm text-muted-foreground">
+                {mode === "register" ? (
+                  <>
+                    Already have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => switchMode("signin")}
+                      className="font-semibold text-foreground underline-offset-2 hover:underline"
+                    >
+                      Sign in
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    New to AccsMartHub?{" "}
+                    <button
+                      type="button"
+                      onClick={() => switchMode("register")}
+                      className="font-semibold text-foreground underline-offset-2 hover:underline"
+                    >
+                      Create an account
+                    </button>
+                  </>
+                )}
+              </div>
             </>
           )}
 
@@ -205,13 +395,12 @@ export default function SupabaseAuth() {
                 ) : (
                   <MailCheck className="size-5 text-primary" />
                 )}
-              </div>
-              <h1 className="mt-4 text-xl font-bold tracking-tight">
+              </div>                <h1 className="mt-4 text-xl font-bold tracking-tight">
                 {returning && !user ? "Finishing sign-in…" : "Check your email"}
               </h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
                 {normalized && !returning
-                  ? `We sent a sign-in link to ${normalized}. Click it to verify your address and continue — the link works once and expires shortly.`
+                  ? `We sent a link to ${normalized}. Open it to confirm your address and continue — the link works once and expires shortly.`
                   : "Signing you in and taking you to your account…"}
               </p>
 
@@ -241,11 +430,11 @@ export default function SupabaseAuth() {
                     className="w-full rounded-xl"
                     disabled={busy}
                     onClick={() => {
-                      setMode("email");
+                      setMode("signin");
                       setError(null);
                     }}
                   >
-                    <ArrowLeft className="size-4" /> Use a different email
+                    <ArrowLeft className="size-4" /> Back to sign in
                   </Button>
                 </div>
               )}

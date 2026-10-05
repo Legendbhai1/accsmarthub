@@ -1,6 +1,7 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/lib/session";
+import { ThemeProvider } from "@/lib/theme";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
@@ -149,6 +150,7 @@ createRoot(document.getElementById("root")!).render(
         <VlyToolbar />
       </ToolbarErrorBoundary>
       <SessionProvider>
+        <ThemeProvider>
           <BrowserRouter>
           <RouteSyncer />
           <Suspense fallback={<RouteLoading />}>
@@ -169,8 +171,10 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/marketplace" element={<Marketplace />} />
 
               {/* Auth & purchase flow */}
-              {/* Supabase-backed email OTP. Every page now reads the Supabase
-                  backend, so there is no Convex provider or route left. */}
+              {/* Supabase-backed password sign-in. Every page reads the
+                  Supabase backend, so there is no Convex provider or route
+                  left. The emailed verification link is used for registration
+                  and for password recovery only — signing in never needs it. */}
               <Route path="/auth" element={<SupabaseAuth />} />
               {/* Password recovery. /reset-password is opened from the email
                   link, so it must stay outside the auth guards. */}
@@ -218,7 +222,8 @@ createRoot(document.getElementById("root")!).render(
             </Routes>
             </PageTransition>
           </Suspense>
-        </BrowserRouter>
+          </BrowserRouter>
+        </ThemeProvider>
       </SessionProvider>
       <Toaster />
     </RootErrorBoundary>

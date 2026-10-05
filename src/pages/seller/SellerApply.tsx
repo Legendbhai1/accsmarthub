@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { Navigate } from "react-router";
 import {
-  AlertTriangle,
   ClipboardList,
   Clock,
   ImagePlus,
@@ -154,16 +153,6 @@ export default function SellerApply() {
             approval before you can publish.
           </p>
         </div>
-
-        {!user?.emailVerified && (
-          <div className="flex items-start gap-3 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
-            <AlertTriangle className="mt-px size-4 shrink-0" />
-            <span>
-              Verify your email address before opening a store. Sign out and
-              sign in again to receive a fresh verification code.
-            </span>
-          </div>
-        )}
 
         {status === "pending" ? (
           <div className="glass p-6 text-center">
@@ -382,7 +371,7 @@ export default function SellerApply() {
               <Button
                 type="submit"
                 className="rounded-xl"
-                disabled={submitting || !user?.emailVerified}
+                disabled={submitting}
               >
                 {submitting ? (
                   <Loader2 className="size-4 animate-spin" />

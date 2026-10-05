@@ -11,6 +11,21 @@
     name="description"
     content="AccsMartHub is the professional marketplace for buying and selling social media accounts: verified sellers, documented ownership and escrow-protected transfers on every order."
   />
+  <script>
+    // Applies the stored light/dark theme before the first paint. Without this
+    // the page renders light and then flips once React mounts, which reads as
+    // a flash on every reload. Kept in sync with src/lib/theme.tsx.
+    (function () {
+      try {
+        var stored = localStorage.getItem("accsmarthub.theme");
+        var dark = stored === "dark" || (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) document.documentElement.classList.add("dark");
+        document.documentElement.style.colorScheme = dark ? "dark" : "light";
+      } catch (e) {
+        document.documentElement.style.colorScheme = "light";
+      }
+    })();
+  </script>
 </head>
 
 <body>

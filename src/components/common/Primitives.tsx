@@ -87,7 +87,7 @@ export function QuantityStepper({
 }) {
   const clamp = (n: number) => Math.min(Math.max(1, n), Math.max(1, max));
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-white p-1">
+    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
       <button
         type="button"
         aria-label="Decrease quantity"
@@ -128,11 +128,11 @@ export function StatCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="rounded-3xl border border-border bg-white p-5 shadow-[0_1px_2px_rgba(21,23,43,0.04)]">
+    <div className="rounded-3xl border border-border bg-card p-5 shadow-[0_1px_2px_rgba(21,23,43,0.04)]">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{label}</p>
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#15172b]">
-          <Icon className="size-4 text-white" />
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary">
+          <Icon className="size-4 text-primary-foreground" />
         </span>
       </div>
       <p className="mt-4 text-2xl font-bold tabular-nums tracking-tight">{value}</p>
@@ -171,7 +171,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-3xl border border-border bg-white px-6 py-16 text-center">
+    <div className="flex flex-col items-center rounded-3xl border border-border bg-card px-6 py-16 text-center">
       <span className="flex size-14 items-center justify-center rounded-full bg-muted">
         <Inbox className="size-5 text-muted-foreground" />
       </span>
@@ -203,7 +203,7 @@ export function ConfirmDialog({
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="rounded-3xl border-border bg-white">
+      <AlertDialogContent className="rounded-3xl border-border bg-card">
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
@@ -215,7 +215,7 @@ export function ConfirmDialog({
               "rounded-full",
               destructive
                 ? "bg-destructive text-white hover:bg-destructive/90"
-                : "bg-[#15172b] text-white hover:bg-[#15172b]/90",
+                : "bg-primary text-primary-foreground hover:bg-primary/90",
             )}
             onClick={(e) => {
               e.preventDefault();

@@ -230,7 +230,7 @@ export default function SellerSettings() {
               type="checkbox"
               checked={accepted}
               onChange={(e) => setAccepted(e.target.checked)}
-              className="mt-0.5 size-4 accent-[#15172b]"
+              className="mt-0.5 size-4 accent-primary"
             />
             <span>
               I will never share a phone number, email or chat handle. All

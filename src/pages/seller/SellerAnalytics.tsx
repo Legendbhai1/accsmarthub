@@ -150,7 +150,7 @@ export default function SellerAnalytics() {
                     title={`${d.label}: ${formatPrice(d.gross)}`}
                   >
                     <div
-                      className="w-full rounded-t-sm bg-[#15172b] transition-opacity hover:opacity-80"
+                      className="w-full rounded-t-sm bg-primary transition-opacity hover:opacity-80"
                       style={{
                         height: `${Math.max(2, (d.gross / maxGross) * 100)}%`,
                         opacity: d.gross > 0 ? 1 : 0.12,
@@ -187,7 +187,7 @@ export default function SellerAnalytics() {
                         </div>
                         <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
                           <div
-                            className="h-full rounded-full bg-[#15172b]"
+                            className="h-full rounded-full bg-primary"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -217,7 +217,7 @@ export default function SellerAnalytics() {
                       </div>
                       <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
                         <div
-                          className="h-full rounded-full bg-[#15172b]"
+                          className="h-full rounded-full bg-primary"
                           style={{ width: `${pct}%` }}
                         />
                       </div>

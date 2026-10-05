@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { Loader2, Lock, ShieldCheck, Wallet, ArrowRightLeft, BadgeCheck } from "lucide-react";
+import { Loader2, Lock, ShieldCheck, Wallet, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -94,12 +94,6 @@ export default function Checkout() {
       });
       return;
     }
-    if (!user.emailVerified) {
-      toast.error("Verify your email before paying.", {
-        description: "Sign out and sign in again to get a fresh verification code.",
-      });
-      return;
-    }
     await runPlaceOrder();
   };
 
@@ -182,12 +176,6 @@ export default function Checkout() {
               and pay from it — funds move from your balance into escrow on the
               server in a single transaction the moment you confirm.
             </p>
-            {user?.emailVerified === false && (
-              <p className="mt-3 flex items-start gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
-                <BadgeCheck className="mt-px size-3.5 shrink-0" />
-                Verify your email address before paying.
-              </p>
-            )}
             {walletShort && (
               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
                 <span className="flex-1">

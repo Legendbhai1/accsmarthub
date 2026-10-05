@@ -78,8 +78,8 @@ export default function Disputes() {
         <ol className="mt-6 space-y-3">
           {STEPS.map(({ icon: Icon, title, body }) => (
             <li key={title} className="glass flex gap-4 p-5">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#15172b]">
-                <Icon className="size-4 text-white" />
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary">
+                <Icon className="size-4 text-primary-foreground" />
               </span>
               <div>
                 <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
@@ -111,7 +111,7 @@ export default function Disputes() {
 
       <section className="mx-auto w-full max-w-4xl px-4 pb-12 sm:px-6">
         <SectionHeading title="Reporting windows" />
-        <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-white">
+        <div className="mt-6 overflow-hidden rounded-3xl border border-border bg-card">
           <dl className="divide-y divide-border/60">
             {WINDOWS.map((row) => (
               <div

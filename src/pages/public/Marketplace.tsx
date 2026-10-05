@@ -1,16 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import {
-  Bell,
-  Heart,
-  Home,
-  LayoutGrid,
-  Search,
-  ShoppingBag,
-  User,
-  X,
-} from "lucide-react";
+import { Bell, Heart, LayoutGrid, Search, X } from "lucide-react";
 import { BrandMark } from "@/components/site/BrandMark";
+import { MobileTabBar } from "@/components/site/MobileTabBar";
+import { TopMenu } from "@/components/site/TopMenu";
 import { formatPrice } from "@/lib/format";
 import { categories } from "@/lib/db";
 import { usePublicListings, type PublicListing } from "@/lib/supabaseQueries";
@@ -47,22 +40,22 @@ function AccountCard({
   onToggleLike: (id: string) => void;
 }) {
   return (
-    <article className="group rounded-2xl border border-black/5 bg-white p-2 transition-shadow hover:shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)]">
+    <article className="group rounded-2xl border border-border bg-card p-2 transition-shadow hover:shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)]">
       <div className="relative">
         <Link
           to={`/listing/${listing.id}`}
-          className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-[#eceef0]"
+          className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-muted"
         >
           <BrandMark
             brand={listing.brand}
             block
             className="size-14 transition-transform duration-200 group-hover:scale-105"
           />
-          <span className="absolute bottom-2 left-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-bold text-black backdrop-blur-sm">
+          <span className="absolute bottom-2 left-2 rounded-full bg-card/85 px-2 py-0.5 text-[10px] font-bold text-foreground backdrop-blur-sm">
             {listing.serviceCategory ?? listing.brand}
           </span>
           {listing.stock <= 3 && (
-            <span className="absolute left-2 top-2 rounded-full bg-black px-2 py-0.5 text-[10px] font-bold text-white">
+            <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
               {listing.stock === 0 ? "Sold out" : `Only ${listing.stock} left`}
             </span>
           )}
@@ -76,30 +69,30 @@ function AccountCard({
             e.stopPropagation();
             onToggleLike(listing.id);
           }}
-          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-white text-black shadow-sm transition-transform active:scale-90"
+          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-card text-foreground shadow-sm transition-transform active:scale-90"
         >
-          <Heart className={cn("size-3.5", liked ? "fill-[#e8384f] text-[#e8384f]" : "text-black")} />
+          <Heart className={cn("size-3.5", liked ? "fill-[#e8384f] text-[#e8384f]" : "text-foreground")} />
         </button>
       </div>
 
       <Link to={`/listing/${listing.id}`} className="mt-2 block px-0.5">
-        <h3 className="truncate text-[13px] font-semibold tracking-tight text-black">{listing.title}</h3>
-        <p className="mt-0.5 truncate text-[11px] text-gray-500">
+        <h3 className="truncate text-[13px] font-semibold tracking-tight text-foreground">{listing.title}</h3>
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
           {listing.serviceCategory ?? listing.brand}
           {listing.warrantyHours != null && listing.warrantyHours > 0
             ? ` · ${listing.warrantyHours}h warranty`
             : ""}
         </p>
         <div className="mt-1 flex items-baseline gap-1.5">
-          <span className="text-[15px] font-bold tracking-tight text-black">
+          <span className="text-[15px] font-bold tracking-tight text-foreground">
             {formatPrice(listing.priceUsd)}
           </span>
           {listing.discountPercent != null && listing.discountPercent > 0 && (
-            <span className="rounded bg-gray-100 px-1 text-[10px] font-semibold text-gray-600">
+            <span className="rounded bg-muted px-1 text-[10px] font-semibold text-muted-foreground">
               -{listing.discountPercent}%
             </span>
           )}
-          <span className="ml-auto text-[10px] font-semibold text-gray-500">
+          <span className="ml-auto text-[10px] font-semibold text-muted-foreground">
             {listing.stock} in stock
           </span>
         </div>
@@ -147,8 +140,6 @@ export default function Marketplace() {
 
   // Previously a count of seeded demo orders. The catalogue is live now; the
   // cart badge only reflects rows this browser has actually started.
-  const cartCount = 0;
-
   const goCategory = (slug: string | null) => {
     const next = new URLSearchParams(location.search);
     if (slug) next.set("category", slug);
@@ -171,19 +162,19 @@ export default function Marketplace() {
   const current = SLIDES[slide];
 
   return (
-    <div className="relative min-h-screen bg-white pb-32">
+    <div className="relative min-h-screen bg-background pb-32">
       {/* ---------------------------- App header ---------------------------- */}
       <header className="px-4 pt-5">
         <div className="mx-auto flex max-w-md items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#15172b]">
-              <svg viewBox="0 0 24 24" className="size-5 text-white" fill="currentColor" aria-hidden="true">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary">
+              <svg viewBox="0 0 24 24" className="size-5 text-primary-foreground" fill="currentColor" aria-hidden="true">
                 <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H14a1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 6V5.5ZM4 12a2.5 2.5 0 0 1 2.5-2.5H18a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 12.5V12ZM4 18.5A2.5 2.5 0 0 1 6.5 16H14a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18.5Z" />
               </svg>
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[15px] font-bold leading-tight tracking-tight text-black">AccsMartHub</p>
-              <p className="truncate text-[11px] leading-tight text-gray-500">Escrow-protected marketplace</p>
+              <p className="truncate text-[15px] font-bold leading-tight tracking-tight text-foreground">AccsMartHub</p>
+              <p className="truncate text-[11px] leading-tight text-muted-foreground">Escrow-protected marketplace</p>
             </div>
           </div>
 
@@ -192,18 +183,20 @@ export default function Marketplace() {
               type="button"
               aria-label="Search accounts"
               onClick={() => setSearchOpen((v) => !v)}
-              className="flex size-10 items-center justify-center rounded-full border border-black/5 bg-white text-black shadow-[0_6px_16px_-12px_rgba(0,0,0,0.6)] transition-colors hover:bg-gray-50"
+              className="flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_6px_16px_-12px_rgba(0,0,0,0.6)] transition-colors hover:bg-muted"
             >
               {searchOpen ? <X className="size-4" /> : <Search className="size-4" />}
             </button>
             <Link
               to="/account/notifications"
               aria-label="Notifications"
-              className="relative flex size-10 items-center justify-center rounded-full border border-black/5 bg-white text-black shadow-[0_6px_16px_-12px_rgba(0,0,0,0.6)] transition-colors hover:bg-gray-50"
+              className="relative flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_6px_16px_-12px_rgba(0,0,0,0.6)] transition-colors hover:bg-muted"
             >
               <Bell className="size-4" />
               <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-[#e8384f]" />
             </Link>
+            {/* Three-line menu: become a seller / dark-light switch. */}
+            <TopMenu />
           </div>
         </div>
 
@@ -213,14 +206,14 @@ export default function Marketplace() {
               Search social media accounts
             </label>
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 id="marketplace-search"
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search accounts, niches, platforms…"
-                className="h-11 w-full rounded-full border border-black/5 bg-[#f5f6f7] pl-11 pr-4 text-sm text-black outline-none placeholder:text-gray-400 focus:border-black/10 focus:bg-white"
+                className="inset-well h-11 w-full pl-11 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/60"
               />
             </div>
           </form>
@@ -230,12 +223,12 @@ export default function Marketplace() {
       {/* ---------------------------- Promo banner ---------------------------- */}
       <section className="mt-5 px-4">
         <div className="mx-auto max-w-md">
-          <div key={slide} className="relative overflow-hidden rounded-3xl bg-[#eceef0] px-5 py-6">
-            <span className="inline-flex rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-black">
+          <div key={slide} className="relative overflow-hidden rounded-3xl bg-muted px-5 py-6">
+            <span className="inline-flex rounded-full bg-card px-2.5 py-1 text-[10px] font-semibold text-foreground">
               {current.chip}
             </span>
-            <h2 className="mt-3 text-[21px] font-bold leading-tight tracking-tight text-black">{current.title}</h2>
-            <p className="mt-1 max-w-[62%] text-[11px] leading-snug text-gray-600">{current.subtitle}</p>
+            <h2 className="mt-3 text-[21px] font-bold leading-tight tracking-tight text-foreground">{current.title}</h2>
+            <p className="mt-1 max-w-[62%] text-[11px] leading-snug text-muted-foreground">{current.subtitle}</p>
             <BrandMark
               brand={current.brand}
               block
@@ -252,7 +245,7 @@ export default function Marketplace() {
                 onClick={() => setSlide(i)}
                 className={cn(
                   "size-1.5 rounded-full transition-all",
-                  i === slide ? "w-4 bg-black" : "bg-gray-300",
+                  i === slide ? "w-4 bg-primary" : "bg-border",
                 )}
               />
             ))}
@@ -275,12 +268,12 @@ export default function Marketplace() {
               <span
                 className={cn(
                   "flex size-14 items-center justify-center rounded-full border transition-colors",
-                  !category ? "border-black bg-black" : "border-black/5 bg-white",
+                  !category ? "border-transparent bg-primary" : "border-border bg-card",
                 )}
               >
-                <LayoutGrid className={cn("size-5", !category ? "text-white" : "text-black")} />
+                <LayoutGrid className={cn("size-5", !category ? "text-primary-foreground" : "text-foreground")} />
               </span>
-              <span className="text-[11px] text-black">All</span>
+              <span className="text-[11px] text-foreground">All</span>
             </button>
             {categories.map((c) => {
               const activeCat = category === c.slug;
@@ -294,12 +287,12 @@ export default function Marketplace() {
                   <span
                     className={cn(
                       "flex size-14 items-center justify-center rounded-full border transition-colors",
-                      activeCat ? "border-black" : "border-black/5",
+                      activeCat ? "border-transparent bg-primary" : "border-border",
                     )}
                   >
                     <BrandMark brand={c.brand} colored className="size-6" />
                   </span>
-                  <span className={cn("text-[11px]", activeCat ? "font-semibold text-black" : "text-black")}>
+                  <span className={cn("text-[11px]", activeCat ? "font-semibold text-foreground" : "text-foreground")}>
                     {c.name}
                   </span>
                 </button>
@@ -313,8 +306,8 @@ export default function Marketplace() {
       <main className="mt-7 px-4">
         <div className="mx-auto max-w-md">
           <div className="flex items-baseline justify-between">
-            <h2 className="text-[19px] font-bold tracking-tight text-black">New arrivals</h2>
-            <span className="text-[11px] text-gray-500">
+            <h2 className="text-[19px] font-bold tracking-tight text-foreground">New arrivals</h2>
+            <span className="text-[11px] text-muted-foreground">
               {loading
                 ? "Loading…"
                 : `${items.length} ${items.length === 1 ? "account" : "accounts"}`}
@@ -329,8 +322,8 @@ export default function Marketplace() {
               <p className="mt-1 text-xs text-muted-foreground">{error}</p>
             </div>
           ) : items.length === 0 ? (
-            <div className="mt-10 rounded-2xl border border-black/5 px-6 py-12 text-center">
-              <p className="text-sm text-gray-600">
+            <div className="mt-10 rounded-2xl border border-border px-6 py-12 text-center">
+              <p className="text-sm text-muted-foreground">
                 {loading
                   ? "Loading accounts…"
                   : search || category
@@ -344,7 +337,7 @@ export default function Marketplace() {
                     setQuery("");
                     navigate("/marketplace", { replace: true });
                   }}
-                  className="mt-4 rounded-full bg-black px-5 py-2 text-xs font-semibold text-white"
+                  className="mt-4 rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground"
                 >
                   View all accounts
                 </button>
@@ -366,14 +359,14 @@ export default function Marketplace() {
           )}
 
           {/* Sell CTA */}
-          <div className="mt-8 rounded-2xl bg-[#15172b] px-5 py-5 text-center">
-            <p className="text-sm font-semibold text-white">Want to sell an account?</p>
-            <p className="mt-1 text-[11px] leading-snug text-white/60">
+          <div className="ink-panel mt-8 px-5 py-5 text-center">
+            <p className="text-sm font-semibold">Want to sell an account?</p>
+            <p className="mt-1 text-[11px] leading-snug opacity-70">
               Apply to sell, then list accounts that go live in the marketplace.
             </p>
             <Link
               to="/seller/apply"
-              className="mt-3 inline-flex h-9 items-center justify-center rounded-full bg-white px-5 text-xs font-semibold text-black"
+              className="mt-3 inline-flex h-9 items-center justify-center rounded-full bg-primary px-5 text-xs font-semibold text-primary-foreground"
             >
               Apply to sell
             </Link>
@@ -381,58 +374,13 @@ export default function Marketplace() {
         </div>
       </main>
 
-      {/* -------------------------- Floating bottom nav -------------------------- */}
-      <nav
-        aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4"
-      >
-        <div className="flex w-full max-w-md items-center justify-between rounded-full border border-black/5 bg-white px-2 py-2 shadow-[0_18px_40px_-20px_rgba(0,0,0,0.5)]">
-          <Link
-            to="/"
-            className={cn(
-              "flex items-center gap-2 rounded-full px-3 py-2 transition-colors",
-              location.pathname === "/" ? "bg-black" : "hover:bg-gray-50",
-            )}
-          >
-            <Home className={cn("size-4", location.pathname === "/" ? "text-white" : "text-black")} />
-            <span className={cn("text-xs font-semibold", location.pathname === "/" ? "text-white" : "text-black")}>
-              Home
-            </span>
-          </Link>
-
-          <Link
-            to="/marketplace"
-            aria-label="Marketplace"
-            className={cn(
-              "flex size-9 items-center justify-center rounded-full transition-colors",
-              location.pathname === "/marketplace" ? "bg-black" : "hover:bg-gray-50",
-            )}
-          >
-            <LayoutGrid className={cn("size-4", location.pathname === "/marketplace" ? "text-white" : "text-black")} />
-          </Link>
-
-          <Link
-            to="/account/purchased"
-            aria-label="Purchased accounts"
-            className="relative flex size-9 items-center justify-center rounded-full transition-colors hover:bg-gray-50"
-          >
-            <ShoppingBag className="size-4 text-black" />
-            {cartCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-
-          <Link
-            to="/account"
-            aria-label="Account"
-            className="flex size-9 items-center justify-center rounded-full transition-colors hover:bg-gray-50"
-          >
-            <User className="size-4 text-black" />
-          </Link>
-        </div>
-      </nav>
+      {/* -------------------------- Floating bottom nav --------------------------
+          The shared bar. The old local copy had five controls — a shopping bag
+          pointing at /account/purchased next to a person icon pointing at
+          /account — and swapped for a completely different set once you
+          entered the account area. Now every screen shows the same four
+          buttons, with no duplicated account icon. */}
+      <MobileTabBar />
     </div>
   );
 }

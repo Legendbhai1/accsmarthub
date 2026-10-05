@@ -59,8 +59,11 @@ export const SUPABASE_PROJECT_URL = SUPABASE_URL;
  * production signups to a dead address.
  *
  * `shouldCreateUser: true` lets the same endpoint both register a brand new
- * account and log in an existing one, which is why the sign-in screen needs
- * no separate "create account" mode.
+ * account and log in an existing one.
+ *
+ * This is now the FALLBACK path only. Accounts created by `signUp` have a
+ * password and sign in with `signInWithPassword`; the link is kept for people
+ * who registered before passwords existed, or who lost theirs.
  */
 export async function sendMagicLink(email: string, redirectTo: string) {
   const { error } = await supabase.auth.signInWithOtp({
@@ -69,6 +72,64 @@ export async function sendMagicLink(email: string, redirectTo: string) {
       shouldCreateUser: true,
       emailRedirectTo: redirectTo,
     },
+  });
+  if (error) throw error;
+}
+
+/** Mirrors the project's `password_min_length` setting in Supabase Auth. */
+export const PASSWORD_MIN_LENGTH = 8;
+
+/**
+ * Create an account with a password.
+ *
+ * Registration is the one place an emailed verification link belongs, so
+ * `emailRedirectTo` is passed here. This project has
+ * `mailer_autoconfirm = true`, so GoTrue confirms the address as part of
+ * signup and hands back a live session — `data.session` being non-null is the
+ * signal that the account is ready to use right away. If autoconfirm is ever
+ * turned off, `data.session` is null, the user must open the emailed link,
+ * and `session` below stays null until they do.
+ */
+export async function signUpWithPassword(
+  email: string,
+  password: string,
+  redirectTo: string,
+): Promise<{ session: boolean }> {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { emailRedirectTo: redirectTo },
+  });
+  if (error) throw error;
+  return { session: !!data.session };
+}
+
+/**
+ * Sign in with the password the account was registered with.
+ *
+ * No email round trip: this is a plain credential check, which is the whole
+ * point of the change. It fails for an account that has no password at all
+ * (one created through the old magic-link-only registration), which is why
+ * `SupabaseAuth` offers the emailed link as a fallback on failure.
+ */
+export async function signInWithPassword(email: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (error) throw error;
+  return data;
+}
+
+/** Re-send the registration confirmation link. */
+export async function resendConfirmation(
+  email: string,
+  redirectTo: string,
+): Promise<void> {
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: redirectTo },
   });
   if (error) throw error;
 }

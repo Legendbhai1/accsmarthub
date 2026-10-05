@@ -45,9 +45,19 @@
 /* CHANGE VALUES FOR THEME — AccsMartHub: monochrome app-shell theme.
    White canvas, near-black primary, hairline borders, light-gray fills.
    Red is reserved for accents (favourites, destructive, live status). */
-:root,
-.dark {
+:root {
   --radius: 1rem;
+
+  /* Ambient glow behind the hero, the scrollbar thumb, and the two brand
+     surfaces. Kept as tokens because all of them need to invert in dark mode
+     without the utilities below having to know about the theme. */
+  --glow: oklch(0 0 0 / 4%);
+  --scroll-thumb: oklch(0 0 0 / 18%);
+  --gradient-from: oklch(0.16 0.005 265);
+  --gradient-to: oklch(0.34 0.01 265);
+  --ink-panel-bg: oklch(0.16 0.005 265);
+  --ink-panel-border: oklch(0 0 0 / 8%);
+  --ink-panel-fg: oklch(1 0 0);
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.16 0.005 265);
@@ -91,6 +101,59 @@
   --sidebar-ring: oklch(0.16 0.005 265 / 35%);
 }
 
+/* Dark mode. Same monochrome app-shell language, inverted: near-black canvas,
+   raised surfaces one step lighter, and `--primary` becomes near-WHITE so
+   solid pill buttons ("View Details", active tab) keep the same strong
+   contrast they have in light mode instead of vanishing into the canvas. */
+.dark {
+  --glow: oklch(1 0 0 / 5%);
+  --scroll-thumb: oklch(1 0 0 / 22%);
+  --gradient-from: oklch(0.965 0.002 265);
+  --gradient-to: oklch(0.7 0.006 265);
+  --ink-panel-bg: oklch(0.225 0.006 265);
+  --ink-panel-border: oklch(1 0 0 / 13%);
+  --ink-panel-fg: oklch(0.965 0.002 265);
+
+  --background: oklch(0.145 0.005 265);
+  --foreground: oklch(0.965 0.002 265);
+  --card: oklch(0.188 0.006 265);
+  --card-foreground: oklch(0.965 0.002 265);
+  --popover: oklch(0.188 0.006 265);
+  --popover-foreground: oklch(0.965 0.002 265);
+
+  --primary: oklch(0.965 0.002 265);
+  --primary-foreground: oklch(0.16 0.005 265);
+
+  --secondary: oklch(0.243 0.006 265);
+  --secondary-foreground: oklch(0.965 0.002 265);
+
+  --muted: oklch(0.235 0.006 265);
+  --muted-foreground: oklch(0.685 0.005 265);
+
+  --accent: oklch(0.278 0.006 265);
+  --accent-foreground: oklch(0.965 0.002 265);
+
+  --destructive: oklch(0.66 0.19 22);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.965 0.002 265 / 45%);
+
+  --chart-1: oklch(0.965 0.002 265);
+  --chart-2: oklch(0.7 0.11 160);
+  --chart-3: oklch(0.78 0.13 80);
+  --chart-4: oklch(0.7 0.15 300);
+  --chart-5: oklch(0.66 0.19 22);
+
+  --sidebar: oklch(0.168 0.006 265);
+  --sidebar-foreground: oklch(0.965 0.002 265);
+  --sidebar-primary: oklch(0.965 0.002 265);
+  --sidebar-primary-foreground: oklch(0.16 0.005 265);
+  --sidebar-accent: oklch(0.243 0.006 265);
+  --sidebar-accent-foreground: oklch(0.965 0.002 265);
+  --sidebar-border: oklch(1 0 0 / 11%);
+  --sidebar-ring: oklch(0.965 0.002 265 / 45%);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -101,8 +164,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     background-image:
-      radial-gradient(52rem 26rem at 8% -14%, oklch(0 0 0 / 4%), transparent 60%),
-      radial-gradient(46rem 24rem at 92% -10%, oklch(0 0 0 / 3%), transparent 60%);
+      radial-gradient(52rem 26rem at 8% -14%, var(--glow), transparent 60%),
+      radial-gradient(46rem 24rem at 92% -10%, var(--glow), transparent 60%);
     background-attachment: fixed;
   }
   button:not([disabled]),
@@ -110,14 +173,14 @@
     cursor: pointer;
   }
   ::selection {
-    background: oklch(0.16 0.005 265 / 16%);
+    background: color-mix(in oklab, var(--primary) 22%, transparent);
   }
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
   ::-webkit-scrollbar-thumb {
-    background: oklch(0 0 0 / 18%);
+    background: var(--scroll-thumb);
     border-radius: 8px;
   }
   ::-webkit-scrollbar-track {
@@ -130,8 +193,8 @@
      Radius lives here (not on the element) because this custom utility is
      emitted after Tailwind's generated ones and would win over `rounded-*`. */
   .glass {
-    background: oklch(1 0 0);
-    border: 1px solid oklch(0 0 0 / 7%);
+    background: var(--card);
+    border: 1px solid var(--border);
     box-shadow: 0 1px 2px oklch(0 0 0 / 4%);
     border-radius: 1.5rem;
   }
@@ -144,7 +207,7 @@
       transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .glass-hover:hover {
-    border-color: oklch(0 0 0 / 14%);
+    border-color: color-mix(in oklab, var(--foreground) 18%, transparent);
     box-shadow: 0 14px 30px -20px oklch(0 0 0 / 45%);
     transform: translateY(-2px);
   }
@@ -156,22 +219,22 @@
 
   /* Raised panel (sidebar shells, drawers) */
   .panel {
-    background: oklch(1 0 0);
-    border: 1px solid oklch(0 0 0 / 7%);
+    background: var(--card);
+    border: 1px solid var(--border);
     border-radius: 1.5rem;
   }
 
   /* Subtle inset well for inputs */
   .inset-well {
-    background: oklch(0.975 0.002 265);
-    border: 1px solid oklch(0 0 0 / 7%);
+    background: var(--muted);
+    border: 1px solid var(--border);
     box-shadow: inset 0 1px 2px oklch(0 0 0 / 4%);
     border-radius: 1rem;
   }
 
   /* Wordmark accent — near-black ink gradient */
   .text-gradient {
-    background: linear-gradient(92deg, oklch(0.16 0.005 265), oklch(0.34 0.01 265));
+    background: linear-gradient(92deg, var(--gradient-from), var(--gradient-to));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -179,9 +242,9 @@
 
   /* Dark block panel — solid near-black for CTA / hero contrast */
   .ink-panel {
-    background: oklch(0.16 0.005 265);
-    border: 1px solid oklch(0 0 0 / 8%);
-    color: oklch(1 0 0);
+    background: var(--ink-panel-bg);
+    border: 1px solid var(--ink-panel-border);
+    color: var(--ink-panel-fg);
     border-radius: 1.25rem;
   }
 

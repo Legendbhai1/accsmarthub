@@ -191,7 +191,7 @@ export default function Home() {
             ))}
           </div>
           {featured.length === 0 && (
-            <div className="mt-6 rounded-3xl border border-border bg-white px-6 py-16 text-center">
+            <div className="mt-6 rounded-3xl border border-border bg-card px-6 py-16 text-center">
               <p className="font-semibold">No live listings yet</p>
               <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
                 Every listing is published by an approved seller and starts

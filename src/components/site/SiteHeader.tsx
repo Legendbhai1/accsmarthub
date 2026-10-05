@@ -6,11 +6,12 @@ import {
   LayoutDashboard,
   LogIn,
   LogOut,
-  Menu,
+  Moon,
   Search,
   ShoppingBag,
   ShoppingCart,
   Store,
+  Sun,
   UserPlus,
 } from "lucide-react";
 import {
@@ -25,6 +26,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/site/Logo";
 import { useSession } from "@/lib/session";
+import { useTheme } from "@/lib/theme";
 import { roleHome } from "@/components/site/guards";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +41,7 @@ const NAV_LINKS = [
 
 export function SiteHeader() {
   const { user, signOut } = useSession();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -58,7 +61,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40">
-      <div className="border-b border-border bg-white/90 backdrop-blur-xl">
+      <div className="border-b border-border bg-card/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
           <Logo />
 
@@ -71,7 +74,7 @@ export function SiteHeader() {
                 className={({ isActive }) =>
                   cn(
                     "rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                    isActive && "bg-[#15172b] text-white hover:bg-[#15172b] hover:text-white",
+                    isActive && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
                   )
                 }
               >
@@ -115,7 +118,7 @@ export function SiteHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="rounded-full">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-[#15172b] text-xs font-bold text-white">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                       {user.name.charAt(0)}
                     </span>
                     <span className="hidden max-w-24 truncate sm:inline">{user.name}</span>
@@ -182,14 +185,22 @@ export function SiteHeader() {
               </>
             )}
 
+            {/* Three-line menu. On mobile its first two entries are the two
+                quick actions — become a seller, and switch between dark and
+                light mode — followed by the rest of the site navigation. */}
             <Button
               variant="outline"
               size="icon"
               className="rounded-full lg:hidden"
               aria-label="Open menu"
+              aria-haspopup="menu"
               onClick={() => setMobileOpen(true)}
             >
-              <Menu className="size-4.5" />
+              <span aria-hidden="true" className="flex flex-col items-center gap-[3px]">
+                <span className="block h-[1.5px] w-4 rounded-full bg-current" />
+                <span className="block h-[1.5px] w-4 rounded-full bg-current" />
+                <span className="block h-[1.5px] w-4 rounded-full bg-current" />
+              </span>
             </Button>
           </div>
         </div>
@@ -203,6 +214,34 @@ export function SiteHeader() {
             </SheetTitle>
           </SheetHeader>
           <nav aria-label="Mobile" className="flex flex-col gap-1 px-3">
+            {/* The two quick options this menu is opened for. */}
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen(false);
+                navigate(
+                  canSell && user?.role !== "buyer"
+                    ? "/seller"
+                    : "/seller/apply",
+                );
+              }}
+              className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+            >
+              <Store className="size-4" />
+              {canSell && user?.role !== "buyer"
+                ? "Seller dashboard"
+                : "Become a seller"}
+            </button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+            >
+              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+              {theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            </button>
+            <div className="my-1.5 border-t border-border" />
+
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.to}
@@ -224,26 +263,6 @@ export function SiteHeader() {
                   Dashboard
                 </Link>
                 {/* Cross-role shortcut in the hamburger menu. */}
-                {user.role === "buyer" &&
-                  (canSell ? (
-                    <Link
-                      to="/seller"
-                      onClick={() => setMobileOpen(false)}
-                      className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors hover:bg-accent"
-                    >
-                      <Store className="mr-2 inline size-4" />
-                      Seller dashboard
-                    </Link>
-                  ) : (
-                    <Link
-                      to="/seller/apply"
-                      onClick={() => setMobileOpen(false)}
-                      className="rounded-xl px-3 py-2.5 text-sm font-medium text-foreground/90 transition-colors hover:bg-accent"
-                    >
-                      <Store className="mr-2 inline size-4" />
-                      Become a seller
-                    </Link>
-                  ))}
                 {user.role !== "buyer" && (
                   <Link
                     to="/account"

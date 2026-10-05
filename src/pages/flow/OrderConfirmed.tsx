@@ -17,7 +17,6 @@ import {
   completeOrder as completeOrderRpc,
   downloadCredentials,
 } from "@/lib/supabaseMutations";
-import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 
 export default function OrderConfirmed() {
@@ -198,7 +197,7 @@ export default function OrderConfirmed() {
               buyer's money, so the seller has delivered for a guaranteed sale. */}
           {order && order.status !== "refunded" && (
             <Button
-              className="rounded-xl bg-[#15172b]"
+              className="rounded-xl"
               onClick={download}
               disabled={downloading}
             >

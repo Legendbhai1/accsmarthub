@@ -90,7 +90,7 @@ export default function SellerProfile() {
                 className="size-14 rounded-2xl object-cover"
               />
             ) : (
-              <span className="flex size-14 items-center justify-center rounded-2xl bg-[#15172b] text-xl font-bold text-white">
+              <span className="flex size-14 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground">
                 {store.store_name.charAt(0)}
               </span>
             )}

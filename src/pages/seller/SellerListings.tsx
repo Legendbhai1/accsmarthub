@@ -569,7 +569,7 @@ export default function SellerListings() {
                 type="checkbox"
                 checked={draft.hidden}
                 onChange={(e) => setDraft((d) => ({ ...d, hidden: e.target.checked }))}
-                className="size-4 accent-[#15172b]"
+                className="size-4 accent-primary"
               />
               Hide from storefront
               <span className="text-xs text-muted-foreground">
