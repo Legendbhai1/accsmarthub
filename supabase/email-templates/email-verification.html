@@ -1,0 +1,411 @@
+<!doctype html>
+<!--
+  AccsMartHub — Supabase Auth "Confirm email" template
+  ============================================================================
+  WHERE THIS GOES
+    Supabase Dashboard -> Project Settings -> Authentication -> Email Templates
+    -> "Confirm email"  -> paste everything from <!doctype html> onward.
+
+  This template only takes effect once custom SMTP is on. The project's Resend
+  relay is configured in Authentication -> SMTP, NOT as a key in the Vite app.
+
+  VARIABLES AVAILABLE
+    .ConfirmationURL   the verify link   (always set)
+    .Token             6-digit code     (only on OTP confirmations)
+    .Email             the address that is being verified
+    .SiteURL           your site origin
+    .Data              metadata passed to signUp( data: … )
+    .RedirectTo        the post-confirmation destination
+
+  NOTE ON THIS COMMENT
+    The variables above are written WITHOUT their double-curly delimiters on
+    purpose. Supabase renders this file with Go's text/template, which does not
+    know that HTML comments are inert — a literal delimiter inside this comment
+    would be EXECUTED, not printed. An unbalanced "if" written up here would
+    fail to parse and take the whole template down with it.
+
+  THE CONDITIONAL CODE BLOCK
+    The 6-digit code block below is wrapped in an "if .Token" / "end" pair. It
+    renders only for OTP confirmations and disappears on the password + link
+    flow the app currently uses, so there is never an empty code box in the
+    inbox. Check it renders in the Dashboard's live preview before saving.
+
+  WHY IT IS BUILT THIS WAY
+    * table layout + inline styles — Outlook's Word engine ignores <style>
+    * a VML roundrect button — the pill CTA is the one element Outlook
+      refuses to render from a plain <a>
+    * prefers-color-scheme AND [data-ogsc] — Apple Mail + Outlook.com both
+      recolour the canvas, so both are covered
+    * the confirmation link is repeated in plain text — corporate webmail
+      (and the Outlook desktop app) strip or mangle button-only layouts
+    * no web fonts, no background images, no external CSS
+-->
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    <title>Verify your AccsMartHub email</title>
+    <!--[if mso]>
+    <noscript>
+      <xml>
+        <o:OfficeDocumentSettings>
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+      </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+      /* Outlook.com and Outlook app rewrite the canvas in dark mode. These
+         [data-ogsc] overrides are the only hook that survives. */
+      @media only screen and (max-width: 620px) {
+        .am-shell { width: 100% !important; }
+        .am-gutter { padding: 20px 12px !important; }
+        .am-card { padding: 28px 22px !important; }
+        .am-cta { display: block !important; width: auto !important; }
+        .am-btn { padding: 15px 22px !important; }
+        .am-code { font-size: 30px !important; letter-spacing: 8px !important; }
+        .am-h1 { font-size: 25px !important; line-height: 32px !important; }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .am-canvas { background-color: #08080a !important; }
+        .am-card   { background-color: #131317 !important; border-color: #2a2a30 !important; }
+        .am-h1     { color: #f4f4f6 !important; }
+        .am-body   { color: #c9c9cf !important; }
+        .am-muted  { color: #8e8e96 !important; }
+        .am-well   { background-color: #1b1b20 !important; border-color: #2a2a30 !important; }
+        .am-rule   { border-color: #2a2a30 !important; }
+        .am-btn    { background-color: #f4f4f6 !important; }
+        .am-btn-tx { color: #0a0a0d !important; }
+        .am-link   { color: #f4f4f6 !important; }
+      }
+
+      [data-ogsc] .am-canvas { background-color: #08080a !important; }
+      [data-ogsc] .am-card   { background-color: #131317 !important; border-color: #2a2a30 !important; }
+      [data-ogsc] .am-h1     { color: #f4f4f6 !important; }
+      [data-ogsc] .am-body   { color: #c9c9cf !important; }
+      [data-ogsc] .am-muted  { color: #8e8e96 !important; }
+      [data-ogsc] .am-well   { background-color: #1b1b20 !important; border-color: #2a2a30 !important; }
+      [data-ogsc] .am-rule   { border-color: #2a2a30 !important; }
+      [data-ogsc] .am-btn    { background-color: #f4f4f6 !important; }
+      [data-ogsc] .am-btn-tx { color: #0a0a0d !important; }
+    </style>
+  </head>
+
+  <body
+    class="am-canvas"
+    style="margin: 0; padding: 0; width: 100%; background-color: #f4f4f6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%"
+  >
+    <!-- Preheader: the first line the inbox shows next to the subject.
+         The zero-width padding stops the body copy leaking into it. -->
+    <div
+      style="
+        display: none;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        color: transparent;
+        mso-hide: all;
+      "
+    >
+      Confirm your email to finish setting up AccsMartHub.
+      &#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;
+    </div>
+
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      class="am-canvas"
+      style="background-color: #f4f4f6"
+    >
+      <tr>
+        <td align="center" class="am-gutter" style="padding: 40px 20px">
+          <!--[if mso]>
+          <table role="presentation" width="580" cellpadding="0" cellspacing="0" border="0"><tr><td>
+          <![endif]-->
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            class="am-shell"
+            style="width: 100%; max-width: 580px"
+          >
+            <tr>
+              <td
+                class="am-card"
+                style="
+                  background-color: #ffffff;
+                  border: 1px solid #e9e9eb;
+                  border-radius: 20px;
+                  padding: 40px;
+                  box-shadow: 0 1px 2px rgba(10, 10, 13, 0.04);
+                "
+              >
+                <!-- ── Wordmark ─────────────────────────────────────────── -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td>
+                      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                          <td
+                            width="32"
+                            height="32"
+                            align="center"
+                            valign="middle"
+                            bgcolor="#0a0a0d"
+                            style="
+                              width: 32px;
+                              height: 32px;
+                              background-color: #0a0a0d;
+                              border-radius: 10px;
+                              font-family: Arial, Helvetica, sans-serif;
+                              font-size: 15px;
+                              font-weight: bold;
+                              color: #ffffff;
+                              line-height: 32px;
+                            "
+                          >
+                            A
+                          </td>
+                          <td style="padding-left: 10px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; font-weight: bold; color: #0a0a0d; letter-spacing: -0.2px">
+                            AccsMartHub
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- ── Headline ─────────────────────────────────────────── -->
+                <h1
+                  class="am-h1"
+                  style="
+                    margin: 32px 0 0;
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 28px;
+                    line-height: 36px;
+                    font-weight: bold;
+                    letter-spacing: -0.6px;
+                    color: #0a0a0d;
+                  "
+                >
+                  Verify your email
+                </h1>
+
+                <p
+                  class="am-body"
+                  style="
+                    margin: 14px 0 0;
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 15px;
+                    line-height: 24px;
+                    color: #45454c;
+                  "
+                >
+                  You're one click away. Confirm
+                  <strong style="color: #0a0a0d">{{ .Email }}</strong> to
+                  activate your account and start buying and selling verified
+                  social accounts with escrow protection.
+                </p>
+
+                <!-- ── 6-digit code (OTP confirmations only) ───────────── -->
+                {{ if .Token }}
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="padding: 28px 0 0">
+                      <table
+                        role="presentation"
+                        width="100%"
+                        cellpadding="0" cellspacing="0" border="0"
+                        class="am-well"
+                        style="background-color: #f4f4f6; border: 1px solid #e9e9eb; border-radius: 16px"
+                      >
+                        <tr>
+                          <td align="center" style="padding: 24px 20px">
+                            <div
+                              class="am-code"
+                              style="
+                                font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+                                font-size: 38px;
+                                font-weight: bold;
+                                letter-spacing: 12px;
+                                text-indent: 12px;
+                                color: #0a0a0d;
+                                line-height: 48px;
+                              "
+                            >
+                              {{ .Token }}
+                            </div>
+                            <p
+                              class="am-muted"
+                              style="
+                                margin: 10px 0 0;
+                                font-family: Arial, Helvetica, sans-serif;
+                                font-size: 13px;
+                                line-height: 20px;
+                                color: #7c7c82;
+                              "
+                            >
+                              Enter this code on the verification screen. It
+                              expires shortly — request a new one if it lapses.
+                            </p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+                {{ end }}
+
+                <!-- ── Primary CTA ──────────────────────────────────────── -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 32px 0 0">
+                  <tr>
+                    <td align="center" class="am-cta">
+                      <!--[if mso]>
+                      <v:roundrect
+                        href="{{ .ConfirmationURL }}"
+                        style="height: 52px; v-text-anchor: middle; width: 300px"
+                        arcsize="50%"
+                        stroke="f"
+                        fillcolor="#0a0a0d"
+                      >
+                        <w:anchorlock />
+                        <center
+                          style="
+                            color: #ffffff;
+                            font-family: Arial, Helvetica, sans-serif;
+                            font-size: 16px;
+                            font-weight: bold;
+                          "
+                        >
+                          Verify my email
+                        </center>
+                      </v:roundrect>
+                      <![endif]-->
+                      <!--[if !mso]><!-- -->
+                      <a
+                        href="{{ .ConfirmationURL }}"
+                        class="am-btn"
+                        style="
+                          display: inline-block;
+                          background-color: #0a0a0d;
+                          color: #ffffff;
+                          text-decoration: none;
+                          font-family: Arial, Helvetica, sans-serif;
+                          font-size: 16px;
+                          font-weight: bold;
+                          line-height: 20px;
+                          padding: 16px 34px;
+                          border-radius: 999px;
+                        "
+                      >
+                        Verify my email
+                      </a>
+                      <!--<![endif]-->
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- ── Plain-link fallback ─────────────────────────────── -->
+                <p
+                  class="am-muted"
+                  style="
+                    margin: 24px 0 0;
+                    font-family: Arial, Helvetica, sans-serif;
+                    font-size: 13px;
+                    line-height: 22px;
+                    color: #7c7c82;
+                    text-align: center;
+                  "
+                >
+                  Button not working? Paste this link into your browser:
+                  <br />
+                  <a
+                    href="{{ .ConfirmationURL }}"
+                    class="am-link"
+                    style="color: #0a0a0d; text-decoration: underline; word-break: break-all"
+                    >{{ .ConfirmationURL }}</a
+                  >
+                </p>
+
+                <!-- ── Divider ─────────────────────────────────────────── -->
+                <hr
+                  class="am-rule"
+                  style="
+                    border: none;
+                    border-top: 1px solid #e9e9eb;
+                    margin: 32px 0 24px;
+                  "
+                />
+
+                <!-- ── Security note ────────────────────────────────────── -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="am-well" style="background-color: #f4f4f6; border-radius: 14px">
+                  <tr>
+                    <td style="padding: 18px 20px">
+                      <p
+                        class="am-body"
+                        style="
+                          margin: 0;
+                          font-family: Arial, Helvetica, sans-serif;
+                          font-size: 13px;
+                          line-height: 21px;
+                          color: #45454c;
+                        "
+                      >
+                        <strong style="color: #0a0a0d">Didn't create an account?</strong>
+                        You can safely ignore this email — the address stays
+                        unverified and nothing is charged. If someone is
+                        impersonating you, forward this message to
+                        <a
+                          href="mailto:support@accsmarthub.com"
+                          class="am-link"
+                          style="color: #0a0a0d"
+                          >support@accsmarthub.com</a
+                        >.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+          <!--[if mso]>
+          </td></tr></table>
+          <![endif]-->
+        </td>
+      </tr>
+
+      <!-- ── Footer ────────────────────────────────────────────────── -->
+      <tr>
+        <td align="center" style="padding: 28px 20px 0">
+          <p
+            class="am-muted"
+            style="
+              margin: 0;
+              font-family: Arial, Helvetica, sans-serif;
+              font-size: 12px;
+              line-height: 20px;
+              color: #7c7c82;
+            "
+          >
+            AccsMartHub · Secure account trading with escrow
+            <br />
+            <a
+              href="{{ .SiteURL }}"
+              class="am-link"
+              style="color: #7c7c82; text-decoration: underline"
+              >{{ .SiteURL }}</a
+            >
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
