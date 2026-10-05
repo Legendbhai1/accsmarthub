@@ -15,32 +15,76 @@
  * `order_id` is set to our track_id, which is what lets the webhook match a
  * callback back to a specific buyer.
  *
- * Configure once:
- *   Edge Functions → Secrets → OXAPAY_MERCHANT_API_KEY = <your OxaPay key>
+ * Configure once — Edge Functions → Secrets:
+ *   OXAPAY_MERCHANT_API_KEY   your OxaPay merchant key (NEVER a VITE_ var)
+ *   OXAPAY_SANDBOX            true = OxaPay test mode, false = LIVE.
+ *                             Unset or misspelled = deposits refuse to run.
+ *                             Going live is a deliberate act, never a default.
+ *   ALLOWED_ORIGINS           optional comma-separated browser origins allowed
+ *                             to call this function. Defaults to the same list
+ *                             as the Supabase auth `uri_allow_list`.
+ *
+ * The sandbox flag is a SERVER decision only. The request body is not consulted
+ * for it: a client that could flip itself into test mode could pay nothing and
+ * still have the webhook settle real wallet credit.
  */
+
+import { resolveOxaPayMode } from "../_shared/oxapayMode.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const MERCHANT_KEY = Deno.env.get("OXAPAY_MERCHANT_API_KEY");
 const OXAPAY_API = "https://api.oxapay.com/v1";
 
 /**
+ * Browser origins allowed to call this function.
+ *
+ * An unconstrained `Access-Control-Allow-Origin: *` is the wrong shape for an
+ * endpoint that accepts the caller's bearer token: it would let any page on the
+ * web read the response of a signed-in user it managed to trick into a
+ * cross-origin call. So the origin is echoed back only when it is on this
+ * list, which mirrors the Supabase auth `uri_allow_list`.
+ *
+ * Vercel preview deployments get their own `*.vercel.app` host, which is NOT
+ * matched by the default. Add it to ALLOWED_ORIGINS while testing a preview.
+ */
+const DEFAULT_ORIGINS =
+  "https://accsmarthub.vercel.app,http://localhost:5173,http://localhost:3000";
+
+const ALLOWED_ORIGINS = new Set(
+  (Deno.env.get("ALLOWED_ORIGINS") ?? DEFAULT_ORIGINS)
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+);
+
+/**
+ * Per-request CORS headers.
+ *
  * The browser PREFLIGHTS this function, and the preflight is where a missing
  * header does the most damage: without `Access-Control-Allow-Origin` the
  * browser refuses the preflight, never sends the POST at all, and supabase-js
  * reports only "Failed to send a request to the Edge Function" — which looks
  * like a network fault rather than a response this function controls.
  *
- * So EVERY exit below carries `cors`: the OPTIONS reply, each error, the
+ * So EVERY exit below carries these headers: the OPTIONS reply, each error, the
  * success, and the catch-all in the `Deno.serve` wrapper.
  */
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, prefer",
-  // A cached preflight stops the browser re-asking before every deposit.
-  "Access-Control-Max-Age": "86400",
-};
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin") ?? "";
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, prefer",
+    // A cached preflight stops the browser re-asking before every deposit.
+    "Access-Control-Max-Age": "86400",
+    // The answer depends on the request's Origin, so caches must not share one.
+    Vary: "Origin",
+  };
+  if (origin && ALLOWED_ORIGINS.has(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
+}
 
 type Deposit = {
   track_id: string;
@@ -67,17 +111,18 @@ function keyLooksLikePlaceholder(key: string): boolean {
 }
 
 Deno.serve(async (req) => {
+  const cors = corsFor(req);
   // A throw inside `handle` must not escape as a CORS-less 500, which the
   // browser could only report as an opaque network failure.
   try {
-    return await handle(req);
+    return await handle(req, cors);
   } catch (err) {
     console.error("create-deposit-invoice crashed", err);
     return json({ error: "The payment service hit an unexpected error." }, 500, cors);
   }
 });
 
-async function handle(req: Request) {
+async function handle(req: Request, cors: Record<string, string>) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") {
     return json({ error: "method not allowed" }, 405, cors);
@@ -89,12 +134,14 @@ async function handle(req: Request) {
 
   let trackId = "";
   let returnUrl = "";
-  let sandbox = false;
   try {
     const body = await req.json();
     trackId = String(body?.trackId ?? "").trim();
     returnUrl = String(body?.returnUrl ?? "").trim();
-    sandbox = body?.sandbox === true;
+    // `body.sandbox` is deliberately IGNORED. Sandbox vs live is a server-side
+    // decision, never a client hint: a caller that could switch itself into
+    // test mode could pay nothing and still have the webhook settle real
+    // wallet credit against a live merchant account.
   } catch {
     return json({ error: "trackId is required." }, 400, cors);
   }
@@ -111,6 +158,28 @@ async function handle(req: Request) {
       cors,
     );
   }
+
+  // Sandbox or live is decided HERE, from the server's own secret. It is never
+  // inferred, never defaulted, and never taken from the request. An unset or
+  // misspelled mode refuses to invoice rather than guessing "live".
+  const mode = resolveOxaPayMode(Deno.env.get("OXAPAY_SANDBOX"));
+  if (!mode.ok) {
+    console.error("[create-deposit-invoice] refusing to invoice:", mode.reason);
+    return json(
+      {
+        error:
+          "Card and crypto deposits are not switched on yet. The payment mode is not configured, so no payment page can be created.",
+        configured: false,
+      },
+      503,
+      cors,
+    );
+  }
+
+  // The mode is safe to log. The merchant key never is.
+  console.log(
+    `[create-deposit-invoice] OxaPay mode: ${mode.sandbox ? "SANDBOX (TEST)" : "LIVE"}`,
+  );
 
   // Read the deposit with the CALLER's token so RLS scopes it to them.
   const res = await fetch(
@@ -160,7 +229,9 @@ async function handle(req: Request) {
       description: "AccsMartHub wallet top-up",
       callback_url: `${SUPABASE_URL}/functions/v1/oxapay-webhook`,
       ...(returnUrl ? { return_url: returnUrl } : {}),
-      sandbox,
+      // True routes the invoice onto OxaPay's test network: same API host, same
+      // merchant key, fake money. Only the server can set it.
+      sandbox: mode.sandbox,
     }),
   });
 
