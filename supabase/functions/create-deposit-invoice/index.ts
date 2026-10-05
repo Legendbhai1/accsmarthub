@@ -23,9 +23,23 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const MERCHANT_KEY = Deno.env.get("OXAPAY_MERCHANT_API_KEY");
 const OXAPAY_API = "https://api.oxapay.com/v1";
 
+/**
+ * The browser PREFLIGHTS this function, and the preflight is where a missing
+ * header does the most damage: without `Access-Control-Allow-Origin` the
+ * browser refuses the preflight, never sends the POST at all, and supabase-js
+ * reports only "Failed to send a request to the Edge Function" — which looks
+ * like a network fault rather than a response this function controls.
+ *
+ * So EVERY exit below carries `cors`: the OPTIONS reply, each error, the
+ * success, and the catch-all in the `Deno.serve` wrapper.
+ */
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, prefer",
+  // A cached preflight stops the browser re-asking before every deposit.
+  "Access-Control-Max-Age": "86400",
 };
 
 type Deposit = {
@@ -53,6 +67,17 @@ function keyLooksLikePlaceholder(key: string): boolean {
 }
 
 Deno.serve(async (req) => {
+  // A throw inside `handle` must not escape as a CORS-less 500, which the
+  // browser could only report as an opaque network failure.
+  try {
+    return await handle(req);
+  } catch (err) {
+    console.error("create-deposit-invoice crashed", err);
+    return json({ error: "The payment service hit an unexpected error." }, 500, cors);
+  }
+});
+
+async function handle(req: Request) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") {
     return json({ error: "method not allowed" }, 405, cors);
@@ -167,7 +192,7 @@ Deno.serve(async (req) => {
     200,
     cors,
   );
-});
+}
 
 function json(payload: unknown, status: number, extra: Record<string, string>) {
   return new Response(JSON.stringify(payload), {

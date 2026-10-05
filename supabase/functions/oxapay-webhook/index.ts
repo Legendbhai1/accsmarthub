@@ -94,7 +94,20 @@ function ts(v: unknown): string | null {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok");
+  // OxaPay posts server-to-server, so CORS is only needed to poke this
+  // endpoint from a browser (replaying a callback while debugging). Kept
+  // identical in shape to `create-deposit-invoice` so neither endpoint can
+  // preflight-fail into a misleading "network error".
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "content-type, hmac",
+        "Access-Control-Max-Age": "86400",
+      },
+    });
+  }
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
 
   // Read the body as text first: the signature covers the RAW bytes.

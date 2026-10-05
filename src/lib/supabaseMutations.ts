@@ -88,8 +88,34 @@ export type DepositCreateResult = {
 
 export type DepositConfigError = Error & { configured: false };
 
+/**
+ * The browser never obtained a readable reply from the Edge Function — the
+ * CORS preflight was rejected, or the device is offline. No invoice was
+ * created and nothing was billed, so this is a retry condition, not a
+ * misconfiguration.
+ */
+export type DepositUnreachableError = Error & { unreachable: true };
+
 const DEPOSIT_UNCONFIGURED =
   "Card and crypto deposits are not switched on yet. Add your payment provider key to enable them.";
+
+const DEPOSIT_UNREACHABLE =
+  "The payment service could not be reached, so no payment page was created and you were not charged. Check your connection and try again.";
+
+/**
+ * supabase-js collapses three very different failures into one message —
+ * "Failed to send a request to the Edge Function" — when the CORS preflight is
+ * rejected, when DNS/TLS fails, and when the device is offline. In all three
+ * the request never reached OxaPay, so none of them may be reported as an
+ * open deposit waiting on a payment page.
+ */
+function isUnreachable(err: unknown): boolean {
+  const { name, message } = (err ?? {}) as { name?: string; message?: string };
+  return (
+    name === "FunctionsFetchError" ||
+    /Failed to (send|fetch) a request to the Edge Function/i.test(message ?? "")
+  );
+}
 
 /** Shape returned by `create-deposit-invoice`, on success and on failure. */
 type InvoicePayload = {
@@ -138,6 +164,17 @@ export async function createDeposit(
 
   if (invokeError) {
     const ctx = (invokeError as { context?: unknown }).context;
+
+    // `error.context` carries the raw Response for any status supabase-js saw.
+    // Without one, nothing readable came back and the honest thing to say is
+    // that the service was unreachable — NOT "your deposit is open", which
+    // would point the buyer at a payment page that does not exist.
+    if (!(ctx instanceof Response) && isUnreachable(invokeError)) {
+      const err = new Error(DEPOSIT_UNREACHABLE) as DepositUnreachableError;
+      err.unreachable = true;
+      throw err;
+    }
+
     let body: Partial<InvoicePayload> | null = null;
     if (ctx instanceof Response) {
       try {
