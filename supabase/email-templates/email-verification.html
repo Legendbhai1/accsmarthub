@@ -6,6 +6,12 @@
     Supabase Dashboard -> Project Settings -> Authentication -> Email Templates
     -> "Confirm email"  -> paste everything from <!doctype html> onward.
 
+    Paste the SAME html into the "Magic Link" slot as well. That is the one
+    that matters most right now: with autoconfirm on, the only Auth mail still
+    arriving is the passwordless sign-in link from /auth, and GoTrue picks its
+    template per email type. The wording stays accurate because a GoTrue magic
+    link both signs you in and confirms the address.
+
   This template only takes effect once custom SMTP is on. The project's Resend
   relay is configured in Authentication -> SMTP, NOT as a key in the Vite app.
 

@@ -10,7 +10,8 @@
     "format": "prettier --write .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "setup:supabase": "node scripts/supabase-setup.mjs"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.90",
