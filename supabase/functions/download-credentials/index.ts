@@ -22,6 +22,16 @@
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const PASSPHRASE = Deno.env.get("CREDENTIALS_ENCRYPTION_KEY");
 
+/**
+ * PostgREST wants the project's PUBLISHABLE (anon) key in `apikey` and the
+ * caller's access token in `Authorization`. Sending the access token as the
+ * apikey — which the call below used to do — is rejected with `401 Invalid API
+ * key`, so a buyer opening their purchased credentials was told they were not
+ * allowed to, when the real fault was this header.
+ */
+const SUPABASE_ANON_KEY =
+  Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
+
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -74,7 +84,7 @@ Deno.serve(async (req) => {
   const rpc = await fetch(`${SUPABASE_URL}/rest/v1/rpc/download_credentials`, {
     method: "POST",
     headers: {
-      apikey: token,
+      apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },

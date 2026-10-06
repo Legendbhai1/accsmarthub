@@ -269,28 +269,76 @@ async function unwrap<T>(p: PromiseLike<{ data: T; error: { message: string } | 
 // ---------------------------------------------------------------------
 // Readers
 // ---------------------------------------------------------------------
-export const readProfile = () =>
-  unwrap(supabase.from("profiles").select("*").maybeSingle());
+/**
+ * The signed-in user's id, or null when there is no session.
+ *
+ * WHY EVERY "MY ROW" READ HAS TO NAME THE USER
+ *
+ * The RLS policies on profiles, wallets, wallet_ledger, deposits and stores all
+ * end in `or public.is_admin()`, and for an admin that predicate is true for
+ * EVERY row. A read that leans on RLS alone therefore hands the whole table to
+ * an admin: `.maybeSingle()` fails with PGRST116 ("multiple rows returned") and
+ * a list read quietly returns other people's rows. RLS is a floor, not the
+ * filter — `.eq("id", …)` is what makes the query mean "mine" for an admin too.
+ *
+ * The consequence of getting this wrong is not a wrong number on a screen: a
+ * failing `readProfile` leaves the session provider with no profile, so `user`
+ * stays null, `RequireRole` bounces every account route back to `/auth`, and the
+ * return trip from an emailed link never leaves "Finishing sign-in…".
+ */
+async function myId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
+}
 
-export const readWallet = () =>
-  unwrap(supabase.from("wallets").select("balance_usd, locked_usd").maybeSingle());
+export const readProfile = async () => {
+  const id = await myId();
+  if (!id) return null;
+  return unwrap(supabase.from("profiles").select("*").eq("id", id).maybeSingle());
+};
 
-export const readLedger = (limit = 50) =>
-  unwrap(
+export const readWallet = async () => {
+  const id = await myId();
+  if (!id) return null;
+  return unwrap(
+    supabase
+      .from("wallets")
+      .select("balance_usd, locked_usd")
+      .eq("user_id", id)
+      .maybeSingle(),
+  );
+};
+
+export const readLedger = async (limit = 50) => {
+  const id = await myId();
+  if (!id) return [];
+  return unwrap(
     supabase
       .from("wallet_ledger")
       .select("*")
+      .eq("user_id", id)
       .order("id", { ascending: false })
       .limit(limit),
   );
+};
 
-export const readDeposits = () =>
-  unwrap(
-    supabase.from("deposits").select("*").order("created_at", { ascending: false }),
+export const readDeposits = async () => {
+  const id = await myId();
+  if (!id) return [];
+  return unwrap(
+    supabase
+      .from("deposits")
+      .select("*")
+      .eq("user_id", id)
+      .order("created_at", { ascending: false }),
   );
+};
 
-export const readMyStore = () =>
-  unwrap(supabase.from("stores").select("*").maybeSingle());
+export const readMyStore = async () => {
+  const id = await myId();
+  if (!id) return null;
+  return unwrap(supabase.from("stores").select("*").eq("user_id", id).maybeSingle());
+};
 
 export const readLiveListings = () =>
   unwrap(

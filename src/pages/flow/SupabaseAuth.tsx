@@ -30,6 +30,24 @@ type Mode = "signin" | "register" | "sent";
 const RETURN_TO_KEY = "accsmarthub.returnTo";
 
 /**
+ * How long to wait for supabase-js to turn `?code=…` into a session before
+ * calling the link dead. The exchange is a single request, so this is generous.
+ */
+const LINK_WAIT_MS = 10_000;
+
+/** Shown when the exchange of `?code=…` never produced a session. */
+const LINK_DEAD_COPY =
+  "That sign-in link could not be completed. It may have expired, already have been used, or been opened in a different browser than the one that asked for it — request a new one below.";
+
+/** GoTrue's `?error=` codes, in words. */
+const LINK_ERROR_COPY: Record<string, string> = {
+  otp_expired: "That sign-in link has expired. Request a new one below.",
+  otp_disabled: "That sign-in link can no longer be used. Request a new one below.",
+  access_denied: "That sign-in link has already been used. Request a new one below.",
+  invalid_request: "That sign-in link is not valid. Request a new one below.",
+};
+
+/**
  * Sign in and registration, both by password.
  *
  * Email verification is no longer part of signing in: you enter the address
@@ -55,7 +73,14 @@ export default function SupabaseAuth() {
   const navigate = useNavigate();
   const { user, isLoading: sessionLoading } = useSession();
   const [mode, setMode] = useState<Mode>(() =>
-    params.get("mode") === "register" ? "register" : "signin",
+    // A link GoTrue refused comes back with `?error=…` and no code, and the
+    // honest place to land is the "we could not sign you in" screen rather than
+    // a blank form with no explanation.
+    params.get("error")
+      ? "sent"
+      : params.get("mode") === "register"
+        ? "register"
+        : "signin",
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -64,18 +89,42 @@ export default function SupabaseAuth() {
   // Set once a password sign-in was rejected, which is what reveals the
   // "email me a link instead" escape hatch for passwordless accounts.
   const [passwordRejected, setPasswordRejected] = useState(false);
-  // Set once we know this render is the post-click return trip, so a fresh
-  // "sent" screen is not shown to someone who just arrived signed in.
-  // State, not a ref: this value is read during render to switch the copy and
-  // the resend button. A ref mutated in the effect below would not schedule a
-  // re-render, so the screen could keep showing "Check your email" while the
-  // user is actually mid sign-in.
-  const [returning, setReturning] = useState(false);
   // What the "check your inbox" screen is waiting on, so Resend re-sends the
   // right kind of link: the registration confirmation or the sign-in link.
   const [sentFor, setSentFor] = useState<"register" | "link">("link");
+  // Set by the deadline below when `?code=…` never became a session. In state
+  // because it changes on a timer; everything else here is derived.
+  const [linkExpired, setLinkExpired] = useState(false);
+  // Set once the user asks for another link or backs out, which retires the
+  // link they arrived on.
+  const [linkDismissed, setLinkDismissed] = useState(false);
 
   const normalized = email.trim().toLowerCase();
+
+  // GoTrue reports a link it would not accept by redirecting here with `?error=`
+  // (and no code at all), so there is nothing to wait for in that case.
+  const linkErrorCode = params.get("error");
+  const linkErrorDetail = params.get("error_description");
+  const linkError =
+    linkErrorDetail ??
+    (linkErrorCode ? (LINK_ERROR_COPY[linkErrorCode] ?? linkErrorCode) : null);
+
+  // The whole emailed-link return trip is DERIVED from the URL plus the two
+  // flags above, instead of being mirrored into state by an effect. Mirroring
+  // is what made this screen unrecoverable: the effect that set "returning" had
+  // to be the same one that unset it, and when the exchange failed silently
+  // nothing ever did — the page sat on "Finishing sign-in…" for ever with the
+  // Resend and Back buttons hidden behind `!returning`.
+  const hasLinkParams = !!(params.get("code") || params.get("token"));
+  const awaitingLink = hasLinkParams && !linkDismissed;
+  const linkFailed = (!!linkError || linkExpired) && !linkDismissed;
+  const returning = awaitingLink && !linkExpired && !user;
+  // A dead link lands on the "check your inbox" screen, the only one that
+  // offers "Resend link" and "Back to sign in" — a dead link must not be a dead
+  // end for someone who has no password to fall back on.
+  const screen: Mode = returning || linkFailed ? "sent" : mode;
+  const shownError =
+    error ?? (linkFailed ? (linkError ?? LINK_DEAD_COPY) : null);
 
   const returnTo = params.get("returnTo");
   const storedReturnTo = (() => {
@@ -109,13 +158,20 @@ export default function SupabaseAuth() {
         // storage unavailable — the URL parameter already carries it
       }
       navigate(destination, { replace: true });
-    } else if (!sessionLoading && (params.get("code") || params.get("token"))) {
-      // Arrived with a token but no session yet. Keep the user on the waiting
-      // screen instead of bouncing them back to the email form.
-      setReturning(true);
-      setMode("sent");
+      return;
     }
-  }, [user, sessionLoading, navigate, destination, params]);
+    if (sessionLoading || !awaitingLink || linkExpired) return;
+
+    // The exchange runs inside supabase-js and can fail without ever firing an
+    // event: an expired or already-used link, or — the common one — a link
+    // opened somewhere other than the browser that requested it, such as a mail
+    // app's built-in viewer, where the PKCE verifier stored for that link does
+    // not exist. So the wait gets a deadline, after which the screen says what
+    // went wrong and offers a way forward. Setting state from the timer callback
+    // is fine; setting it in the effect body is not.
+    const timer = setTimeout(() => setLinkExpired(true), LINK_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [user, sessionLoading, navigate, destination, awaitingLink, linkExpired]);
 
   const rememberDestination = () => {
     try {
@@ -141,9 +197,13 @@ export default function SupabaseAuth() {
     setError(null);
     try {
       await signInWithPassword(normalized, password);
-      // `onAuthStateChange` reports the new session and the effect above
-      // forwards to `destination`; no navigation is needed here.
       toast.success("Signed in.");
+      // Navigate here rather than waiting for the effect above to notice the
+      // new session: that path needs the profile row to load before `user`
+      // stops being null, and when that read failed the result was a "Signed
+      // in." toast on a form that never moved. The route guards render a
+      // spinner until the profile arrives, so leaving now is safe.
+      navigate(destination, { replace: true });
     } catch (err) {
       setPasswordRejected(true);
       setError(
@@ -219,6 +279,9 @@ export default function SupabaseAuth() {
     setBusy(true);
     setError(null);
     try {
+      // The link this page arrived on is now spent, whether or not it was the
+      // one that failed.
+      setLinkDismissed(true);
       if (sentFor === "register") {
         await resendConfirmation(normalized, redirectTo);
         toast.info("New confirmation link sent.");
@@ -247,7 +310,7 @@ export default function SupabaseAuth() {
 
       <main className="flex flex-1 items-start justify-center px-4 pb-16">
         <div className="glass w-full max-w-md p-8">
-          {mode !== "sent" && (
+          {screen !== "sent" && (
             <>
               <h1 className="text-xl font-bold tracking-tight">
                 {mode === "register"
@@ -312,12 +375,12 @@ export default function SupabaseAuth() {
                   </div>
                 </div>
 
-                {error && (
+                {shownError && (
                   <p
                     role="alert"
                     className="rounded-xl bg-destructive/10 px-4 py-3 text-xs text-destructive"
                   >
-                    {error}
+                    {shownError}
                   </p>
                 )}
 
@@ -387,7 +450,7 @@ export default function SupabaseAuth() {
             </>
           )}
 
-          {mode === "sent" && (
+          {screen === "sent" && (
             <>
               <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10">
                 {busy && !user ? (
@@ -395,21 +458,28 @@ export default function SupabaseAuth() {
                 ) : (
                   <MailCheck className="size-5 text-primary" />
                 )}
-              </div>                <h1 className="mt-4 text-xl font-bold tracking-tight">
-                {returning && !user ? "Finishing sign-in…" : "Check your email"}
+              </div>
+              <h1 className="mt-4 text-xl font-bold tracking-tight">
+                {returning && !user
+                  ? "Finishing sign-in…"
+                  : linkFailed
+                    ? "That link did not work"
+                    : "Check your email"}
               </h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                {normalized && !returning
-                  ? `We sent a link to ${normalized}. Open it to confirm your address and continue — the link works once and expires shortly.`
-                  : "Signing you in and taking you to your account…"}
+                {returning
+                  ? "Signing you in and taking you to your account…"
+                  : normalized
+                    ? `We sent a link to ${normalized}. Open it to confirm your address and continue — the link works once and expires shortly.`
+                    : "Request a new sign-in link below to continue."}
               </p>
 
-              {error && (
+              {shownError && (
                 <p
                   role="alert"
                   className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-xs text-destructive"
                 >
-                  {error}
+                  {shownError}
                 </p>
               )}
 
@@ -430,6 +500,10 @@ export default function SupabaseAuth() {
                     className="w-full rounded-xl"
                     disabled={busy}
                     onClick={() => {
+                      // Retire the link this page arrived on: without this the
+                      // derivations above would keep sending the user back to
+                      // the failure screen they are trying to leave.
+                      setLinkDismissed(true);
                       setMode("signin");
                       setError(null);
                     }}

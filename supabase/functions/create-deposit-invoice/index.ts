@@ -32,6 +32,19 @@
 import { resolveOxaPayMode } from "../_shared/oxapayMode.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+
+/**
+ * The project's PUBLISHABLE (anon) key, injected into every Edge Function by
+ * Supabase — not a secret anybody sets by hand.
+ *
+ * PostgREST wants THIS in the `apikey` header and the caller's access token in
+ * `Authorization`. Sending the access token as the apikey instead is rejected
+ * with `401 Invalid API key`, which is what every deposit hit: the read below
+ * failed, and the function reported it as "You must be signed in." — telling a
+ * signed-in buyer with a perfectly good deposit that they were not signed in.
+ */
+const SUPABASE_ANON_KEY =
+  Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
 const MERCHANT_KEY = Deno.env.get("OXAPAY_MERCHANT_API_KEY");
 const OXAPAY_API = "https://api.oxapay.com/v1";
 
@@ -131,6 +144,13 @@ async function handle(req: Request, cors: Record<string, string>) {
   const auth = req.headers.get("Authorization") ?? "";
   const token = auth.replace(/^Bearer\s+/i, "");
   if (!token) return json({ error: "You must be signed in." }, 401, cors);
+  // Without the publishable key every read below answers 401 and the caller is
+  // told they are not signed in, which is wrong and unactionable. Say so plainly
+  // instead of blaming the buyer for our own missing configuration.
+  if (!SUPABASE_ANON_KEY) {
+    console.error("[create-deposit-invoice] SUPABASE_ANON_KEY is not set on the function");
+    return json({ error: "The payment service is not configured correctly." }, 500, cors);
+  }
 
   let trackId = "";
   let returnUrl = "";
@@ -186,7 +206,7 @@ async function handle(req: Request, cors: Record<string, string>) {
     `${SUPABASE_URL}/rest/v1/deposits?track_id=eq.${encodeURIComponent(trackId)}&select=track_id,user_id,amount_usd,status`,
     {
       headers: {
-        apikey: token,
+        apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${token}`,
       },
     },

@@ -257,6 +257,11 @@ async function fetchMyOrders(role: "buyer" | "seller" | "admin", userId: string)
   let query = supabase.from("orders").select("*");
   if (role === "buyer") query = query.eq("buyer_id", userId);
   else if (role === "seller") query = query.eq("seller_id", userId);
+  // "admin" must still mean "orders I am a party to". The RLS policy on orders
+  // ends in `or public.is_admin()`, so for an admin it matches EVERY order, and
+  // a branch that skipped the filter would put the whole marketplace order book
+  // on a private account page. The admin-wide list is `useAllOrders`.
+  else query = query.or(`buyer_id.eq.${userId},seller_id.eq.${userId}`);
 
   const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw new Error(friendlyError(error));

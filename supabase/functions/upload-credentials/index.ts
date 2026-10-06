@@ -24,6 +24,15 @@
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const PASSPHRASE = Deno.env.get("CREDENTIALS_ENCRYPTION_KEY");
 
+/**
+ * PostgREST wants the project's PUBLISHABLE (anon) key in `apikey` and the
+ * caller's access token in `Authorization`. Sending the access token as the
+ * apikey — which both calls below used to do — is rejected with `401 Invalid
+ * API key`, so every save failed with what looked like a permissions problem.
+ */
+const SUPABASE_ANON_KEY =
+  Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
+
 /** Must match the 64 KB limit enforced in the `upload_credentials` RPC. */
 const MAX_UNIT_BYTES = 60_000;
 const MAX_UNITS = 500;
@@ -129,7 +138,7 @@ Deno.serve(async (req) => {
   const rpc = await fetch(`${SUPABASE_URL}/rest/v1/rpc/upload_credentials`, {
     method: "POST",
     headers: {
-      apikey: token,
+      apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
@@ -148,7 +157,7 @@ Deno.serve(async (req) => {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/credential_status`, {
     method: "POST",
     headers: {
-      apikey: token,
+      apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },

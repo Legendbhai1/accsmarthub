@@ -209,7 +209,20 @@ function secretPayload() {
 
 // ---------------------------------------------------------------- 4. deploy
 
-const FUNCTIONS = ["create-deposit-invoice", "oxapay-webhook"];
+/**
+ * Every function in the repo that has to be deployed for the app to work.
+ *
+ * `upload-credentials` and `download-credentials` are here because they carry
+ * the same hand-built PostgREST headers as `create-deposit-invoice`, so a fix to
+ * one of them is a fix to all: leaving them out of this list is how a repaired
+ * function stays broken in production.
+ */
+const FUNCTIONS = [
+  "create-deposit-invoice",
+  "oxapay-webhook",
+  "upload-credentials",
+  "download-credentials",
+];
 
 function deploy() {
   // The token goes through the subprocess environment, never argv.
