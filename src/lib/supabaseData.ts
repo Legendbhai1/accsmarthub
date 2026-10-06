@@ -337,7 +337,19 @@ export const readDeposits = async () => {
 export const readMyStore = async () => {
   const id = await myId();
   if (!id) return null;
-  return unwrap(supabase.from("stores").select("*").eq("user_id", id).maybeSingle());
+  // `.limit(1)` instead of `.maybeSingle()`: maybeSingle errors as soon as
+  // the query matches two rows, and a duplicate application row used to make
+  // every store read fail — which the caller swallowed into `null`, so the
+  // seller appeared to have no store at all.
+  const rows = await unwrap(
+    supabase
+      .from("stores")
+      .select("*")
+      .eq("user_id", id)
+      .order("created_at", { ascending: true })
+      .limit(1),
+  );
+  return rows?.[0] ?? null;
 };
 
 export const readLiveListings = () =>

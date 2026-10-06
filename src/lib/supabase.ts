@@ -83,25 +83,35 @@ export const PASSWORD_MIN_LENGTH = 8;
  * Create an account with a password.
  *
  * Registration is the one place an emailed verification link belongs, so
- * `emailRedirectTo` is passed here. This project has
- * `mailer_autoconfirm = true`, so GoTrue confirms the address as part of
- * signup and hands back a live session — `data.session` being non-null is the
- * signal that the account is ready to use right away. If autoconfirm is ever
- * turned off, `data.session` is null, the user must open the emailed link,
- * and `session` below stays null until they do.
+ * `emailRedirectTo` is passed here. Whether signup hands back a live session
+ * depends on the project's `mailer_autoconfirm` setting:
+ *
+ *   * autoconfirm on  -> `session` true and `emailConfirmed` true: the
+ *     address was confirmed as part of signup and the account is usable now;
+ *   * autoconfirm off -> `session` false: the emailed link is what activates
+ *     the account, so the caller shows the "check your inbox" screen.
+ *
+ * `emailConfirmed` is reported separately because a session can exist for an
+ * address that has not been confirmed yet, and the route guards hold those
+ * accounts at the verification screen.
  */
 export async function signUpWithPassword(
   email: string,
   password: string,
   redirectTo: string,
-): Promise<{ session: boolean }> {
+): Promise<{ session: boolean; emailConfirmed: boolean }> {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { emailRedirectTo: redirectTo },
   });
   if (error) throw error;
-  return { session: !!data.session };
+  return {
+    session: !!data.session,
+    emailConfirmed:
+      !!data.session?.user.email_confirmed_at ||
+      !!data.user?.email_confirmed_at,
+  };
 }
 
 /**

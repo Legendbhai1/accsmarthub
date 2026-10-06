@@ -543,16 +543,20 @@ export function useMyStore() {
   return useSBQuery(
     async () => {
       if (!user?.id) return null;
+      // `.limit(1)`, never `.maybeSingle()`: two application rows must not
+      // turn into an error that reads as "this account has no store".
       const { data, error } = await supabase
         .from("stores")
         .select("*")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .order("created_at", { ascending: true })
+        .limit(1);
       if (error) throw new Error(friendlyError(error));
-      if (!data) return null;
+      const row = data?.[0];
+      if (!row) return null;
       return {
-        ...data,
-        contact_policy: Boolean(data.contact_policy),
+        ...row,
+        contact_policy: Boolean(row.contact_policy),
       } as StoreRow;
     },
     [user?.id ?? ""],

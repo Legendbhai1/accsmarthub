@@ -8,7 +8,14 @@ import {
   type ReactNode,
 } from "react";
 import { supabase } from "@/lib/supabase";
-import { readProfile, readWallet, type Profile, type Wallet } from "@/lib/supabaseData";
+import {
+  readProfile,
+  readWallet,
+  readMyStore,
+  type Profile,
+  type Wallet,
+  type Store,
+} from "@/lib/supabaseData";
 import { formatPrice } from "@/lib/format";
 
 /**
@@ -55,6 +62,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  // The caller's store row, when they have applied. This is the AUTHORITATIVE
+  // source of seller state: `profiles.store_status` is a denormalized copy
+  // that no trigger or function ever writes, so deriving the role from it
+  // left approved sellers stuck with role "buyer" and bounced them off every
+  // /seller route.
+  const [store, setStore] = useState<Store | null>(null);
   const [sessionResolved, setSessionResolved] = useState(false);
   // Which user id the profile/wallet below belong to. Comparing against
   // userId is what makes "isLoading" derivable instead of stored state.
@@ -85,6 +98,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         if (!session) {
           setProfile(null);
           setWallet(null);
+          setStore(null);
           setLoadedFor(null);
         }
       },
@@ -98,10 +112,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const load = useCallback(
     () =>
-      Promise.all([readProfile().catch(() => null), readWallet().catch(() => null)])
-        .then(([p, w]) => {
+      Promise.all([
+        readProfile().catch(() => null),
+        readWallet().catch(() => null),
+        readMyStore().catch(() => null),
+      ])
+        .then(([p, w, s]) => {
           setProfile(p);
           setWallet(w);
+          setStore(s as Store | null);
         })
         .catch(() => undefined),
     [],
@@ -116,6 +135,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setWallet(null);
+    setStore(null);
     setUserId(null);
     setLoadedFor(null);
   }, []);
@@ -134,7 +154,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       return { user: null, isLoading, signOut, refresh };
     }
 
-    const sellerStatus: SellerStatus = profile.store_status ?? "none";
+    // The store row wins over the profile column, which nothing writes. The
+    // profile value is only a fallback for accounts with no store row at all.
+    const sellerStatus: SellerStatus =
+      store?.status ?? profile.store_status ?? "none";
     const role: Role = profile.is_admin
       ? "admin"
       : sellerStatus === "approved"
@@ -151,13 +174,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         lockedBalance: Number(wallet?.locked_usd ?? 0),
         sellerStatus,
         emailVerified,
-        storeName: profile.store_name,
+        storeName: store?.store_name ?? profile.store_name,
       },
       isLoading: false,
       signOut,
       refresh,
     };
-  }, [userId, profile, wallet, sessionResolved, loadedFor, emailVerified, signOut, refresh]);
+  }, [userId, profile, wallet, store, sessionResolved, loadedFor, emailVerified, signOut, refresh]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

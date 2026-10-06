@@ -112,7 +112,7 @@ export default function SellerApply() {
     }
     setSubmitting(true);
     try {
-      await submitStore({
+      const saved = (await submitStore({
         storeName: form.storeName.trim(),
         platforms,
         deliverySpeed: form.deliverySpeed.trim(),
@@ -122,11 +122,21 @@ export default function SellerApply() {
         sourcing: form.sourcing.trim(),
         contactPolicyAccepted: true,
         logoPath: logoStorageId ?? null,
-      });
-      toast.success("Store submitted for approval", {
-        description:
-          "An admin will review your answers and logo. You can keep buying meanwhile.",
-      });
+      })) as { status?: string } | null;
+      // Re-read the row so the page flips to "Store under review" instead of
+      // showing a form the server has already accepted.
+      void storeQuery.refresh();
+      if (saved?.status === "rejected") {
+        toast.error("Your application is still marked rejected", {
+          description:
+            "An admin has to reopen it before a resubmission enters the queue. Reply to the rejection note if you have already made the changes they asked for.",
+        });
+      } else {
+        toast.success("Store submitted for approval", {
+          description:
+            "An admin will review your answers and logo. You can keep buying meanwhile.",
+        });
+      }
     } catch (err) {
       toast.error("Could not submit your store", {
         description: err instanceof Error ? err.message : "Please try again.",

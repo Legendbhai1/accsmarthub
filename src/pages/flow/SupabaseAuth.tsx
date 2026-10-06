@@ -22,6 +22,7 @@ import {
 } from "@/lib/supabase";
 import { useSession } from "@/lib/session";
 import { roleHome } from "@/components/site/guards";
+import { disposableEmailReason } from "@/lib/emailPolicy";
 import { toast } from "sonner";
 
 type Mode = "signin" | "register" | "sent";
@@ -225,24 +226,41 @@ export default function SupabaseAuth() {
       setBusy(false);
       return;
     }
+    // Temporary inboxes are refused before the request leaves the browser,
+    // so the person is told what to change instead of getting an opaque
+    // server error. The same rule is enforced in the database (migration
+    // 0007), so this is the friendly copy, not the security boundary.
+    const refused = disposableEmailReason(normalized);
+    if (refused) {
+      setError(refused);
+      setBusy(false);
+      return;
+    }
     try {
       rememberDestination();
-      const { session } = await signUpWithPassword(
+      const { session, emailConfirmed } = await signUpWithPassword(
         normalized,
         password,
         redirectTo,
       );
-      if (session) {
-        // Email autoconfirm is on, so the account is live already. Clearing
-        // the password keeps it out of a later browser autofill for a shared
-        // machine.
-        setPassword("");
-        toast.success("Account created.", {
-          description: "You are signed in — no verification needed.",
-        });
+      setPassword("");
+      if (session && emailConfirmed) {
+        // The project confirms addresses on signup, so this account is live.
+        toast.success("Account created.", { description: "You are signed in." });
+        navigate(destination, { replace: true });
         return;
       }
-      // Autoconfirm off: the emailed link is what confirms the address.
+      if (session) {
+        // A session exists but the address is not confirmed yet — the route
+        // guards hold the account at the verification screen rather than
+        // letting an unconfirmed address browse.
+        toast.success("Account created.", {
+          description: "Confirm your email address to continue.",
+        });
+        navigate(destination, { replace: true });
+        return;
+      }
+      // Confirmation required: the emailed link is what activates the account.
       showSent("Confirmation link sent", "register");
     } catch (err) {
       setError(

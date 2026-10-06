@@ -277,10 +277,15 @@ export function publicAssetUrl(
 }
 
 /**
- * Create the seller's store application.
+ * Create or revise the seller's store application.
  *
- * New applications always land as `pending` — the RLS insert policy and the
- * `contact_policy` check enforce that a seller cannot self-approve.
+ * Exactly one row per account, always. This used to insert unconditionally,
+ * so a second press — or a resubmission after a rejection — collided on the
+ * unique `stores.slug` and the button looked dead: every attempt failed with
+ * "duplicate key value violates unique constraint". The existing row is read
+ * first and updated when there is one, which keeps the original slug (store
+ * URLs are permanent) and can never mint a second application for the same
+ * seller.
  */
 export async function submitStore(input: SubmitStoreInput) {
   const { data: sessionData } = await supabase.auth.getSession();
@@ -291,23 +296,68 @@ export async function submitStore(input: SubmitStoreInput) {
     throw new Error("You must accept the contact policy to apply.");
   }
 
+  const fields = {
+    store_name: input.storeName,
+    logo_path: input.logoPath ?? null,
+    banner_path: input.bannerPath ?? null,
+    platforms: input.platforms,
+    delivery_speed: input.deliverySpeed || null,
+    access_format: input.accessFormat || null,
+    replacement_policy: input.replacementPolicy || null,
+    restricted_regions: input.restrictedRegions || null,
+    sourcing: input.sourcing || null,
+    contact_policy: true,
+  };
+
+  // `.limit(1)` rather than `.maybeSingle()`: a stray second row (from the
+  // old unconditional insert) would make maybeSingle error and lock the
+  // seller out of the form for good.
+  const { data: existingRows, error: readError } = await supabase
+    .from("stores")
+    .select("id, status, slug")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1);
+  if (readError) throw new Error(friendlyError(readError));
+  const existing = existingRows?.[0];
+
+  if (!existing) {
+    // New applications always land as `pending` — the RLS insert policy and
+    // the `contact_policy` check enforce that a seller cannot self-approve.
+    const { data, error } = await supabase
+      .from("stores")
+      .insert({
+        user_id: userId,
+        slug: slugify(input.storeName),
+        ...fields,
+        status: "pending",
+      })
+      .select()
+      .single();
+    if (error) throw new Error(friendlyError(error));
+    return data;
+  }
+
+  // A rejected application is re-queued by the resubmission. `guard_store_
+  // moderation` pins these columns for non-admin writes, so until migration
+  // 0007 is applied the values are silently reverted and the row keeps its
+  // rejected status — the caller reads the returned row, so the UI reports
+  // what actually happened instead of claiming a queue entry that does not
+  // exist.
   const { data, error } = await supabase
     .from("stores")
-    .insert({
-      user_id: userId,
-      store_name: input.storeName,
-      slug: slugify(input.storeName),
-      logo_path: input.logoPath ?? null,
-      banner_path: input.bannerPath ?? null,
-      platforms: input.platforms,
-      delivery_speed: input.deliverySpeed || null,
-      access_format: input.accessFormat || null,
-      replacement_policy: input.replacementPolicy || null,
-      restricted_regions: input.restrictedRegions || null,
-      sourcing: input.sourcing || null,
-      contact_policy: true,
-      status: "pending",
+    .update({
+      ...fields,
+      ...(existing.status === "rejected"
+        ? {
+            status: "pending",
+            review_note: null,
+            reviewed_at: null,
+            reviewed_by: null,
+          }
+        : {}),
     })
+    .eq("id", existing.id)
     .select()
     .single();
   if (error) throw new Error(friendlyError(error));
