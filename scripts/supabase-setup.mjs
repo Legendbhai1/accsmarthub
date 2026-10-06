@@ -91,6 +91,20 @@ async function api(path, init = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+/**
+ * Normalise the `/database/query` reply.
+ *
+ * That endpoint has answered in two shapes: a bare array of row objects, and a
+ * one-element array wrapping the rows under `result`. Reading only the wrapper
+ * silently yields "no rows" — which is how a promote that matched a real
+ * profile reported 0 matched and refused to run.
+ */
+function rowsFrom(reply) {
+  const first = Array.isArray(reply) ? reply[0] : null;
+  if (first && Array.isArray(first.result)) return first.result;
+  return Array.isArray(reply) ? reply : [];
+}
+
 function templatePath(name) {
   return `supabase/email-templates/${name}`;
 }
@@ -247,7 +261,7 @@ async function promote() {
     }),
   });
 
-  const matched = rows?.[0]?.result ?? [];
+  const matched = rowsFrom(rows);
   say(`   matched ${matched.length} profile(s):`);
   for (const r of matched) say(`     ${r.email}  (id ${r.id}, is_admin=${r.is_admin})`);
 
@@ -268,8 +282,8 @@ async function promote() {
       query: `update public.profiles set is_admin = true where id = '${matched[0].id}' returning id, email, is_admin`,
     }),
   });
-  const row = (updated?.[0]?.result ?? [])[0];
-  say(`   ${JSON.stringify(updated?.[0]?.result ?? updated)}`);
+  const row = rowsFrom(updated)[0];
+  say(`   ${JSON.stringify(rowsFrom(updated))}`);
 
   if (row?.is_admin !== true) {
     throw new Error(
@@ -298,6 +312,12 @@ async function main() {
   const plan = STEPS.filter(wants).filter((s) => s !== "promote" || PROMOTE_EMAIL);
   say(`Project ${REF}${DRY_RUN ? "  (DRY RUN — no changes will be made)" : ""}`);
   say(`Steps: ${plan.join(", ") || "none"}`);
+  if (wants("templates") && !wants("smtp")) {
+    say(
+      "NOTE: on a free-tier project Supabase refuses template changes while the default\n" +
+        "      mail provider is in use — this step needs `smtp` in the same run.",
+    );
+  }
 
   // Fail fast on missing input before anything is half-applied.
   if (wants("smtp")) smtpPayload();
@@ -351,10 +371,25 @@ async function main() {
     const payload = { ...(wants("smtp") ? smtpPayload() : {}), ...(await templatePayload()) };
     const before = await api(`/projects/${REF}/config/auth`);
     say(`   was: mailer host ${before?.mailer_settings?.host ?? "(supabase default)"}`);
-    await api(`/projects/${REF}/config/auth`, {
-      method: "PATCH",
-      body: JSON.stringify(payload),
-    });
+    try {
+      await api(`/projects/${REF}/config/auth`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      // A free-tier project still on Supabase's own mail provider is not allowed
+      // to change EMAIL TEMPLATES at all. SMTP settings and templates travel in
+      // the same request, so `--only templates` can never work there.
+      if (/free tier|default email provider/i.test(err.message)) {
+        throw new Error(
+          `${err.message}\n\nThis project is on the free tier, where Supabase refuses email\n` +
+            "TEMPLATE changes until a custom SMTP provider is configured — both have to\n" +
+            "be sent in the same request. Re-run with `smtp` included (which needs a\n" +
+            "sender address on a domain verified in Resend), or upgrade the project.",
+        );
+      }
+      throw err;
+    }
     const after = await api(`/projects/${REF}/config/auth`);
     say(`   now: mailer host ${after?.mailer_settings?.host} from ${after?.mailer_settings?.admin_email}`);
     say(`   magic_link template: ${after?.mailer_templates_magic_link_content ? "set" : "MISSING"}`);
