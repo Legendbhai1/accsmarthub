@@ -216,10 +216,20 @@ function deploy() {
 // ---------------------------------------------------------------- 5. promote
 
 /**
- * `is_admin` is guarded by a trigger that strips the column from any
- * non-service-role write, so this has to run server-side. The SELECT runs
- * first and the UPDATE is refused unless it matched exactly one profile, so a
- * typo'd email can never widen access to the wrong account.
+ * `is_admin` is guarded by `guard_profile_privileges`, which reverts the column
+ * on any write that `is_trusted_write()` does not consider trusted — and it
+ * reverts SILENTLY (it assigns the old value rather than raising), so a caller
+ * cannot tell success from a no-op by status code alone.
+ *
+ * `is_trusted_write()` is true when the session role is not `anon`/
+ * `authenticated`, which is the clause the migration documents as "makes admin
+ * bootstrap possible at all". The Management API query endpoint runs as the
+ * table owner, so the UPDATE here is trusted. If that ever stops being true the
+ * write is reverted and `RETURNING` hands back the OLD value — which is why
+ * below we assert the flip instead of assuming it.
+ *
+ * The SELECT runs first and the UPDATE is refused unless it matched exactly one
+ * profile, so a typo'd email can never widen access to the wrong account.
  */
 async function promote() {
   if (!PROMOTE_EMAIL) {
@@ -258,7 +268,17 @@ async function promote() {
       query: `update public.profiles set is_admin = true where id = '${matched[0].id}' returning id, email, is_admin`,
     }),
   });
+  const row = (updated?.[0]?.result ?? [])[0];
   say(`   ${JSON.stringify(updated?.[0]?.result ?? updated)}`);
+
+  if (row?.is_admin !== true) {
+    throw new Error(
+      `is_admin is still ${String(row?.is_admin)} for ${matched[0].id} — the write looks like it\n` +
+        "was reverted by the guard_profile_privileges trigger. Run the same UPDATE from\n" +
+        "Dashboard -> SQL Editor instead (that session is trusted too).",
+    );
+  }
+  say(`   ✓ ${row.email} is now an admin.`);
 }
 
 // ---------------------------------------------------------------- main
