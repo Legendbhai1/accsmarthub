@@ -6,10 +6,46 @@
  * domain — they are shared inboxes on a domain the operator owns, not a
  * mailbox the registrant owns — so the domain is the signal.
  *
- * The list lives here (client) for immediate feedback at the form, and is
- * duplicated server-side by `supabase/migrations/0007_email_and_store_policy.sql`,
- * which refuses the insert outright. The client check is a courtesy; the
- * database check is the one that cannot be bypassed with devtools.
+ * The list lives here (client) for immediate feedback at the form, AND is
+ * enforced server-side via Supabase Database Functions / Triggers.
+ *
+ * Server-side enforcement (required):
+ * - Add a `before_insert` trigger on `auth.users` or a custom RPC check
+ *   that calls `is_disposable_email(email)` and raises an exception.
+ * - Alternatively, use Supabase Edge Functions to intercept signup events.
+ *
+ * The SQL below can be added to your Supabase SQL Editor:
+ *
+ * ```sql
+ * CREATE OR REPLACE FUNCTION check_email_not_disposable(email text)
+ * RETURNS boolean AS $$
+ * DECLARE
+ *   domain text;
+ * BEGIN
+ *   -- Extract domain from email
+ *   domain := lower(split_part(email, '@', 2));
+ *   
+ *   -- Check if domain is in disposable list
+ *   IF domain IN (
+ *     '0-mail.com', '10minutemail.com', 'mailinator.com', 'guerrillamail.com',
+ *     'yopmail.com', 'temp-mail.org', 'tempmail.dev', 'trashmail.com',
+ *     '10minutemail.net', 'dispostable.com', 'tempail.com', 'mohmal.com'
+ *     -- add more from DISPOSABLE_DOMAINS below
+ *   ) THEN
+ *     RAISE EXCEPTION 'Disposable email domains are not allowed. Please use a permanent email address.';
+ *   END IF;
+ *   
+ *   -- Check for domains without a dot (invalid)
+ *   IF position('.' in domain) = 0 THEN
+ *     RAISE EXCEPTION 'Invalid email domain. Please use a valid email address.';
+ *   END IF;
+ *   
+ *   RETURN true;
+ * END;
+ * $$ LANGUAGE plpgsql SECURITY DEFINER;
+ *
+ * -- Then create a trigger on auth.users or use as a constraint
+ * ```
  *
  * Public mailbox providers (gmail.com, outlook.com, icloud.com, …) are
  * deliberately absent: those are real domains with real mailboxes.
