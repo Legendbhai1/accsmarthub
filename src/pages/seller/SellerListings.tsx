@@ -49,6 +49,7 @@ const emptyDraft = {
   title: "",
   summary: "",
   category: "instagram",
+  platform: "instagram",
   price: "",
   features: "",
   discount: "0",
@@ -57,18 +58,13 @@ const emptyDraft = {
   faq: [] as FaqDraft[],
 };
 
-/**
- * Listings and inventory.
- *
- * Creating a listing requires a store an admin has approved — the server
- * rejects it otherwise, and every new listing lands in `pending`.
- *
- * Stock is NOT set by hand. The moderation trigger pins `listings.stock` on
- * seller writes, and `upload_credentials` resets it to the number of credential
- * units nobody has claimed yet. So the real inventory control is the credential
- * vault: attach N accounts and you have N units to sell. That is deliberate —
- * a seller cannot advertise inventory they have not actually attached.
- */
+/** Platform options for the listing create/edit form. */
+const PLATFORM_OPTIONS = SERVICE_CATEGORIES.slice(0, 8).map((p) => ({
+  slug: p.slug,
+  name: p.name,
+}));
+
+/**\n * Listings and inventory.\n *\n * Creating a listing requires a store an admin has approved — the server\n * rejects it otherwise, and every new listing lands in `pending`.\n *\n * Stock is NOT set by hand. The moderation trigger pins `listings.stock` on\n * seller writes, and `upload_credentials` resets it to the number of credential\n * units nobody has claimed yet. So the real inventory control is the credential\n * vault: attach N accounts and you have N units to sell. That is deliberate —\n * a seller cannot advertise inventory they have not actually attached.\n */
 export default function SellerListings() {
   const { user } = useSession();
   const [params] = useSearchParams();
@@ -101,6 +97,7 @@ export default function SellerListings() {
       title: listing.title,
       summary: listing.summary ?? "",
       category: listing.service_category ?? SERVICE_CATEGORIES[0]?.slug ?? "instagram",
+      platform: listing.service_category ?? PLATFORM_OPTIONS[0]?.slug ?? "instagram",
       price: String(listing.price_usd),
       features: (listing.features ?? []).join("\n"),
       discount: String(listing.discount_percent ?? 0),
@@ -126,6 +123,10 @@ export default function SellerListings() {
     }
     if (!Number.isFinite(warranty) || warranty < 0) {
       toast.error("Warranty must be zero or more hours.");
+      return;
+    }
+    if (!PLATFORM_OPTIONS.find((p) => p.slug === draft.platform)) {
+      toast.error("Select the platform this listing is for.");
       return;
     }
     const category = SERVICE_CATEGORIES.find((c) => c.slug === draft.category);
@@ -353,9 +354,7 @@ export default function SellerListings() {
                       <span className="text-xs text-muted-foreground">
                         {l.service_category ?? l.brand}
                         {creds?.attached
-                          ? ` · ${creds.totalUnits} account${
-                              creds.totalUnits === 1 ? "" : "s"
-                            } attached`
+                          ? ` · ${creds.totalUnits} account${creds.totalUnits === 1 ? "" : "s"} attached`
                           : " · no credentials attached yet"}
                       </span>
                     </span>
@@ -462,6 +461,11 @@ export default function SellerListings() {
                   unclaimed accounts, so you cannot advertise what you do not
                   have.
                 </li>
+                <li>
+                  <strong>Platform.</strong> Use the Platform field to pick the
+                  service this listing is for. The Service category is the
+                  marketplace grouping the buyer uses to find it.
+                </li>
               </ol>
             </div>
 
@@ -519,6 +523,27 @@ export default function SellerListings() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Platform</Label>
+                <Select
+                  value={draft.platform}
+                  onValueChange={(v) => setDraft((d) => ({ ...d, platform: v }))}
+                >
+                  <SelectTrigger className="inset-well rounded-xl border-border/60">
+                    <SelectValue placeholder="Select a platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLATFORM_OPTIONS.map((option) => (
+                      <SelectItem key={option.slug} value={option.slug}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  The platform this listing is for. Buyers see it on the listing page.
+                </p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="draft-price">Price (USD)</Label>
@@ -585,7 +610,7 @@ export default function SellerListings() {
                 value={draft.features}
                 onChange={(e) => setDraft((d) => ({ ...d, features: e.target.value }))}
                 className="inset-well min-h-24 rounded-xl border-border/60"
-                placeholder={"One feature per line, e.g.\nAuto delivery\n1 month warranty\n24/7 support"}
+                placeholder={"One feature per line, e.g.\\nAuto delivery\\n1 month warranty\\n24/7 support"}
               />
             </div>
 
@@ -711,7 +736,7 @@ export default function SellerListings() {
                   }
                   const loaded = await Promise.all(
                     files.map(async (file) => ({
-                      unitKey: file.name.replace(/\.txt$/i, ""),
+                      unitKey: file.name.replace(/\\.txt$/i, ""),
                       fileName: file.name,
                       credentials: await file.text(),
                     })),
@@ -769,7 +794,7 @@ export default function SellerListings() {
                 value={vaultText}
                 onChange={(e) => setVaultText(e.target.value)}
                 className="inset-well min-h-48 rounded-xl border-border/60 font-mono text-xs"
-                placeholder={"username: someone@example.com\npassword: …\n2fa backup: …"}
+                placeholder={"username: someone@example.com\\npassword: …\\n2fa backup: …"}
               />
               <p className="text-xs text-muted-foreground">
                 Do not include links — they are rejected. Only the account
@@ -800,7 +825,7 @@ export default function SellerListings() {
                       ? vaultFiles
                       : [
                           {
-                            unitKey: vaultName.replace(/\.txt$/i, "") || "unit-1",
+                            unitKey: vaultName.replace(/\\.txt$/i, "") || "unit-1",
                             fileName: vaultName || `${vaultFor}-unit-1.txt`,
                             credentials: vaultText,
                           },
@@ -810,15 +835,7 @@ export default function SellerListings() {
                     units: files,
                   });
                   toast.success("Credentials saved", {
-                    description: `${result.uploaded} account${
-                      result.uploaded === 1 ? "" : "s"
-                    } encrypted and stored.${
-                      result.availableUnits !== undefined
-                        ? ` ${result.availableUnits} unit${
-                            result.availableUnits === 1 ? "" : "s"
-                          } now available to sell.`
-                        : ""
-                    }`,
+                    description: `${result.uploaded} account${result.uploaded === 1 ? "" : "s"} encrypted and stored.${result.availableUnits !== undefined ? ` ${result.availableUnits} unit${result.availableUnits === 1 ? "" : "s"} now available to sell.` : ""}`,
                   });
                   setVaultFor(null);
                   setVaultText("");

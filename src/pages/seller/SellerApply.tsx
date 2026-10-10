@@ -15,6 +15,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { buyerNav } from "@/components/dash/navs";
 import { useMyStore } from "@/lib/supabaseQueries";
@@ -25,9 +32,11 @@ import {
 } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
+import { SERVICE_CATEGORIES } from "@/lib/db";
 
 const emptyForm = {
   storeName: "",
+  platform: "instagram",
   platforms: "",
   deliverySpeed: "",
   accessFormat: "",
@@ -37,13 +46,22 @@ const emptyForm = {
   contactPolicy: false,
 };
 
+const PLATFORM_OPTIONS = SERVICE_CATEGORIES.slice(0, 8).map((p) => ({
+  slug: p.slug,
+  name: p.name,
+}));
+
 /**
  * Store setup, step one of becoming a seller.
  *
  * The seller answers the questions a buyer genuinely needs before purchase,
- * adds a logo, and accepts the no-off-platform-contact policy. The store is
- * then locked in "pending" until an admin approves it — listings cannot be
- * created before that, and the server rejects any attempt.
+ * adds a logo, picks the platform they sell on, and accepts the no-off-platform-contact
+ * policy. The store is then locked in "pending" until an admin approves it — listings
+ * cannot be created before that, and the server rejects any attempt.
+ *
+ * The raw "platforms" text field is kept so sellers can still list multiple
+ * platforms if they want, but the primary platform is now a select so the
+ * common case is a choice, not free text.
  */
 export default function SellerApply() {
   const { user } = useSession();
@@ -83,6 +101,8 @@ export default function SellerApply() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const platformLabel =
+      PLATFORM_OPTIONS.find((p) => p.slug === form.platform)?.name ?? form.platform;
     const platforms = form.platforms
       .split(",")
       .map((p) => p.trim())
@@ -103,7 +123,9 @@ export default function SellerApply() {
       form.sourcing,
     ];
     if (answers.some((a) => a.trim().length < 5)) {
-      toast.error("Answer every question in full — buyers see these before buying.");
+      toast.error(
+        "Answer every question in full — buyers see these before buying.",
+      );
       return;
     }
     if (!form.contactPolicy) {
@@ -138,8 +160,13 @@ export default function SellerApply() {
         });
       }
     } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Please try again.";
       toast.error("Could not submit your store", {
-        description: err instanceof Error ? err.message : "Please try again.",
+        description:
+          message.includes("answer")
+            ? "One of your store answers was not saved. Make sure every question has a real answer and try again."
+            : message,
       });
     } finally {
       setSubmitting(false);
@@ -175,6 +202,11 @@ export default function SellerApply() {
               moment an admin approves — you&apos;ll keep full buyer access in
               the meantime.
             </p>
+            {store?.platforms && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Selling on: {store.platforms.join(", ")}
+              </p>
+            )}
           </div>
         ) : (
           <>
@@ -260,6 +292,31 @@ export default function SellerApply() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="apply-platform">Primary platform *</Label>
+                <Select
+                  value={form.platform}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, platform: v }))
+                  }
+                >
+                  <SelectTrigger className="inset-well rounded-xl border-border/60">
+                    <SelectValue placeholder="Select a platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLATFORM_OPTIONS.map((option) => (
+                      <SelectItem key={option.slug} value={option.slug}>
+                        {option.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Choose the platform you sell on most. Add others in the field
+                  below.
+                </p>
               </div>
 
               <div className="grid gap-2">

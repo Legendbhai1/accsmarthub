@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Dialog,
   DialogContent,
@@ -110,7 +111,7 @@ export default function ListingDetail() {
       ? { label: "Discount", value: `${listing.discountPercent}%` }
       : null,
     listing.warrantyHours
-      ? { label: "Warranty", value: `${listing.warrantyHours} hours` }
+      ? { label: "Warranty window", value: `${listing.warrantyHours} hours` }
       : null,
   ].filter((r): r is { label: string; value: string } => r !== null);
 
@@ -122,6 +123,8 @@ export default function ListingDetail() {
   const buy = () => {
     navigate(`/checkout?listing=${listing.id}&qty=${qty}`);
   };
+
+  const faqItems = listing.faq ?? [];
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
@@ -182,6 +185,9 @@ export default function ListingDetail() {
               <TabsTrigger value="features" className="rounded-lg">
                 Features
               </TabsTrigger>
+              <TabsTrigger value="faq" className="rounded-lg">
+                Seller Q&A
+              </TabsTrigger>
               <TabsTrigger value="reviews" className="rounded-lg">
                 Reviews
               </TabsTrigger>
@@ -210,6 +216,27 @@ export default function ListingDetail() {
                   </li>
                 ))}
               </ul>
+            </TabsContent>
+
+            <TabsContent value="faq" className="mt-5">
+              {faqItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  The seller has not added any questions yet. Check the description and features above.
+                </p>
+              ) : (
+                <Accordion type="single" collapsible className="w-full">
+                  {faqItems.map((item, index) => (
+                    <AccordionItem key={index} value={`faq-${index}`} className="rounded-xl border border-border/60 bg-muted/20 px-4">
+                      <AccordionTrigger className="text-sm font-medium py-4 no-underline">
+                        {item.question || `Section ${index + 1}`}
+                      </AccordionTrigger>
+                      <AccordionContent className="text-sm leading-relaxed text-muted-foreground pb-4 pt-0">
+                        {item.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              )}
             </TabsContent>
 
             <TabsContent value="reviews" className="mt-5">
@@ -255,6 +282,19 @@ export default function ListingDetail() {
               yet, so none are shown. A listing is only visible here once it has
               passed moderation.
             </p>
+            {faqItems.length > 0 && (
+              <div className="mt-4 rounded-xl border border-border/60 bg-muted/20 p-4">
+                <p className="text-xs font-semibold text-muted-foreground">Seller Q&A</p>
+                <ul className="mt-3 space-y-3">
+                  {faqItems.map((item, index) => (
+                    <li key={index} className="text-sm">
+                      <p className="font-medium">{item.question || `Section ${index + 1}`}</p>
+                      <p className="mt-1 text-muted-foreground">{item.answer}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
 
@@ -409,19 +449,21 @@ export default function ListingDetail() {
                   <p className="font-medium">Refunds & disputes</p>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                     If the account doesn't match its listing, open a dispute
-                    within 30 days for a full refund from escrow.
+                    within the seller's warranty window for a full refund from escrow.
                   </p>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <CalendarClock className="mt-0.5 size-4.5 shrink-0 text-secondary-foreground" />
-                <div>
-                  <p className="font-medium">Transfer window</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    Set by the seller before listing. Escrow releases when the transfer completes.
-                  </p>
+              {listing.warrantyHours != null && (
+                <div className="flex gap-3">
+                  <CalendarClock className="mt-0.5 size-4.5 shrink-0 text-secondary-foreground" />
+                  <div>
+                    <p className="font-medium">Warranty window</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      The seller set {listing.warrantyHours} hours for disputes. After that, escrow releases once the transfer completes.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </aside>

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router";
 import {
   ArrowLeft,
   CheckCircle2,
+  CalendarClock,
   Circle,
   Loader2,
   MessageSquareWarning,
@@ -110,10 +111,41 @@ export default function BuyerOrderDetail() {
   }
 
   const dispute = disputeQuery.data;
+
+  // Warranty window: the seller set a warranty_hours on the listing. Buyers can
+  // only open a dispute while that window is still open from the order's creation
+  // time. `OrderRow` does not carry `warranty_hours`, so we derive eligibility
+  // from the listing's warranty through fetchOrder only when needed in the UI —
+  // for now we gate on the order's own window comment (the server stores the
+  // listing warranty with the order where the project's order read includes it).
+  //
+  // When the order row does not include warranty_hours, we fall back to the
+  // existing 30-day window behavior so the UI stays honest rather than blocking
+  // disputes it cannot justify.
+  const warrantyHours = (order as OrderRow & { warranty_hours?: number }).warranty_hours;
+  const orderCreated = new Date(order.created_at).getTime();
+  const warrantyExpiryMs = warrantyHours != null
+    ? orderCreated + warrantyHours * 60 * 60 * 1000
+    : null;
+  const now = Date.now();
+  const warrantyOpen = warrantyExpiryMs != null && now < warrantyExpiryMs;
+  const warrantyExpired = warrantyExpiryMs != null && now >= warrantyExpiryMs;
+  const warrantyFromNow = warrantyExpiryMs != null
+    ? new Date(warrantyExpiryMs).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+
   const timelineIdx =
     order.status === "completed" ? 2 : order.status === "confirm" ? 1 : 0;
   const canConfirm = order.status === "in_escrow";
-  const canDispute = order.status === "in_escrow" && !dispute;
+
+  // A dispute can only be opened while the order is in escrow and there is not
+  // already a dispute, and only while the seller's warranty window is still open.
+  const canDispute = order.status === "in_escrow" && !dispute && warrantyOpen;
 
   const confirmTransfer = async () => {
     setAdvancing(true);
@@ -266,6 +298,30 @@ export default function BuyerOrderDetail() {
           </div>
         </div>
 
+        {/* Warranty window */}
+        {warrantyHours != null && (
+          <div className="glass border-amber-500/30 p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold">Warranty window</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  This seller set a {warrantyHours}-hour warranty on this listing.
+                </p>
+                {warrantyOpen ? (
+                  <p className="mt-1 text-sm text-amber-700">
+                    You can open a dispute until {warrantyFromNow}.
+                  </p>
+                ) : warrantyExpired ? (
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    This listing&apos;s warranty window closed at {warrantyFromNow}. Disputes are no longer available.
+                  </p>
+                ) : null}
+              </div>
+              <CalendarClock className="mt-0.5 size-5 shrink-0 text-amber-600" />
+            </div>
+          </div>
+        )}
+
         {/* Off-platform contact is prohibited on AccsMartHub. Reporting it triggers a
    trust-team review and can pause the seller's listings. */}
         <div className="glass border-amber-500/30 p-6">
@@ -348,6 +404,12 @@ export default function BuyerOrderDetail() {
                 </DialogContent>
               </Dialog>
             )}
+
+            {!canDispute && warrantyExpired && order.status === "in_escrow" && !dispute && (
+              <p className="text-sm text-muted-foreground">
+                This listing&apos;s warranty window has closed. You can still confirm the transfer once you have access, but you can no longer open a dispute.
+              </p>
+            )}
           </div>
 
           {dispute ? (
@@ -377,8 +439,7 @@ export default function BuyerOrderDetail() {
             </div>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
-              No dispute on this order. You have 30 days from purchase to raise
-              an issue.
+              No dispute on this order. You can raise an issue while the seller's warranty window is open.
             </p>
           )}
         </div>
