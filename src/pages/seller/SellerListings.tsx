@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { KeyRound } from "lucide-react";
-import { Lock, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { CheckCircle2, KeyRound, Lock, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +55,19 @@ const emptyDraft = {
   faq: [] as FaqDraft[],
 };
 
-/**\n * Listings and inventory.\n *\n * Creating a listing requires a store an admin has approved — the server\n * rejects it otherwise, and every new listing lands in `pending`.\n *\n * Stock is NOT set by hand. The moderation trigger pins `listings.stock` on\n * seller writes, and `upload_credentials` resets it to the number of credential\n * units nobody has claimed yet. So the real inventory control is the credential\n * vault: attach N accounts and you have N units to sell. That is deliberate —\n * a seller cannot advertise inventory they have not actually attached.\n */\nexport default function SellerListings() {
+/**
+ * Listings and inventory.
+ *
+ * Creating a listing requires a store an admin has approved — the server
+ * rejects it otherwise, and every new listing lands in `pending`.
+ *
+ * Stock is NOT set by hand. The moderation trigger pins `listings.stock` on
+ * seller writes, and `upload_credentials` resets it to the number of credential
+ * units nobody has claimed yet. So the real inventory control is the credential
+ * vault: attach N accounts and you have N units to sell. That is deliberate —
+ * a seller cannot advertise inventory they have not actually attached.
+ */
+export default function SellerListings() {
   const { user } = useSession();
   const [params] = useSearchParams();
   const listingsQuery = useSellerListings();
@@ -137,7 +148,7 @@ const emptyDraft = {
       ...faq.map((f) => `${f.question} ${f.answer}`),
     ];
     const leaked = copy.find((text) =>
-      /(?:\\+\\d[\\s().-]*)?(?:\\d[\\s().-]*){9,}|[\\w.+-]+@[\\w-]+\\.[\\w.]+|(?:t\\.me|@)[A-Za-z0-9_]{4,}|wa\\.me|whatsapp|https?:\\/\\//i.test(
+      /(?:\+\d[\s().-]*)?(?:\d[\s().-]*){9,}|[\w.+-]+@[\w-]+\.[\w.]+|(?:t\.me|@)[A-Za-z0-9_]{4,}|wa\.me|whatsapp|https?:\/\//i.test(
         text,
       ),
     );
@@ -238,6 +249,43 @@ const emptyDraft = {
     }
   };
 
+  const saveCredentials = async () => {
+    if (!vaultFor) return;
+    setSavingVault(true);
+    try {
+      const units =
+        vaultFiles.length > 0
+          ? vaultFiles
+          : [
+              {
+                unitKey: vaultName.replace(/\.txt$/i, "") || "unit-1",
+                fileName: vaultName || `${vaultFor}-unit-1.txt`,
+                credentials: vaultText,
+              },
+            ];
+      const res = await uploadCredentials({ listingId: vaultFor, units });
+      toast.success("Credentials saved", {
+        description: `${res.uploaded} account${res.uploaded === 1 ? "" : "s"} encrypted and stored.${
+          res.availableUnits !== undefined
+            ? ` ${res.availableUnits} unit${res.availableUnits === 1 ? "" : "s"} now available to sell.`
+            : ""
+        }`,
+      });
+      setVaultFor(null);
+      setVaultText("");
+      setVaultName("");
+      setVaultFiles([]);
+      void listingsQuery.refresh();
+      void credentialStatusQuery.refresh();
+    } catch (err) {
+      toast.error("Could not save credentials", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setSavingVault(false);
+    }
+  };
+
   if (!approved) {
     return (
       <SellerLayout>
@@ -267,9 +315,9 @@ const emptyDraft = {
         <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             {myListings.length} listing{myListings.length === 1 ? "" : "s"} ·{" "}
-            {myListings.reduce((sum, l) => sum + l.stock, 0)} units in stock ·{" "}
-            stock is the number of credential accounts nobody has claimed yet, so{" "}
-            it updates in real time across the marketplace.
+            {myListings.reduce((sum, l) => sum + l.stock, 0)} units in stock · stock is
+            the number of credential accounts nobody has claimed yet, so it updates in
+            real time across the marketplace.
           </p>
           <Button
             className="rounded-xl"
@@ -287,9 +335,9 @@ const emptyDraft = {
 
         <p className="flex items-start gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-xs text-emerald-700">
           <ShieldAlert className="mt-px size-3.5 shrink-0" />
-          Keep every buyer on AccsMartHub: never put a phone number, email or
-          chat handle in a listing. Off-platform deals void escrow and are
-          reported to our trust team.
+          Keep every buyer on AccsMartHub: never put a phone number, email or chat
+          handle in a listing. Off-platform deals void escrow and are reported to our
+          trust team.
         </p>
 
         {listingsQuery.loading ? (
@@ -434,23 +482,22 @@ const emptyDraft = {
               <p className="font-semibold text-sky-900">Before you submit</p>
               <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-sky-900/80">
                 <li>
-                  <strong>No contact info.</strong> Phone numbers, emails and
-                  chat handles in a listing get your account suspended.
+                  <strong>No contact info.</strong> Phone numbers, emails and chat
+                  handles in a listing get your account suspended.
                 </li>
                 <li>
-                  <strong>Commission.</strong> AccsMartHub takes 10% of the
-                  sale price. Your payout is calculated on the server.
+                  <strong>Commission.</strong> AccsMartHub takes 10% of the sale price.
+                  Your payout is calculated on the server.
                 </li>
                 <li>
-                  <strong>Stock comes from the vault.</strong> Attach one
-                  account per unit you want to sell — stock is the number of
-                  unclaimed accounts, so you cannot advertise what you do not
-                  have.
+                  <strong>Stock comes from the vault.</strong> Attach one account per
+                  unit you want to sell — stock is the number of unclaimed accounts, so
+                  you cannot advertise what you do not have.
                 </li>
                 <li>
-                  <strong>Platform.</strong> Use the Platform field to pick the
-                  service this listing is for. The Service category is the
-                  marketplace grouping the buyer uses to find it.
+                  <strong>Platform.</strong> Pick the service this listing is for. The
+                  Service category is the marketplace grouping the buyer uses to find
+                  it.
                 </li>
               </ol>
             </div>
@@ -563,8 +610,7 @@ const emptyDraft = {
               />
               Hide from storefront
               <span className="text-xs text-muted-foreground">
-                Keep the listing but stop showing it in search and category
-                pages.
+                Keep the listing but stop showing it in search and category pages.
               </span>
             </label>
 
@@ -575,7 +621,9 @@ const emptyDraft = {
                 value={draft.features}
                 onChange={(e) => setDraft((d) => ({ ...d, features: e.target.value }))}
                 className="inset-well min-h-24 rounded-xl border-border/60"
-                placeholder={"One feature per line, e.g.\\nAuto delivery\\n1 month warranty\\n24/7 support"}
+                placeholder={
+                  "One feature per line, e.g.\nAuto delivery\n1 month warranty\n24/7 support"
+                }
               />
             </div>
 
@@ -656,8 +704,8 @@ const emptyDraft = {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              By submitting you confirm this listing follows AccsMartHub&apos;s
-              seller guidelines. Contact details in any field above are rejected
+              By submitting you confirm this listing follows AccsMartHub&apos;s seller
+              guidelines. Contact details in any field above are rejected
               automatically.
             </p>
           </div>
@@ -678,9 +726,9 @@ const emptyDraft = {
           <DialogHeader>
             <DialogTitle>Account credentials</DialogTitle>
             <DialogDescription>
-              Paste the credentials buyers receive after they pay. Stored
-              encrypted and shared from one copy, no matter how many people buy
-              this listing. Each account you attach adds one unit of stock.
+              Paste the credentials buyers receive after they pay. Stored encrypted and
+              shared from one copy, no matter how many people buy this listing. Each
+              account you attach adds one unit of stock.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
@@ -690,4 +738,108 @@ const emptyDraft = {
                 id="vault-file"
                 type="file"
                 multiple
-                accept=".txt,t
+                accept=".txt,text/plain"
+                onChange={async (e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  if (files.length === 0) return;
+                  const tooBig = files.find((f) => f.size > 60_000);
+                  if (tooBig) {
+                    toast.error(`${tooBig.name} is too large (60KB maximum).`);
+                    return;
+                  }
+                  const units = await Promise.all(
+                    files.map(async (f) => ({
+                      unitKey: f.name.replace(/\.txt$/i, ""),
+                      fileName: f.name,
+                      credentials: await f.text(),
+                    })),
+                  );
+                  setVaultFiles(units);
+                  setVaultText("");
+                  setVaultName("");
+                }}
+                className="inset-well rounded-xl border-border/60"
+              />
+              <p className="text-xs text-muted-foreground">
+                One file per unit in stock — each buyer receives a different account.
+                You can also type a single account below.
+              </p>
+            </div>
+
+            {vaultFiles.length > 0 && (
+              <ul className="space-y-1.5">
+                {vaultFiles.map((f, i) => (
+                  <li
+                    key={f.unitKey}
+                    className="inset-well flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
+                  >
+                    <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+                    <span className="min-w-0 flex-1 truncate">{f.fileName}</span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${f.fileName}`}
+                      onClick={() =>
+                        setVaultFiles((prev) => prev.filter((_, n) => n !== i))
+                      }
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="grid gap-2">
+              <Label htmlFor="vault-name">File name</Label>
+              <Input
+                id="vault-name"
+                value={vaultName}
+                onChange={(e) => setVaultName(e.target.value)}
+                className="inset-well rounded-xl border-border/60"
+                placeholder={`${vaultFor ?? "listing"}-unit-1.txt`}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="vault-text">Credentials</Label>
+              <Textarea
+                id="vault-text"
+                value={vaultText}
+                onChange={(e) => setVaultText(e.target.value)}
+                className="inset-well min-h-48 rounded-xl border-border/60 font-mono text-xs"
+                placeholder={"username: someone@example.com\npassword: …\n2fa backup: …"}
+              />
+              <p className="text-xs text-muted-foreground">
+                Do not include links — they are rejected. Only the account details
+                themselves are delivered.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" className="rounded-xl" onClick={() => setVaultFor(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="rounded-xl"
+              disabled={savingVault || (vaultFiles.length === 0 && !vaultText.trim())}
+              onClick={saveCredentials}
+            >
+              {savingVault ? "Saving…" : "Save credentials"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={() => setDeleteTarget(null)}
+        title={`Delete "${deleteTarget?.title ?? ""}"?`}
+        description="This permanently removes the listing. Orders already in escrow are unaffected."
+        confirmLabel="Delete listing"
+        destructive
+        onConfirm={remove}
+      />
+    </SellerLayout>
+  );
+}

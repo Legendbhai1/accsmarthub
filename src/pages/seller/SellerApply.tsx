@@ -22,8 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { buyerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
 import { useMyStore } from "@/lib/supabaseQueries";
 import {
   submitStore,
@@ -180,7 +179,7 @@ export default function SellerApply() {
       : null;
 
   return (
-    <DashLayout title="Set up your store" nav={buyerNav}>
+    <SellerLayout title="Set up your store">
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Set up your store</h2>
@@ -455,6 +454,6 @@ export default function SellerApply() {
           </>
         )}
       </div>
-    </DashLayout>
+    </SellerLayout>
   );
 }

@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { sellerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
 import { StatusBadge } from "@/components/common/Primitives";
 import { SERVICE_CATEGORIES } from "@/lib/db";
 import { useMyStore } from "@/lib/supabaseQueries";
@@ -47,15 +46,15 @@ export default function SellerSettings() {
 
   if (storeQuery.loading) {
     return (
-      <DashLayout title="Store settings" nav={sellerNav}>
+      <SellerLayout title="Store settings">
         <p className="text-sm text-muted-foreground">Loading your store…</p>
-      </DashLayout>
+      </SellerLayout>
     );
   }
 
   if (!store) {
     return (
-      <DashLayout title="Store settings" nav={sellerNav}>
+      <SellerLayout title="Store settings">
         <div className="glass mx-auto max-w-lg p-8 text-center">
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
             <Store className="size-5 text-muted-foreground" />
@@ -69,7 +68,7 @@ export default function SellerSettings() {
             <Link to="/seller/apply">Set up my store</Link>
           </Button>
         </div>
-      </DashLayout>
+      </SellerLayout>
     );
   }
 
@@ -105,7 +104,7 @@ export default function SellerSettings() {
   };
 
   return (
-    <DashLayout title="Store settings" nav={sellerNav}>
+    <SellerLayout title="Store settings">
       <div className="max-w-2xl space-y-6">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Store settings</h2>
@@ -243,6 +242,6 @@ export default function SellerSettings() {
           </Button>
         </div>
       </div>
-    </DashLayout>
+    </SellerLayout>
   );
 }

@@ -21,16 +21,14 @@ import {
 } from "@/components/ui/select";
 import { SellerLayout } from "@/components/dash/SellerLayout";
 import { StatCard, StatusBadge } from "@/components/common/Primitives";
-
-/**
- * Earnings — payouts and available balance for the seller.
- */
-export default function SellerEarnings() {
 import { formatPrice } from "@/lib/format";
 import { useDb } from "@/lib/db";
 import { useEarningsSummary } from "@/lib/supabaseQueries";
 import { toast } from "sonner";
 
+/**
+ * Earnings — payouts and available balance for the seller.
+ */
 export default function SellerEarnings() {
   const { withdrawals } = useDb();
   const [amount, setAmount] = useState("");
@@ -70,10 +68,43 @@ export default function SellerEarnings() {
   };
 
   return (
-    <DashLayout title="Earnings" nav={sellerNav}>
-      <div className="space-y-6">
+    <SellerLayout>
+      <div className="seller-page space-y-6">
+        <div className="seller-page-head">
+          <h2 className="text-2xl font-bold tracking-tight">Earnings</h2>
+          <p className="seller-sub mt-1 text-sm text-muted-foreground">
+            What you have earned, what escrow still holds, and what you can withdraw.
+          </p>
+        </div>
 
-        <div className="glass p-6">
+        <div className="seller-stat-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            label="Gross sales"
+            value={loading ? "—" : formatPrice(completed)}
+            icon={Wallet}
+            hint="Before platform commission"
+          />
+          <StatCard
+            label="Platform commission (10%)"
+            value={loading ? "—" : `−${formatPrice(commission)}`}
+            icon={Percent}
+            hint="Deducted from every completed sale"
+          />
+          <StatCard
+            label="Available to withdraw"
+            value={loading ? "—" : formatPrice(available)}
+            icon={Wallet}
+            hint="After the 10% fee"
+          />
+          <StatCard
+            label="In escrow"
+            value={loading ? "—" : formatPrice(escrow)}
+            hint="Releases after transfer"
+            icon={Wallet}
+          />
+        </div>
+
+        <div className="card">
           <h3 className="font-semibold">How your payout is calculated</h3>
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
             <div className="inset-well rounded-xl px-4 py-3">
@@ -99,7 +130,7 @@ export default function SellerEarnings() {
           </p>
         </div>
 
-        <div className="glass p-6">
+        <div className="card">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-semibold">Withdraw funds</h3>
@@ -112,7 +143,7 @@ export default function SellerEarnings() {
               <DialogTrigger asChild>
                 <Button className="rounded-xl">Request withdrawal</Button>
               </DialogTrigger>
-              <DialogContent className="glass border-border/70 sm:max-w-sm">
+              <DialogContent className="card border-border/70 sm:max-w-sm">
                 <DialogHeader>
                   <DialogTitle>Request withdrawal</DialogTitle>
                   <DialogDescription>
@@ -159,28 +190,30 @@ export default function SellerEarnings() {
           </div>
         </div>
 
-        <div className="glass overflow-hidden">
-          <div className="hidden grid-cols-[1fr_8rem_9rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
+        <div className="card overflow-hidden">
+          <div className="seller-table-head hidden grid-cols-[1fr_8rem_9rem] gap-4 border-b border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
             <span>Withdrawal</span>
             <span>Amount</span>
             <span className="text-right">Status</span>
           </div>
           <ul className="divide-y divide-border/60">
             {myWithdrawals.map((w) => (
-              <li key={w.id} className="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium">{w.method}</span>
-                  <span className="text-xs text-muted-foreground">
+              <li key={w.id} className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
+                <span className="seller-order-cell min-w-0 flex-1">
+                  <span className="seller-order-title block text-sm font-medium">{w.method}</span>
+                  <span className="seller-order-meta text-xs text-muted-foreground">
                     {new Date(w.requestedAt).toLocaleDateString()}
                   </span>
                 </span>
                 <span className="w-20 text-sm font-semibold tabular-nums">{formatPrice(w.amount)}</span>
-                <span className="ml-auto"><StatusBadge status={w.status} /></span>
+                <span className="ml-auto">
+                  <StatusBadge status={w.status} />
+                </span>
               </li>
             ))}
           </ul>
         </div>
       </div>
-    </DashLayout>
+    </SellerLayout>
   );
 }

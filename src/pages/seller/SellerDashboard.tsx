@@ -22,12 +22,12 @@ export default function SellerDashboard() {
   const loading = ordersQuery.loading || listingsQuery.loading;
 
   return (
-    <DashLayout title="Seller overview" nav={sellerNav}>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <SellerLayout title="Overview">
+      <div className="seller-page">
+        <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Seller dashboard</h2>
-            <p className="mt-1.5 text-sm text-muted-foreground">
+            <h2 className="text-2xl font-bold tracking-tight">Seller overview</h2>
+            <p className="seller-sub mt-1.5 text-sm text-muted-foreground">
               Manage listings, track sales and request payouts.
             </p>
           </div>
@@ -39,7 +39,7 @@ export default function SellerDashboard() {
           </Button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="seller-stat-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="Active listings"
             value={loading ? "—" : String(activeListings)}
@@ -64,7 +64,7 @@ export default function SellerDashboard() {
           />
         </div>
 
-        <section className="glass p-6">
+        <section className="card">
           <SectionHeading
             title="Recent orders"
             action={
@@ -84,18 +84,20 @@ export default function SellerDashboard() {
           ) : (
             <ul className="mt-4 divide-y divide-border/60">
               {orders.slice(0, 4).map((order) => (
-                <li key={order.order_no} className="flex items-center gap-3 py-3.5">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
+                <li
+                  key={order.order_no}
+                  className="seller-order-row flex items-center gap-3 rounded-lg py-3.5"
+                >
+                  <span className="seller-order-cell min-w-0 flex-1">
+                    <span className="seller-order-title block truncate text-sm font-medium">
                       {order.listing_title}
                     </span>
-                    <span className="text-xs text-muted-foreground">
-                      {order.order_no} ·{" "}
-                      {new Date(order.created_at).toLocaleDateString()}
+                    <span className="seller-order-meta text-xs text-muted-foreground">
+                      {order.order_no} · {new Date(order.created_at).toLocaleDateString()}
                     </span>
                   </span>
                   <StatusBadge status={order.status} />
-                  <span className="w-20 text-right text-sm font-semibold tabular-nums">
+                  <span className="seller-order-amount w-20 text-right text-sm font-semibold tabular-nums">
                     {formatPrice(order.gross_amount)}
                   </span>
                 </li>
@@ -104,6 +106,6 @@ export default function SellerDashboard() {
           )}
         </section>
       </div>
-    </DashLayout>
+    </SellerLayout>
   );
 }

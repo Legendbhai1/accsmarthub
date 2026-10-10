@@ -2,15 +2,6 @@ import { Download, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatCard, StatusBadge } from "@/components/common/Primitives";
-
-/**
- * Transactions — the seller's money ledger.
- *
- * Every row is a real order row showing the exact split the server
- * calculated: gross → platform commission → net payout. Escrow orders are
- * listed but not yet payable, so the seller can see what is coming.
- */
-export default function SellerTransactions() {
 import { formatPrice } from "@/lib/format";
 import { useMyOrders } from "@/lib/supabaseQueries";
 import { toast } from "sonner";
@@ -26,14 +17,6 @@ export default function SellerTransactions() {
   const ordersQuery = useMyOrders("seller");
   const orders = ordersQuery.data ?? [];
   const loading = ordersQuery.loading;
-  const gross = orders.reduce((s, o) => s + o.gross_amount, 0);
-  const commission = orders.reduce((s, o) => s + o.commission_amount, 0);
-  const escrow = orders
-    .filter((o) => ["in_escrow", "disputed"].includes(o.status))
-    .reduce((s, o) => s + o.gross_amount, 0);
-  const paid = orders
-    .filter((o) => o.status === "completed")
-    .reduce((s, o) => s + o.seller_net_amount, 0);
 
   const gross = orders.reduce((s, o) => s + o.gross_amount, 0);
   const commission = orders.reduce((s, o) => s + o.commission_amount, 0);
@@ -70,12 +53,12 @@ export default function SellerTransactions() {
   };
 
   return (
-    <DashLayout title="Transactions" nav={sellerNav}>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <SellerLayout>
+      <div className="seller-page space-y-6">
+        <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Transactions</h2>
-            <p className="mt-1.5 text-sm text-muted-foreground">
+            <p className="seller-sub mt-1.5 text-sm text-muted-foreground">
               Every sale with the exact split the platform calculated.
             </p>
           </div>
@@ -90,7 +73,7 @@ export default function SellerTransactions() {
           </Button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="seller-stat-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             label="Gross sales"
             value={loading ? "—" : formatPrice(gross)}
@@ -124,8 +107,8 @@ export default function SellerTransactions() {
             description="When a buyer purchases one of your listings, the payment appears here with its full commission breakdown."
           />
         ) : (
-          <div className="glass overflow-hidden">
-            <div className="hidden grid-cols-[1fr_7rem_7rem_7rem_8rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid">
+          <div className="card overflow-hidden">
+            <div className="seller-table-head hidden grid-cols-[1fr_7rem_7rem_7rem_8rem] gap-4 border-b border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid">
               <span>Order</span>
               <span className="text-right">Gross</span>
               <span className="text-right">Fee</span>
@@ -136,13 +119,13 @@ export default function SellerTransactions() {
               {orders.map((o) => (
                 <li
                   key={o.order_no}
-                  className="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6"
+                  className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6"
                 >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
+                  <span className="seller-order-cell min-w-0 flex-1">
+                    <span className="seller-order-title block truncate text-sm font-medium">
                       {o.listing_title}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="seller-order-meta text-xs text-muted-foreground">
                       {o.order_no} · {new Date(o.created_at).toLocaleDateString()}
                     </span>
                   </span>
@@ -164,6 +147,6 @@ export default function SellerTransactions() {
           </div>
         )}
       </div>
-    </DashLayout>
+    </SellerLayout>
   );
 }

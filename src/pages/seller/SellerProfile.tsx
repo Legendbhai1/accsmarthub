@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { sellerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
 import { StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { useMyStore, useEarningsSummary } from "@/lib/supabaseQueries";
@@ -52,15 +51,15 @@ export default function SellerProfile() {
 
   if (storeQuery.loading) {
     return (
-      <DashLayout title="Profile" nav={sellerNav}>
+      <SellerLayout title="Profile">
         <p className="text-sm text-muted-foreground">Loading your profile…</p>
-      </DashLayout>
+      </SellerLayout>
     );
   }
 
   if (!store) {
     return (
-      <DashLayout title="Profile" nav={sellerNav}>
+      <SellerLayout title="Profile">
         <div className="glass mx-auto max-w-lg p-8 text-center">
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
             <Lock className="size-5 text-muted-foreground" />
@@ -74,12 +73,12 @@ export default function SellerProfile() {
             <Link to="/seller/apply">Set up my store</Link>
           </Button>
         </div>
-      </DashLayout>
+      </SellerLayout>
     );
   }
 
   return (
-    <DashLayout title="Profile" nav={sellerNav}>
+    <SellerLayout title="Profile">
       <div className="max-w-2xl space-y-6">
         <div className="glass p-6">
           <div className="flex flex-wrap items-center gap-4">
@@ -211,6 +210,6 @@ export default function SellerProfile() {
           </Button>
         </form>
       </div>
-    </DashLayout>
+    </SellerLayout>
   );
 }

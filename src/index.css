@@ -279,4 +279,94 @@
       animation: none;
     }
   }
+
+  /* ------------------------------------------------------------------ */
+  /* Seller studio                                                       */
+  /* A dedicated visual language for /seller so it reads as its own      */
+  /* workspace instead of a reskin of the buyer dashboard.               */
+  /* ------------------------------------------------------------------ */
+  .seller-studio {
+    --seller-surface: color-mix(in oklab, var(--card) 82%, transparent);
+    --seller-hairline: color-mix(in oklab, var(--border) 55%, transparent);
+  }
+
+  /* The studio's glass panel. Pages use it bare, so padding lives here. */
+  .card {
+    background: var(--seller-surface, var(--card));
+    border: 1px solid var(--seller-hairline, var(--border));
+    box-shadow: 0 20px 45px -34px oklch(0 0 0 / 40%);
+    border-radius: 1.75rem;
+    backdrop-filter: blur(16px);
+    padding: 1.5rem;
+  }
+
+  .seller-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .seller-sub {
+    max-width: 48ch;
+  }
+
+  /* Studio navigation rail */
+  .seller-sidebar {
+    background: color-mix(in oklab, var(--card) 88%, transparent);
+  }
+  .seller-brand-mark {
+    border-radius: 0.9rem;
+  }
+  .seller-nav-item.active,
+  .seller-nav-item-active {
+    font-weight: 600;
+  }
+  .seller-sidebar-user {
+    border-radius: 1rem;
+  }
+
+  /* Ledger rows and table headers shared by orders, listings and money */
+  .seller-table-head {
+    letter-spacing: 0.07em;
+  }
+  .seller-order-row {
+    transition: background-color 0.18s ease;
+  }
+  .seller-order-row:hover {
+    background: color-mix(in oklab, var(--muted) 45%, transparent);
+  }
+  .seller-order-title {
+    letter-spacing: -0.01em;
+  }
+
+  /* Stat tiles */
+  .seller-stat-grid > * {
+    min-width: 0;
+  }
+
+  /* Analytics chart rows */
+  .seller-chart-value {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .seller-editor {
+    border-radius: 1.75rem;
+  }
+
+  /* Dispute cards stack with a little breathing room */
+  .seller-list > * + * {
+    margin-top: 0.75rem;
+  }
+
+  /* The studio top bar sits flush against the content it labels */
+  .seller-topbar {
+    border-bottom-style: solid;
+  }
+
+  @media (max-width: 1023px) {
+    /* On small screens the rail is hidden, so the logo/brand chip stands in. */
+    .seller-sidebar {
+      display: none;
+    }
+  }
 }
