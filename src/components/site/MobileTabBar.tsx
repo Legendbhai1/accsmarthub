@@ -45,7 +45,7 @@ export function MobileTabBar() {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4 md:hidden"
     >
-      <div className="grid w-full max-w-md grid-cols-4 gap-1 rounded-full border border-border bg-card p-1.5 shadow-[0_10px_30px_-12px_rgba(21,23,43,0.35)]">
+      <div className="grid w-full max-w-md grid-cols-4 gap-1 rounded-full border border-border bg-card/85 p-1.5 shadow-[0_14px_36px_-14px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
         {MOBILE_TABS.map(({ label, to, icon: Icon }) => (
           <NavLink
             key={label}
@@ -55,7 +55,7 @@ export function MobileTabBar() {
             className={cn(
               "flex flex-col items-center gap-1 rounded-full px-1 py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
               isTabActive(to, pathname) &&
-                "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                "bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 text-amber-950 hover:from-amber-300 hover:to-amber-600 hover:text-amber-950",
             )}
           >
             <Icon className="size-4.5" />

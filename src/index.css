@@ -42,116 +42,136 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* CHANGE VALUES FOR THEME — AccsMartHub: monochrome app-shell theme.
-   White canvas, near-black primary, hairline borders, light-gray fills.
-   Red is reserved for accents (favourites, destructive, live status). */
+/* CHANGE VALUES FOR THEME — AccsMartHub: an app-wide "gilded glass" theme.
+   Warm ivory canvas in light, deep espresso charcoal in dark, one gold accent,
+   and translucent blurred panels in both. Every page, rail, top bar and card
+   reads its colours from these tokens, so the public site, the marketplace,
+   the buyer dashboard, the admin panel and the seller studio stay one product
+   instead of four skins. */
 :root {
-  --radius: 1rem;
+  --radius: 1.25rem;
 
-  /* Ambient glow behind the hero, the scrollbar thumb, and the two brand
-     surfaces. Kept as tokens because all of them need to invert in dark mode
-     without the utilities below having to know about the theme. */
-  --glow: oklch(0 0 0 / 4%);
-  --scroll-thumb: oklch(0 0 0 / 18%);
-  --gradient-from: oklch(0.16 0.005 265);
-  --gradient-to: oklch(0.34 0.01 265);
-  --ink-panel-bg: oklch(0.16 0.005 265);
-  --ink-panel-border: oklch(0 0 0 / 8%);
-  --ink-panel-fg: oklch(1 0 0);
+  /* The shared panel recipe. `.glass`, `.panel`, `.card`, the rails and the
+     top bars all paint from these three, which is what keeps the studio and
+     the rest of the app on the same surface. */
+  --surface: color-mix(in oklab, var(--card) 84%, transparent);
+  --surface-strong: color-mix(in oklab, var(--card) 94%, transparent);
+  --hairline: color-mix(in oklab, var(--border) 62%, transparent);
+  --glass-blur: 18px;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.16 0.005 265);
+  /* Ambient washes behind the page (gold, violet) and the two brand surfaces.
+     Tokens because every one of them inverts in dark mode without the
+     utilities having to know which theme is active. */
+  --glow: oklch(0.72 0.14 72 / 22%);
+  --glow-2: oklch(0.68 0.1 300 / 13%);
+  --scroll-thumb: oklch(0.45 0.03 70 / 22%);
+  --gradient-from: oklch(0.66 0.15 70);
+  --gradient-to: oklch(0.44 0.13 42);
+  --ink-panel-bg: oklch(0.19 0.02 60);
+  --ink-panel-border: oklch(0.8 0.14 80 / 24%);
+  --ink-panel-fg: oklch(0.98 0.008 85);
+
+  --background: oklch(0.99 0.005 85);
+  --foreground: oklch(0.19 0.012 65);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0.005 265);
+  --card-foreground: oklch(0.19 0.012 65);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0.005 265);
+  --popover-foreground: oklch(0.19 0.012 65);
 
-  /* Near-black primary: solid pill buttons like the reference "Add to cart". */
-  --primary: oklch(0.16 0.005 265);
+  /* Gold. `--primary` is the accent everywhere: solid pills, active nav, the
+     brand mark and the ~30 icon accents written as `text-primary`.
+
+     On the light canvas it is a deep amber so those accents stay legible on
+     white (a pale gold would wash out to ~1.9:1), and its foreground is white.
+     In dark mode it lifts to a bright gold with near-black text — the same
+     inversion the old ink/white primary used, so solid pills keep their punch
+     against the canvas instead of vanishing into it. */
+  --primary: oklch(0.56 0.135 55);
   --primary-foreground: oklch(1 0 0);
 
-  --secondary: oklch(0.968 0.002 265);
-  --secondary-foreground: oklch(0.16 0.005 265);
+  --secondary: oklch(0.97 0.008 85);
+  --secondary-foreground: oklch(0.19 0.012 65);
 
-  /* App surface gray used for wells, icon circles and neutral fills. */
-  --muted: oklch(0.965 0.002 265);
-  --muted-foreground: oklch(0.52 0.005 265);
+  /* App surface used for wells, icon circles and neutral fills. */
+  --muted: oklch(0.965 0.01 85);
+  --muted-foreground: oklch(0.51 0.018 70);
 
-  --accent: oklch(0.955 0.002 265);
-  --accent-foreground: oklch(0.16 0.005 265);
+  --accent: oklch(0.955 0.022 85);
+  --accent-foreground: oklch(0.19 0.012 65);
 
   --destructive: oklch(0.58 0.21 20);
-  --border: oklch(0 0 0 / 7%);
-  --input: oklch(0 0 0 / 9%);
-  --ring: oklch(0.16 0.005 265 / 35%);
+  --border: oklch(0.24 0.02 70 / 11%);
+  --input: oklch(0.24 0.02 70 / 13%);
+  --ring: oklch(0.62 0.14 60 / 55%);
 
-  --chart-1: oklch(0.16 0.005 265);
+  --chart-1: oklch(0.62 0.14 58);
   --chart-2: oklch(0.62 0.11 160);
-  --chart-3: oklch(0.72 0.13 80);
+  --chart-3: oklch(0.62 0.13 42);
   --chart-4: oklch(0.62 0.15 300);
   --chart-5: oklch(0.58 0.21 20);
 
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.16 0.005 265);
-  --sidebar-primary: oklch(0.16 0.005 265);
+  --sidebar: color-mix(in oklab, oklch(1 0 0) 88%, transparent);
+  --sidebar-foreground: oklch(0.19 0.012 65);
+  --sidebar-primary: oklch(0.56 0.135 55);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.965 0.002 265);
-  --sidebar-accent-foreground: oklch(0.16 0.005 265);
-  --sidebar-border: oklch(0 0 0 / 7%);
-  --sidebar-ring: oklch(0.16 0.005 265 / 35%);
+  --sidebar-accent: oklch(0.965 0.01 85);
+  --sidebar-accent-foreground: oklch(0.19 0.012 65);
+  --sidebar-border: oklch(0.24 0.02 70 / 11%);
+  --sidebar-ring: oklch(0.62 0.14 60 / 55%);
 }
 
-/* Dark mode. Same monochrome app-shell language, inverted: near-black canvas,
-   raised surfaces one step lighter, and `--primary` becomes near-WHITE so
-   solid pill buttons ("View Details", active tab) keep the same strong
-   contrast they have in light mode instead of vanishing into the canvas. */
+/* Dark mode. Same gilded-glass language, inverted: espresso canvas, raised
+   surfaces one step lighter, and `--primary` becomes a brighter gold that
+   still carries near-black text, so solid pills keep their contrast instead
+   of washing out against the canvas. */
 .dark {
-  --glow: oklch(1 0 0 / 5%);
-  --scroll-thumb: oklch(1 0 0 / 22%);
-  --gradient-from: oklch(0.965 0.002 265);
-  --gradient-to: oklch(0.7 0.006 265);
-  --ink-panel-bg: oklch(0.225 0.006 265);
-  --ink-panel-border: oklch(1 0 0 / 13%);
-  --ink-panel-fg: oklch(0.965 0.002 265);
+  --glow: oklch(0.82 0.15 80 / 22%);
+  --glow-2: oklch(0.72 0.12 300 / 16%);
+  --scroll-thumb: oklch(1 0 0 / 24%);
+  --gradient-from: oklch(0.9 0.13 90);
+  --gradient-to: oklch(0.7 0.15 58);
+  --ink-panel-bg: oklch(0.225 0.02 70);
+  --ink-panel-border: oklch(0.85 0.14 82 / 26%);
+  --ink-panel-fg: oklch(0.98 0.008 85);
 
-  --background: oklch(0.145 0.005 265);
-  --foreground: oklch(0.965 0.002 265);
-  --card: oklch(0.188 0.006 265);
-  --card-foreground: oklch(0.965 0.002 265);
-  --popover: oklch(0.188 0.006 265);
-  --popover-foreground: oklch(0.965 0.002 265);
+  --background: oklch(0.15 0.012 70);
+  --foreground: oklch(0.97 0.008 85);
+  --card: oklch(0.2 0.013 70);
+  --card-foreground: oklch(0.97 0.008 85);
+  --popover: oklch(0.215 0.013 70);
+  --popover-foreground: oklch(0.97 0.008 85);
 
-  --primary: oklch(0.965 0.002 265);
-  --primary-foreground: oklch(0.16 0.005 265);
+  --primary: oklch(0.84 0.14 82);
+  --primary-foreground: oklch(0.19 0.03 65);
 
-  --secondary: oklch(0.243 0.006 265);
-  --secondary-foreground: oklch(0.965 0.002 265);
+  --secondary: oklch(0.255 0.013 70);
+  --secondary-foreground: oklch(0.97 0.008 85);
 
-  --muted: oklch(0.235 0.006 265);
-  --muted-foreground: oklch(0.685 0.005 265);
+  --muted: oklch(0.245 0.013 70);
+  --muted-foreground: oklch(0.73 0.014 80);
 
-  --accent: oklch(0.278 0.006 265);
-  --accent-foreground: oklch(0.965 0.002 265);
+  --accent: oklch(0.3 0.016 70);
+  --accent-foreground: oklch(0.97 0.008 85);
 
   --destructive: oklch(0.66 0.19 22);
-  --border: oklch(1 0 0 / 11%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.965 0.002 265 / 45%);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.84 0.14 82 / 55%);
 
-  --chart-1: oklch(0.965 0.002 265);
+  --chart-1: oklch(0.84 0.14 82);
   --chart-2: oklch(0.7 0.11 160);
-  --chart-3: oklch(0.78 0.13 80);
+  --chart-3: oklch(0.74 0.14 50);
   --chart-4: oklch(0.7 0.15 300);
   --chart-5: oklch(0.66 0.19 22);
 
-  --sidebar: oklch(0.168 0.006 265);
-  --sidebar-foreground: oklch(0.965 0.002 265);
-  --sidebar-primary: oklch(0.965 0.002 265);
-  --sidebar-primary-foreground: oklch(0.16 0.005 265);
-  --sidebar-accent: oklch(0.243 0.006 265);
-  --sidebar-accent-foreground: oklch(0.965 0.002 265);
-  --sidebar-border: oklch(1 0 0 / 11%);
-  --sidebar-ring: oklch(0.965 0.002 265 / 45%);
+  --sidebar: color-mix(in oklab, oklch(0.2 0.013 70) 88%, transparent);
+  --sidebar-foreground: oklch(0.97 0.008 85);
+  --sidebar-primary: oklch(0.84 0.14 82);
+  --sidebar-primary-foreground: oklch(0.19 0.03 65);
+  --sidebar-accent: oklch(0.265 0.013 70);
+  --sidebar-accent-foreground: oklch(0.97 0.008 85);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.84 0.14 82 / 55%);
 }
 
 @layer base {
@@ -163,9 +183,13 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    /* The site-wide ambient wash. Because it lives on <body> and is fixed, it
+       sits behind every route — public pages, marketplace, dashboards and the
+       seller studio alike — so no shell has to render its own layer. */
     background-image:
-      radial-gradient(52rem 26rem at 8% -14%, var(--glow), transparent 60%),
-      radial-gradient(46rem 24rem at 92% -10%, var(--glow), transparent 60%);
+      radial-gradient(52rem 26rem at 6% -14%, var(--glow), transparent 62%),
+      radial-gradient(46rem 24rem at 94% -10%, var(--glow-2), transparent 60%),
+      radial-gradient(44rem 22rem at 50% 118%, var(--glow), transparent 62%);
     background-attachment: fixed;
   }
   button:not([disabled]),
@@ -173,7 +197,7 @@
     cursor: pointer;
   }
   ::selection {
-    background: color-mix(in oklab, var(--primary) 22%, transparent);
+    background: color-mix(in oklab, var(--primary) 32%, transparent);
   }
   ::-webkit-scrollbar {
     width: 10px;
@@ -189,14 +213,17 @@
 }
 
 @layer utilities {
-  /* Flat card surface — white with a hairline border, minimal shadow.
-     Radius lives here (not on the element) because this custom utility is
-     emitted after Tailwind's generated ones and would win over `rounded-*`. */
+  /* The shared panel surface: translucent, hairline-bordered, blurred. Used
+     by the public site, both dashboards and the seller studio, so a card looks
+     the same everywhere. Radius lives here (not on the element) because this
+     custom utility is emitted after Tailwind's generated ones and would win
+     over `rounded-*`. */
   .glass {
-    background: var(--card);
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 2px oklch(0 0 0 / 4%);
-    border-radius: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    box-shadow: 0 20px 44px -38px oklch(0 0 0 / 45%);
+    border-radius: 1.75rem;
+    backdrop-filter: blur(var(--glass-blur));
   }
 
   /* Card with hover transition — subtle lift, matching the app-shell feel */
@@ -207,8 +234,8 @@
       transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   }
   .glass-hover:hover {
-    border-color: color-mix(in oklab, var(--foreground) 18%, transparent);
-    box-shadow: 0 14px 30px -20px oklch(0 0 0 / 45%);
+    border-color: color-mix(in oklab, var(--primary) 45%, transparent);
+    box-shadow: 0 18px 34px -22px oklch(0 0 0 / 40%);
     transform: translateY(-2px);
   }
   @media (prefers-reduced-motion: reduce) {
@@ -217,22 +244,23 @@
     }
   }
 
-  /* Raised panel (sidebar shells, drawers) */
+  /* Raised translucent panel (sidebar shells, drawers, top bars) */
   .panel {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 1.5rem;
+    background: var(--surface-strong);
+    border: 1px solid var(--hairline);
+    border-radius: 1.75rem;
+    backdrop-filter: blur(20px);
   }
 
   /* Subtle inset well for inputs */
   .inset-well {
-    background: var(--muted);
-    border: 1px solid var(--border);
-    box-shadow: inset 0 1px 2px oklch(0 0 0 / 4%);
+    background: color-mix(in oklab, var(--muted) 88%, transparent);
+    border: 1px solid var(--hairline);
+    box-shadow: inset 0 1px 2px oklch(0 0 0 / 5%);
     border-radius: 1rem;
   }
 
-  /* Wordmark accent — near-black ink gradient */
+  /* Wordmark accent — brushed gold gradient */
   .text-gradient {
     background: linear-gradient(92deg, var(--gradient-from), var(--gradient-to));
     -webkit-background-clip: text;
@@ -240,12 +268,13 @@
     color: transparent;
   }
 
-  /* Dark block panel — solid near-black for CTA / hero contrast */
+  /* Dark block panel — espresso block with a gold hairline, for hero / CTA
+     contrast against the glass shells */
   .ink-panel {
     background: var(--ink-panel-bg);
     border: 1px solid var(--ink-panel-border);
     color: var(--ink-panel-fg);
-    border-radius: 1.25rem;
+    border-radius: 1.5rem;
   }
 
   /* Floating ambient orbs (hero art) */
@@ -282,21 +311,23 @@
 
   /* ------------------------------------------------------------------ */
   /* Seller studio                                                       */
-  /* A dedicated visual language for /seller so it reads as its own      */
-  /* workspace instead of a reskin of the buyer dashboard.               */
+  /* The studio runs on the same global glass now; these classes only     */
+  /* carry its own layout and ledger conventions.                        */
   /* ------------------------------------------------------------------ */
   .seller-studio {
-    --seller-surface: color-mix(in oklab, var(--card) 82%, transparent);
-    --seller-hairline: color-mix(in oklab, var(--border) 55%, transparent);
+    /* The rail and top bar read the shared panel recipe, so the studio is
+       literally the same surface as the buyer and admin shells. */
+    --seller-surface: var(--surface);
+    --seller-hairline: var(--hairline);
   }
 
   /* The studio's glass panel. Pages use it bare, so padding lives here. */
   .card {
-    background: var(--seller-surface, var(--card));
-    border: 1px solid var(--seller-hairline, var(--border));
+    background: var(--seller-surface, var(--surface));
+    border: 1px solid var(--seller-hairline, var(--hairline));
     box-shadow: 0 20px 45px -34px oklch(0 0 0 / 40%);
     border-radius: 1.75rem;
-    backdrop-filter: blur(16px);
+    backdrop-filter: blur(var(--glass-blur));
     padding: 1.5rem;
   }
 
@@ -312,7 +343,7 @@
 
   /* Studio navigation rail */
   .seller-sidebar {
-    background: color-mix(in oklab, var(--card) 88%, transparent);
+    background: var(--surface-strong);
   }
   .seller-brand-mark {
     border-radius: 0.9rem;

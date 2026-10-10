@@ -49,11 +49,11 @@ export default function Home() {
     <div className="overflow-x-clip">
       {/* ------------------------------ Hero ------------------------------ */}
       <section className="relative">
-        {/* Ambient floating orbs */}
+        {/* Ambient floating orbs — gold and violet, so they read in both themes */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-          <div className="animate-orb-a absolute -top-24 left-[8%] size-80 rounded-full bg-black/[0.06] blur-3xl" />
-          <div className="animate-orb-b absolute -top-10 right-[4%] size-96 rounded-full bg-black/[0.05] blur-3xl" />
-          <div className="animate-orb-a absolute top-56 left-[42%] size-64 rounded-full bg-black/[0.04] blur-3xl" />
+          <div className="animate-orb-a absolute -top-24 left-[8%] size-80 rounded-full bg-amber-400/25 blur-3xl" />
+          <div className="animate-orb-b absolute -top-10 right-[4%] size-96 rounded-full bg-amber-500/20 blur-3xl" />
+          <div className="animate-orb-a absolute top-56 left-[42%] size-64 rounded-full bg-violet-400/20 blur-3xl" />
         </div>
 
         <motion.section
@@ -67,7 +67,7 @@ export default function Home() {
           >
             <Badge
               variant="secondary"
-              className="mb-6 gap-1.5 rounded-full border-border/60 bg-background/70 px-3.5 py-1.5 text-xs font-medium text-foreground/80 shadow-sm backdrop-blur"
+              className="mb-6 gap-1.5 rounded-full border-amber-500/30 bg-amber-400/10 px-3.5 py-1.5 text-xs font-semibold text-amber-800 backdrop-blur dark:text-amber-300"
             >
               <ShieldCheck className="size-3.5" />
               Escrow-protected transfers on every order
@@ -191,7 +191,7 @@ export default function Home() {
             ))}
           </div>
           {featured.length === 0 && (
-            <div className="mt-6 rounded-3xl border border-border bg-card px-6 py-16 text-center">
+            <div className="glass mt-6 px-6 py-16 text-center">
               <p className="font-semibold">No live listings yet</p>
               <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
                 Every listing is published by an approved seller and starts
@@ -232,13 +232,17 @@ export default function Home() {
             90% of the sale price.
           </p>
           <div className="relative mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button size="lg" className="rounded-full bg-white px-7 text-foreground hover:bg-white/90" asChild>
+            <Button
+              size="lg"
+              className="rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 px-7 font-semibold text-amber-950 hover:from-amber-300 hover:to-amber-600"
+              asChild
+            >
               <Link to="/auth?mode=register">Get started</Link>
             </Button>
             <Button
               size="lg"
               variant="outline"
-              className="rounded-full border-white/25 bg-transparent px-7 text-foreground hover:bg-white/10 hover:text-foreground"
+              className="rounded-full border-white/25 bg-transparent px-7 text-white/90 hover:bg-white/10 hover:text-white"
               asChild
             >
               <Link to="/trust">How escrow works</Link>

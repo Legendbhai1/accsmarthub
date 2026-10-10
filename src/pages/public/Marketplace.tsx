@@ -40,7 +40,9 @@ function AccountCard({
   onToggleLike: (id: string) => void;
 }) {
   return (
-    <article className="group rounded-2xl border border-border bg-card p-2 transition-shadow hover:shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)]">
+    // Translucent, not blurred: this grid can hold dozens of cards, and a
+    // backdrop-filter per card is what makes a long list stutter on a phone.
+    <article className="group rounded-3xl border border-border/70 bg-card/70 p-2 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/40 hover:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.5)]">
       <div className="relative">
         <Link
           to={`/listing/${listing.id}`}
@@ -167,8 +169,8 @@ export default function Marketplace() {
       <header className="px-4 pt-5">
         <div className="mx-auto flex max-w-md items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary">
-              <svg viewBox="0 0 24 24" className="size-5 text-primary-foreground" fill="currentColor" aria-hidden="true">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600">
+              <svg viewBox="0 0 24 24" className="size-5 text-amber-950" fill="currentColor" aria-hidden="true">
                 <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H14a1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 6V5.5ZM4 12a2.5 2.5 0 0 1 2.5-2.5H18a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 12.5V12ZM4 18.5A2.5 2.5 0 0 1 6.5 16H14a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18.5Z" />
               </svg>
             </span>
@@ -183,14 +185,14 @@ export default function Marketplace() {
               type="button"
               aria-label="Search accounts"
               onClick={() => setSearchOpen((v) => !v)}
-              className="flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_6px_16px_-12px_rgba(0,0,0,0.6)] transition-colors hover:bg-muted"
+              className="flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/70 text-foreground backdrop-blur-xl transition-colors hover:bg-amber-400/10"
             >
               {searchOpen ? <X className="size-4" /> : <Search className="size-4" />}
             </button>
             <Link
               to="/account/notifications"
               aria-label="Notifications"
-              className="relative flex size-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_6px_16px_-12px_rgba(0,0,0,0.6)] transition-colors hover:bg-muted"
+              className="relative flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/70 text-foreground backdrop-blur-xl transition-colors hover:bg-amber-400/10"
             >
               <Bell className="size-4" />
               <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-[#e8384f]" />
@@ -223,8 +225,11 @@ export default function Marketplace() {
       {/* ---------------------------- Promo banner ---------------------------- */}
       <section className="mt-5 px-4">
         <div className="mx-auto max-w-md">
-          <div key={slide} className="relative overflow-hidden rounded-3xl bg-muted px-5 py-6">
-            <span className="inline-flex rounded-full bg-card px-2.5 py-1 text-[10px] font-semibold text-foreground">
+          <div
+            key={slide}
+            className="relative overflow-hidden rounded-3xl border border-amber-500/25 bg-gradient-to-br from-amber-400/20 via-card/60 to-violet-400/10 px-5 py-6 backdrop-blur-xl"
+          >
+            <span className="inline-flex rounded-full bg-gradient-to-br from-amber-300 to-amber-500 px-2.5 py-1 text-[10px] font-bold text-amber-950">
               {current.chip}
             </span>
             <h2 className="mt-3 text-[21px] font-bold leading-tight tracking-tight text-foreground">{current.title}</h2>
@@ -268,10 +273,12 @@ export default function Marketplace() {
               <span
                 className={cn(
                   "flex size-14 items-center justify-center rounded-full border transition-colors",
-                  !category ? "border-transparent bg-primary" : "border-border bg-card",
+                  !category
+                    ? "border-transparent bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600"
+                    : "border-border/70 bg-card/70",
                 )}
               >
-                <LayoutGrid className={cn("size-5", !category ? "text-primary-foreground" : "text-foreground")} />
+                <LayoutGrid className={cn("size-5", !category ? "text-amber-950" : "text-foreground")} />
               </span>
               <span className="text-[11px] text-foreground">All</span>
             </button>
@@ -287,7 +294,9 @@ export default function Marketplace() {
                   <span
                     className={cn(
                       "flex size-14 items-center justify-center rounded-full border transition-colors",
-                      activeCat ? "border-transparent bg-primary" : "border-border",
+                      activeCat
+                        ? "border-transparent bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600"
+                        : "border-border/70 bg-card/70",
                     )}
                   >
                     <BrandMark brand={c.brand} colored className="size-6" />

@@ -61,7 +61,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40">
-      <div className="border-b border-border bg-card/90 backdrop-blur-xl">
+      <div className="border-b border-border/70 bg-card/75 backdrop-blur-2xl">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
           <Logo />
 
@@ -74,7 +74,8 @@ export function SiteHeader() {
                 className={({ isActive }) =>
                   cn(
                     "rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                    isActive && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                    isActive &&
+                      "bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 font-semibold text-amber-950 hover:from-amber-300 hover:to-amber-600 hover:text-amber-950",
                   )
                 }
               >
@@ -118,7 +119,7 @@ export function SiteHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="rounded-full">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-600 text-xs font-bold text-amber-950">
                       {user.name.charAt(0)}
                     </span>
                     <span className="hidden max-w-24 truncate sm:inline">{user.name}</span>

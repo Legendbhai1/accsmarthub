@@ -87,7 +87,7 @@ export function QuantityStepper({
 }) {
   const clamp = (n: number) => Math.min(Math.max(1, n), Math.max(1, max));
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
+    <div className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card/70 p-1 backdrop-blur-xl">
       <button
         type="button"
         aria-label="Decrease quantity"
@@ -128,11 +128,11 @@ export function StatCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="rounded-3xl border border-border bg-card p-5 shadow-[0_1px_2px_rgba(21,23,43,0.04)]">
+    <div className="glass p-5">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{label}</p>
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary">
-          <Icon className="size-4 text-primary-foreground" />
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600">
+          <Icon className="size-4 text-amber-950" />
         </span>
       </div>
       <p className="mt-4 text-2xl font-bold tabular-nums tracking-tight">{value}</p>
@@ -171,9 +171,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center rounded-3xl border border-border bg-card px-6 py-16 text-center">
-      <span className="flex size-14 items-center justify-center rounded-full bg-muted">
-        <Inbox className="size-5 text-muted-foreground" />
+    <div className="glass flex flex-col items-center px-6 py-16 text-center">
+      <span className="flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400/25 to-violet-400/10">
+        <Inbox className="size-5 text-amber-700 dark:text-amber-300" />
       </span>
       <h3 className="mt-4 font-semibold">{title}</h3>
       {description && (
