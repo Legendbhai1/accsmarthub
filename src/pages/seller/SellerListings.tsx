@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -14,20 +22,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SellerLayout } from "@/components/dash/SellerLayout";
-
-/**
- * Listings and inventory.
- *
- * Creating a listing requires a store an admin has approved — the server
- * rejects it otherwise, and every new listing lands in `pending`.
- *
- * Stock is NOT set by hand. The moderation trigger pins `listings.stock` on
- * seller writes, and `upload_credentials` resets it to the number of credential
- * units nobody has claimed yet. So the real inventory control is the credential
- * vault: attach N accounts and you have N units to sell. That is deliberate —
- * a seller cannot advertise inventory they have not actually attached.
- */
-export default function SellerListings() {
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
@@ -54,7 +48,6 @@ const emptyDraft = {
   title: "",
   summary: "",
   category: "instagram",
-  platform: "instagram",
   price: "",
   features: "",
   discount: "0",
@@ -63,14 +56,7 @@ const emptyDraft = {
   faq: [] as FaqDraft[],
 };
 
-/** Platform options for the listing create/edit form. */
-const PLATFORM_OPTIONS = SERVICE_CATEGORIES.slice(0, 8).map((p) => ({
-  slug: p.slug,
-  name: p.name,
-}));
-
-/**\n * Listings and inventory.\n *\n * Creating a listing requires a store an admin has approved — the server\n * rejects it otherwise, and every new listing lands in `pending`.\n *\n * Stock is NOT set by hand. The moderation trigger pins `listings.stock` on\n * seller writes, and `upload_credentials` resets it to the number of credential\n * units nobody has claimed yet. So the real inventory control is the credential\n * vault: attach N accounts and you have N units to sell. That is deliberate —\n * a seller cannot advertise inventory they have not actually attached.\n */
-export default function SellerListings() {
+/**\n * Listings and inventory.\n *\n * Creating a listing requires a store an admin has approved — the server\n * rejects it otherwise, and every new listing lands in `pending`.\n *\n * Stock is NOT set by hand. The moderation trigger pins `listings.stock` on\n * seller writes, and `upload_credentials` resets it to the number of credential\n * units nobody has claimed yet. So the real inventory control is the credential\n * vault: attach N accounts and you have N units to sell. That is deliberate —\n * a seller cannot advertise inventory they have not actually attached.\n */\nexport default function SellerListings() {
   const { user } = useSession();
   const [params] = useSearchParams();
   const listingsQuery = useSellerListings();
@@ -102,7 +88,6 @@ export default function SellerListings() {
       title: listing.title,
       summary: listing.summary ?? "",
       category: listing.service_category ?? SERVICE_CATEGORIES[0]?.slug ?? "instagram",
-      platform: listing.service_category ?? PLATFORM_OPTIONS[0]?.slug ?? "instagram",
       price: String(listing.price_usd),
       features: (listing.features ?? []).join("\n"),
       discount: String(listing.discount_percent ?? 0),
@@ -130,10 +115,6 @@ export default function SellerListings() {
       toast.error("Warranty must be zero or more hours.");
       return;
     }
-    if (!PLATFORM_OPTIONS.find((p) => p.slug === draft.platform)) {
-      toast.error("Select the platform this listing is for.");
-      return;
-    }
     const category = SERVICE_CATEGORIES.find((c) => c.slug === draft.category);
     const features = draft.features
       .split("\n")
@@ -156,7 +137,7 @@ export default function SellerListings() {
       ...faq.map((f) => `${f.question} ${f.answer}`),
     ];
     const leaked = copy.find((text) =>
-      /(?:\+\d[\s().-]*)?(?:\d[\s().-]*){9,}|[\w.+-]+@[\w-]+\.[\w.]+|(?:t\.me|@)[A-Za-z0-9_]{4,}|wa\.me|whatsapp|https?:\/\//i.test(
+      /(?:\\+\\d[\\s().-]*)?(?:\\d[\\s().-]*){9,}|[\\w.+-]+@[\\w-]+\\.[\\w.]+|(?:t\\.me|@)[A-Za-z0-9_]{4,}|wa\\.me|whatsapp|https?:\\/\\//i.test(
         text,
       ),
     );
@@ -259,13 +240,13 @@ export default function SellerListings() {
 
   if (!approved) {
     return (
-      <DashLayout title="My listings" nav={sellerNav}>
-        <div className="glass mx-auto max-w-lg p-8 text-center">
+      <SellerLayout>
+        <div className="card mx-auto max-w-lg text-center">
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-500/15">
             <Lock className="size-5 text-amber-600" />
           </span>
           <h2 className="mt-4 text-lg font-semibold">Store approval required</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             {user?.sellerStatus === "pending"
               ? "Your store is being reviewed. Listing creation unlocks the moment an admin approves it."
               : "Set up your store and answer the required questions before you can publish listings."}
@@ -276,18 +257,18 @@ export default function SellerListings() {
             </Link>
           </Button>
         </div>
-      </DashLayout>
+      </SellerLayout>
     );
   }
 
   return (
-    <DashLayout title="My listings" nav={sellerNav}>
-      <div className="space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <SellerLayout>
+      <div className="seller-page space-y-5">
+        <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             {myListings.length} listing{myListings.length === 1 ? "" : "s"} ·{" "}
-            {myListings.reduce((sum, l) => sum + l.stock, 0)} units in stock ·
-            stock is the number of credential accounts nobody has claimed yet, so
+            {myListings.reduce((sum, l) => sum + l.stock, 0)} units in stock ·{" "}
+            stock is the number of credential accounts nobody has claimed yet, so{" "}
             it updates in real time across the marketplace.
           </p>
           <Button
@@ -319,8 +300,8 @@ export default function SellerListings() {
             description="Create your first listing — it goes live after a quick moderation check."
           />
         ) : (
-          <div className="glass overflow-hidden">
-            <div className="hidden grid-cols-[1fr_7rem_9rem_7rem_9rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid">
+          <div className="card overflow-hidden">
+            <div className="seller-table-head hidden grid-cols-[1fr_7rem_9rem_7rem_9rem] gap-4 border-b border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid">
               <span>Listing</span>
               <span>Price</span>
               <span className="text-center">Stock</span>
@@ -334,7 +315,7 @@ export default function SellerListings() {
                 return (
                   <li
                     key={l.id}
-                    className="flex flex-wrap items-center gap-3 px-4 py-4 sm:px-6"
+                    className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6"
                   >
                     <span className="flex size-10 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted/40">
                       {l.image_path ? (
@@ -347,16 +328,16 @@ export default function SellerListings() {
                         <BrandMark brand={l.brand} colored className="size-5" />
                       )}
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">
+                    <span className="seller-order-cell min-w-0 flex-1">
+                      <span className="seller-order-title block truncate text-sm font-medium">
                         {l.title}
-                        {l.hidden ? (
-                          <span className="ml-2 text-xs text-muted-foreground">
+                        {l.hidden && (
+                          <span className="seller-order-meta ml-2 text-xs text-muted-foreground">
                             (hidden)
                           </span>
-                        ) : null}
+                        )}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="seller-order-meta text-xs text-muted-foreground">
                         {l.service_category ?? l.brand}
                         {creds?.attached
                           ? ` · ${creds.totalUnits} account${creds.totalUnits === 1 ? "" : "s"} attached`
@@ -368,12 +349,12 @@ export default function SellerListings() {
                     </span>
                     <span className="w-16 text-center">
                       <span className="text-sm font-bold tabular-nums">{l.stock}</span>
-                      <span className="block text-[11px] text-muted-foreground">
+                      <span className="seller-order-meta block text-[11px] text-muted-foreground">
                         units
                       </span>
                     </span>
                     <StatusBadge status={l.status} />
-                    <span className="flex w-full justify-end gap-1.5 lg:w-auto">
+                    <span className="seller-order-action flex w-full justify-end gap-1.5 lg:w-auto">
                       <Button
                         variant="outline"
                         size="icon"
@@ -528,27 +509,6 @@ export default function SellerListings() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label>Platform</Label>
-                <Select
-                  value={draft.platform}
-                  onValueChange={(v) => setDraft((d) => ({ ...d, platform: v }))}
-                >
-                  <SelectTrigger className="inset-well rounded-xl border-border/60">
-                    <SelectValue placeholder="Select a platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PLATFORM_OPTIONS.map((option) => (
-                      <SelectItem key={option.slug} value={option.slug}>
-                        {option.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  The platform this listing is for. Buyers see it on the listing page.
-                </p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="draft-price">Price (USD)</Label>
@@ -714,7 +674,7 @@ export default function SellerListings() {
 
       {/* Credential vault — one .txt per listing, reused by every buyer. */}
       <Dialog open={!!vaultFor} onOpenChange={() => setVaultFor(null)}>
-        <DialogContent className="card max-h-[90vh] overflow-y-auto border-border/70 sm:max-w-lg">
+        <DialogContent className="card max-h-[90vh] overflow-y-auto seller-editor border-border/70 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Account credentials</DialogTitle>
             <DialogDescription>
@@ -730,149 +690,4 @@ export default function SellerListings() {
                 id="vault-file"
                 type="file"
                 multiple
-                accept=".txt,text/plain"
-                onChange={async (e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  if (files.length === 0) return;
-                  const tooBig = files.find((f) => f.size > 60_000);
-                  if (tooBig) {
-                    toast.error(`${tooBig.name} is too large (60KB maximum).`);
-                    return;
-                  }
-                  const loaded = await Promise.all(
-                    files.map(async (file) => ({
-                      unitKey: file.name.replace(/\\.txt$/i, ""),
-                      fileName: file.name,
-                      credentials: await file.text(),
-                    })),
-                  );
-                  setVaultFiles(loaded);
-                  setVaultText("");
-                  setVaultName("");
-                }}
-                className="inset-well rounded-xl border-border/60"
-              />
-              <p className="text-xs text-muted-foreground">
-                One file per unit in stock — each buyer receives a different
-                account. You can also type a single account below.
-              </p>
-            </div>
-
-            {vaultFiles.length > 0 && (
-              <ul className="space-y-1.5">
-                {vaultFiles.map((f, i) => (
-                  <li
-                    key={f.unitKey}
-                    className="inset-well flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
-                  >
-                    <KeyRound className="size-3.5 shrink-0 text-emerald-600" />
-                    <span className="min-w-0 flex-1 truncate">{f.fileName}</span>
-                    <button
-                      type="button"
-                      aria-label={`Remove ${f.fileName}`}
-                      onClick={() =>
-                        setVaultFiles((prev) => prev.filter((_, idx) => idx !== i))
-                      }
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div className="grid gap-2">
-              <Label htmlFor="vault-name">File name</Label>
-              <Input
-                id="vault-name"
-                value={vaultName}
-                onChange={(e) => setVaultName(e.target.value)}
-                className="inset-well rounded-xl border-border/60"
-                placeholder={`${vaultFor ?? "listing"}-unit-1.txt`}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="vault-text">Credentials</Label>
-              <Textarea
-                id="vault-text"
-                value={vaultText}
-                onChange={(e) => setVaultText(e.target.value)}
-                className="inset-well min-h-48 rounded-xl border-border/60 font-mono text-xs"
-                placeholder={"username: someone@example.com\\npassword: …\\n2fa backup: …"}
-              />
-              <p className="text-xs text-muted-foreground">
-                Do not include links — they are rejected. Only the account
-                details themselves are delivered.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              className="rounded-xl"
-              onClick={() => setVaultFor(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="rounded-xl"
-              disabled={
-                savingVault ||
-                (vaultFiles.length === 0 && !vaultText.trim())
-              }
-              onClick={async () => {
-                if (!vaultFor) return;
-                setSavingVault(true);
-                try {
-                  const files =
-                    vaultFiles.length > 0
-                      ? vaultFiles
-                      : [
-                          {
-                            unitKey: vaultName.replace(/\\.txt$/i, "") || "unit-1",
-                            fileName: vaultName || `${vaultFor}-unit-1.txt`,
-                            credentials: vaultText,
-                          },
-                        ];
-                  const result = await uploadCredentials({
-                    listingId: vaultFor,
-                    units: files,
-                  });
-                  toast.success("Credentials saved", {
-                    description: `${result.uploaded} account${result.uploaded === 1 ? "" : "s"} encrypted and stored.${result.availableUnits !== undefined ? ` ${result.availableUnits} unit${result.availableUnits === 1 ? "" : "s"} now available to sell.` : ""}`,
-                  });
-                  setVaultFor(null);
-                  setVaultText("");
-                  setVaultName("");
-                  setVaultFiles([]);
-                  void listingsQuery.refresh();
-                  void credentialStatusQuery.refresh();
-                } catch (err) {
-                  toast.error("Could not save credentials", {
-                    description: err instanceof Error ? err.message : "Please try again.",
-                  });
-                } finally {
-                  setSavingVault(false);
-                }
-              }}
-            >
-              {savingVault ? "Saving…" : "Save credentials"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete confirmation */}
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onOpenChange={() => setDeleteTarget(null)}
-        title={`Delete “${deleteTarget?.title ?? ""}”?`}
-        description="This permanently removes the listing. Orders already in escrow are unaffected."
-        confirmLabel="Delete listing"
-        destructive
-        onConfirm={remove}
-      />
-    </DashLayout>
-  );
-}
+                accept=".txt,t
