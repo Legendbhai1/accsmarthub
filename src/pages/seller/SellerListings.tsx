@@ -495,9 +495,8 @@ export default function SellerListings() {
                   you cannot advertise what you do not have.
                 </li>
                 <li>
-                  <strong>Platform.</strong> Pick the service this listing is for. The
-                  Service category is the marketplace grouping the buyer uses to find
-                  it.
+                  <strong>Platform.</strong> Pick the platform this listing is for
+                  from the supported list. Buyers filter by it in the marketplace.
                 </li>
               </ol>
             </div>
@@ -540,13 +539,13 @@ export default function SellerListings() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label>Service category</Label>
+                <Label>Platform</Label>
                 <Select
                   value={draft.category}
                   onValueChange={(v) => setDraft((d) => ({ ...d, category: v }))}
                 >
                   <SelectTrigger className="inset-well rounded-xl border-border/60">
-                    <SelectValue placeholder="Select a service" />
+                    <SelectValue placeholder="Select a platform" />
                   </SelectTrigger>
                   <SelectContent>
                     {SERVICE_CATEGORIES.map((c) => (
@@ -556,6 +555,10 @@ export default function SellerListings() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Only platforms AccsMartHub supports. Buyers see it on the listing
+                  page and use it to filter the marketplace.
+                </p>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="draft-price">Price (USD)</Label>

@@ -96,9 +96,13 @@ export default defineConfig({
     // Bind to all interfaces so the browser runtime's server-ready event fires.
     host: true,
     port: 5173,
-    // Keep HMR on, but disable full-screen error overlay
-    hmr: {
-      overlay: false,
-    },
+    // Freebuff requires HMR to stay off.
+    //
+    // With HMR on, @vitejs/plugin-react injects the Fast Refresh runtime, and
+    // Fast Refresh silently bails out when a file swaps its whole component
+    // tree — the preview keeps rendering the previous tree, which reads as
+    // "my changes did not deploy". It also injects /@react-refresh into the
+    // served HTML, which fights the platform's own reload handling.
+    hmr: false,
   },
 });
