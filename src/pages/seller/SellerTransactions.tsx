@@ -1,8 +1,16 @@
 import { Download, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { sellerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatCard, StatusBadge } from "@/components/common/Primitives";
+
+/**
+ * Transactions — the seller's money ledger.
+ *
+ * Every row is a real order row showing the exact split the server
+ * calculated: gross → platform commission → net payout. Escrow orders are
+ * listed but not yet payable, so the seller can see what is coming.
+ */
+export default function SellerTransactions() {
 import { formatPrice } from "@/lib/format";
 import { useMyOrders } from "@/lib/supabaseQueries";
 import { toast } from "sonner";
@@ -18,6 +26,14 @@ export default function SellerTransactions() {
   const ordersQuery = useMyOrders("seller");
   const orders = ordersQuery.data ?? [];
   const loading = ordersQuery.loading;
+  const gross = orders.reduce((s, o) => s + o.gross_amount, 0);
+  const commission = orders.reduce((s, o) => s + o.commission_amount, 0);
+  const escrow = orders
+    .filter((o) => ["in_escrow", "disputed"].includes(o.status))
+    .reduce((s, o) => s + o.gross_amount, 0);
+  const paid = orders
+    .filter((o) => o.status === "completed")
+    .reduce((s, o) => s + o.seller_net_amount, 0);
 
   const gross = orders.reduce((s, o) => s + o.gross_amount, 0);
   const commission = orders.reduce((s, o) => s + o.commission_amount, 0);

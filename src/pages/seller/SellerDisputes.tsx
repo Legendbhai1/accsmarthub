@@ -9,9 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { sellerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
+
+/**
+ * Seller disputes.
+ */
+export default function SellerDisputes() {
 import { formatPrice } from "@/lib/format";
 import { api, useDb, DEMO_SELLER_ID } from "@/lib/db";
 

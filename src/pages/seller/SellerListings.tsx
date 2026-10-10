@@ -7,22 +7,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { sellerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
+
+/**
+ * Listings and inventory.
+ *
+ * Creating a listing requires a store an admin has approved — the server
+ * rejects it otherwise, and every new listing lands in `pending`.
+ *
+ * Stock is NOT set by hand. The moderation trigger pins `listings.stock` on
+ * seller writes, and `upload_credentials` resets it to the number of credential
+ * units nobody has claimed yet. So the real inventory control is the credential
+ * vault: attach N accounts and you have N units to sell. That is deliberate —
+ * a seller cannot advertise inventory they have not actually attached.
+ */
+export default function SellerListings() {
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
@@ -432,7 +437,7 @@ export default function SellerListings() {
 
       {/* Create / edit dialog */}
       <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
-        <DialogContent className="glass max-h-[90vh] overflow-y-auto border-border/70 sm:max-w-lg">
+        <DialogContent className="card max-h-[90vh] overflow-y-auto seller-editor border-border/70 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit listing" : "Create listing"}</DialogTitle>
             <DialogDescription>
@@ -709,7 +714,7 @@ export default function SellerListings() {
 
       {/* Credential vault — one .txt per listing, reused by every buyer. */}
       <Dialog open={!!vaultFor} onOpenChange={() => setVaultFor(null)}>
-        <DialogContent className="glass max-h-[90vh] overflow-y-auto border-border/70 sm:max-w-lg">
+        <DialogContent className="card max-h-[90vh] overflow-y-auto border-border/70 sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Account credentials</DialogTitle>
             <DialogDescription>

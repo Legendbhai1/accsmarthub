@@ -1,8 +1,7 @@
 import { Link } from "react-router";
 import { ArrowRight, Eye, Receipt, Wallet, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { sellerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
 import { SectionHeading, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { useMyOrders, useSellerListings, useEarningsSummary } from "@/lib/supabaseQueries";

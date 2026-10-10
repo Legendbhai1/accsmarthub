@@ -19,9 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { sellerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
 import { StatCard, StatusBadge } from "@/components/common/Primitives";
+
+/**
+ * Earnings — payouts and available balance for the seller.
+ */
+export default function SellerEarnings() {
 import { formatPrice } from "@/lib/format";
 import { useDb } from "@/lib/db";
 import { useEarningsSummary } from "@/lib/supabaseQueries";
@@ -68,32 +72,6 @@ export default function SellerEarnings() {
   return (
     <DashLayout title="Earnings" nav={sellerNav}>
       <div className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            label="Gross sales"
-            value={loading ? "—" : formatPrice(completed)}
-            icon={Wallet}
-            hint="Before platform commission"
-          />
-          <StatCard
-            label="Platform commission (10%)"
-            value={loading ? "—" : `−${formatPrice(commission)}`}
-            icon={Percent}
-            hint="Deducted from every completed sale"
-          />
-          <StatCard
-            label="Available to withdraw"
-            value={loading ? "—" : formatPrice(available)}
-            icon={Wallet}
-            hint="After the 10% fee"
-          />
-          <StatCard
-            label="In escrow"
-            value={loading ? "—" : formatPrice(escrow)}
-            hint="Releases after transfer"
-            icon={Wallet}
-          />
-        </div>
 
         <div className="glass p-6">
           <h3 className="font-semibold">How your payout is calculated</h3>
