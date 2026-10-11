@@ -1,247 +1,222 @@
-import { useState } from "react";
-import { Link } from "react-router";
-import { CheckCircle2, Store } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { SellerLayout } from "@/components/dash/SellerLayout";
-import { StatusBadge } from "@/components/common/Primitives";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DashLayout } from "@/components/dash/DashLayout";
+import { sellerNav } from "@/components/dash/navs";
 import { SERVICE_CATEGORIES } from "@/lib/db";
-import { useMyStore } from "@/lib/supabaseQueries";
-import { updateStore, publicAssetUrl } from "@/lib/supabaseMutations";
+import { readMyStore, friendlyError } from "@/lib/supabaseData";
+import { submitStore, publicAssetUrl } from "@/lib/supabaseMutations";
 import { toast } from "sonner";
 
-/**
- * Store settings — edit the answers buyers see on every one of your
- * listings. The moderation trigger pins the approval status on seller
- * writes, so saving content never changes whether the store is approved.
- */
 export default function SellerSettings() {
-  const storeQuery = useMyStore();
-  const store = storeQuery.data;
+  const [store, setStore] = useState<Awaited<ReturnType<typeof readMyStore>> | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const [saving, setSaving] = useState(false);
-  const [accepted, setAccepted] = useState(true);
-  const [form, setForm] = useState<{
-    storeName: string;
-    platforms: string;
-    deliverySpeed: string;
-    accessFormat: string;
-    replacementPolicy: string;
-    restrictedRegions: string;
-    sourcing: string;
-  } | null>(null);
+  const [storeName, setStoreName] = useState("");
+  const [platforms, setPlatforms] = useState<string[]>([]);
+  const [deliverySpeed, setDeliverySpeed] = useState("");
+  const [accessFormat, setAccessFormat] = useState("");
+  const [replacementPolicy, setReplacementPolicy] = useState("");
+  const [restrictedRegions, setRestrictedRegions] = useState("");
+  const [sourcing, setSourcing] = useState("");
+  const [contactPolicyAccepted, setContactPolicyAccepted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Seed the form from the server record the first time it arrives.
-  const current = form ?? {
-    storeName: store?.store_name ?? "",
-    platforms: (store?.platforms ?? []).join(", "),
-    deliverySpeed: store?.delivery_speed ?? "",
-    accessFormat: store?.access_format ?? "",
-    replacementPolicy: store?.replacement_policy ?? "",
-    restrictedRegions: store?.restricted_regions ?? "",
-    sourcing: store?.sourcing ?? "",
-  };
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const row = await readMyStore();
+        if (!cancelled) {
+          setStore(row);
+          if (row) {
+            setStoreName(row.store_name ?? "");
+            setPlatforms(row.platforms ?? []);
+            setDeliverySpeed(row.delivery_speed ?? "");
+            setAccessFormat(row.access_format ?? "");
+            setReplacementPolicy(row.replacement_policy ?? "");
+            setRestrictedRegions(row.restricted_regions ?? "");
+            setSourcing(row.sourcing ?? "");
+            setContactPolicyAccepted(Boolean(row.contact_policy));
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  if (storeQuery.loading) {
-    return (
-      <SellerLayout title="Store settings">
-        <p className="text-sm text-muted-foreground">Loading your store…</p>
-      </SellerLayout>
-    );
-  }
+  const platformOptions = SERVICE_CATEGORIES.map((c) => c.slug);
 
-  if (!store) {
-    return (
-      <SellerLayout title="Store settings">
-        <div className="glass mx-auto max-w-lg p-8 text-center">
-          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
-            <Store className="size-5 text-muted-foreground" />
-          </span>
-          <h2 className="mt-4 text-lg font-semibold">No store yet</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Set up your store first — these answers are shown to buyers on
-            every listing you publish.
-          </p>
-          <Button className="mt-5 rounded-xl" asChild>
-            <Link to="/seller/apply">Set up my store</Link>
-          </Button>
-        </div>
-      </SellerLayout>
-    );
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
+    if (!contactPolicyAccepted) {
+      setSubmitError("Please accept the contact policy.");
+      return;
+    }
+    if (!storeName.trim()) {
+      setSubmitError("Store name is required.");
+      return;
+    }
 
-  const set = (key: keyof typeof current, value: string) =>
-    setForm({ ...current, [key]: value });
-
-  const save = async () => {
-    setSaving(true);
+    setSubmitting(true);
     try {
-      await updateStore(store.id, {
-        storeName: current.storeName,
-        platforms: current.platforms.split(",").map((p) => p.trim()).filter(Boolean),
-        deliverySpeed: current.deliverySpeed,
-        accessFormat: current.accessFormat,
-        replacementPolicy: current.replacementPolicy,
-        restrictedRegions: current.restrictedRegions,
-        sourcing: current.sourcing,
-        contactPolicyAccepted: accepted,
+      await submitStore({
+        storeName: storeName.trim(),
+        slug: store?.slug ?? storeName.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "") || "store",
+        platforms,
+        deliverySpeed,
+        accessFormat,
+        replacementPolicy,
+        restrictedRegions,
+        sourcing,
+        contactPolicy: contactPolicyAccepted,
       });
-      setForm(null);
-      void storeQuery.refresh();
-      toast.success("Store details saved", {
-        description:
-          "Your approval status is unchanged — only an admin can change it.",
-      });
+      toast.success("Store updated");
+      const updated = await readMyStore();
+      setStore(updated);
     } catch (err) {
-      toast.error("Could not save your store", {
-        description: err instanceof Error ? err.message : "Please try again.",
-      });
+      setSubmitError(friendlyError(err));
     } finally {
-      setSaving(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <SellerLayout title="Store settings">
-      <div className="max-w-2xl space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Store settings</h2>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Buyers see these answers on every listing you publish.
-          </p>
-        </div>
-
-        <div className="glass flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <div className="flex items-center gap-3">
-            {store.logo_path ? (
-              <img
-                src={publicAssetUrl("store-assets", store.logo_path)}
-                alt=""
-                className="size-11 rounded-xl object-cover"
-              />
-            ) : (
-              <span className="flex size-11 items-center justify-center rounded-xl bg-muted text-sm font-bold">
-                {store.store_name.charAt(0)}
-              </span>
-            )}
-            <div>
-              <p className="text-sm font-semibold">{store.store_name}</p>
-              <p className="text-xs text-muted-foreground">/{store.slug}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <StatusBadge status={store.status} />
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <CheckCircle2 className="size-3.5" />
-              escrow protected
-            </span>
-          </div>
-        </div>
-
-        {store.status === "rejected" && store.review_note && (
-          <div className="rounded-xl border border-destructive/25 bg-destructive/[0.05] px-4 py-3.5 text-sm">
-            <p className="font-semibold text-destructive">
-              Changes needed before you can list
-            </p>
-            <p className="mt-1 text-destructive/90">{store.review_note}</p>
-          </div>
+    <DashLayout title="Store settings" nav={sellerNav}>
+      <div className="mx-auto max-w-2xl space-y-6">
+        {loading && (
+          <p className="text-sm text-muted-foreground">Loading store settings…</p>
         )}
 
-        <div className="glass space-y-4 p-6">
-          <div className="grid gap-2">
-            <Label htmlFor="store-name">Store name</Label>
-            <Input
-              id="store-name"
-              value={current.storeName}
-              onChange={(e) => set("storeName", e.target.value)}
-              className="inset-well rounded-xl border-border/60"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="store-platforms">Platforms sold</Label>
-            <Input
-              id="store-platforms"
-              value={current.platforms}
-              onChange={(e) => set("platforms", e.target.value)}
-              className="inset-well rounded-xl border-border/60"
-              placeholder="Instagram, TikTok, Gmail"
-            />
-            <p className="text-xs text-muted-foreground">
-              Comma separated. Common services:{" "}
-              {SERVICE_CATEGORIES.slice(0, 8)
-                .map((c) => c.name)
-                .join(", ")}
-              .
-            </p>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="store-speed">Delivery speed</Label>
-            <Input
-              id="store-speed"
-              value={current.deliverySpeed}
-              onChange={(e) => set("deliverySpeed", e.target.value)}
-              className="inset-well rounded-xl border-border/60"
-              placeholder="Within 30 minutes"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="store-access">What the buyer receives</Label>
-            <Textarea
-              id="store-access"
-              value={current.accessFormat}
-              onChange={(e) => set("accessFormat", e.target.value)}
-              className="inset-well min-h-20 rounded-xl border-border/60"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="store-replacement">Replacement policy</Label>
-            <Input
-              id="store-replacement"
-              value={current.replacementPolicy}
-              onChange={(e) => set("replacementPolicy", e.target.value)}
-              className="inset-well rounded-xl border-border/60"
-              placeholder="Free replacement within 24 hours"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="store-regions">Regions not served</Label>
-            <Input
-              id="store-regions"
-              value={current.restrictedRegions}
-              onChange={(e) => set("restrictedRegions", e.target.value)}
-              className="inset-well rounded-xl border-border/60"
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="store-sourcing">Where inventory comes from</Label>
-            <Textarea
-              id="store-sourcing"
-              value={current.sourcing}
-              onChange={(e) => set("sourcing", e.target.value)}
-              className="inset-well min-h-20 rounded-xl border-border/60"
-            />
-          </div>
+        {!loading && store && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="glass p-6 space-y-4">
+              <h2 className="text-lg font-semibold">Store details</h2>
 
-          <label className="flex items-start gap-2.5 rounded-xl border border-border/60 bg-muted/30 px-4 py-3 text-sm">
-            <input
-              type="checkbox"
-              checked={accepted}
-              onChange={(e) => setAccepted(e.target.checked)}
-              className="mt-0.5 size-4 accent-primary"
-            />
-            <span>
-              I will never share a phone number, email or chat handle. All
-              deals transact through AccsMartHub escrow.
-            </span>
-          </label>
+              <div className="space-y-2">
+                <Label htmlFor="store-name">Store name</Label>
+                <Input
+                  id="store-name"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder="My Digital Store"
+                />
+              </div>
 
-          <Button className="rounded-xl" onClick={save} disabled={saving}>
-            {saving ? "Saving…" : "Save store details"}
-          </Button>
-        </div>
+              <div className="space-y-2">
+                <Label>Platforms</Label>
+                <div className="flex flex-wrap gap-2">
+                  {platformOptions.map((p) => (
+                    <Button
+                      key={p}
+                      type="button"
+                      variant={platforms.includes(p) ? "default" : "outline"}
+                      className="rounded-full"
+                      onClick={() =>
+                        setPlatforms((prev) =>
+                          prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p],
+                        )
+                      }
+                    >
+                      {p}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="delivery-speed">Delivery speed</Label>
+                  <Input
+                    id="delivery-speed"
+                    value={deliverySpeed}
+                    onChange={(e) => setDeliverySpeed(e.target.value)}
+                    placeholder="Within 24 hours"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="access-format">Access format</Label>
+                  <Input
+                    id="access-format"
+                    value={accessFormat}
+                    onChange={(e) => setAccessFormat(e.target.value)}
+                    placeholder="Login + guide"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="replacement-policy">Replacement policy</Label>
+                <Textarea
+                  id="replacement-policy"
+                  value={replacementPolicy}
+                  onChange={(e) => setReplacementPolicy(e.target.value)}
+                  placeholder="What happens if a buyer's issue is valid?"
+                  className="min-h-20 resize-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="restricted-regions">Restricted regions</Label>
+                <Input
+                  id="restricted-regions"
+                  value={restrictedRegions}
+                  onChange={(e) => setRestrictedRegions(e.target.value)}
+                  placeholder="Comma-separated countries"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="sourcing">Sourcing</Label>
+                <Textarea
+                  id="sourcing"
+                  value={sourcing}
+                  onChange={(e) => setSourcing(e.target.value)}
+                  placeholder="How do you vet the accounts you sell?"
+                  className="min-h-20 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  id="contact-policy"
+                  checked={contactPolicyAccepted}
+                  onCheckedChange={(checked) => setContactPolicyAccepted(Boolean(checked))}
+                />
+                <Label
+                  htmlFor="contact-policy"
+                  className="text-sm leading-relaxed cursor-pointer"
+                >
+                  I will keep every conversation and payment on the platform.
+                </Label>
+              </div>
+
+              {submitError && (
+                <p className="text-sm text-destructive">{submitError}</p>
+              )}
+
+              <Button type="submit" className="rounded-xl" disabled={submitting}>
+                {submitting ? "Saving…" : "Save store"}
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {!loading && !store && (
+          <div className="glass p-6 text-center">
+            <p className="text-sm text-muted-foreground">No store yet. Apply first to create one.</p>
+          </div>
+        )}
       </div>
-    </SellerLayout>
+    </DashLayout>
   );
 }

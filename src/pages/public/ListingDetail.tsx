@@ -47,7 +47,7 @@ const REPORT_REASONS = [
 export default function ListingDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: listing, loading, error } = usePublicListing(id);
+  const { data: listing, loading, error } = usePublicListing(id ?? "");
   const { data: relatedListings = [] } = usePublicListings();
 
   const [quantity, setQuantity] = useState(1);
@@ -124,7 +124,8 @@ export default function ListingDetail() {
     navigate(`/checkout?listing=${listing.id}&qty=${qty}`);
   };
 
-  const faqItems = listing.faq ?? [];
+  const faqItems = ((listing as unknown as { faq?: { question: string; answer: string }[] }).faq as { question: string; answer: string }[] | undefined) ?? [];
+  const listingCreatedAt = ((listing as unknown as { createdAt?: string }).createdAt as string | undefined) ?? listing.updatedAt;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
@@ -171,7 +172,7 @@ export default function ListingDetail() {
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1">
                 <CalendarClock className="size-3.5" />
-                Listed {new Date(listing.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                Listed {new Date(listingCreatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </span>
             </div>
           </div>
@@ -205,20 +206,16 @@ export default function ListingDetail() {
                   </div>
                 ))}
               </dl>
-            </TabsContent>
-
-            <TabsContent value="features" className="mt-5">
+            </TabsContent>              <TabsContent value="features" className="mt-5">
               <ul className="grid max-w-2xl gap-2.5">
-                {(listing.features ?? []).map((f) => (
+                {(((listing as unknown as { features?: string[] }).features as string[] | undefined) ?? []).map((f) => (
                   <li key={f} className="inset-well flex items-start gap-3 rounded-xl px-4 py-3 text-sm">
                     <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
                     {f}
                   </li>
                 ))}
               </ul>
-            </TabsContent>
-
-            <TabsContent value="faq" className="mt-5">
+            </TabsContent>              <TabsContent value="faq" className="mt-5">
               {faqItems.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   The seller has not added any questions yet. Check the description and features above.
@@ -270,9 +267,7 @@ export default function ListingDetail() {
                 </ul>
               )}
             </TabsContent>
-          </Tabs>
-
-          {/* Seller profile */}
+          </Tabs>            {/* Seller profile */}
           <div className="glass mt-8 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Sold by
