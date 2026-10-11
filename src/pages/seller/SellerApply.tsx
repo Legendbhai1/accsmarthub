@@ -49,14 +49,13 @@ export default function SellerApply() {
     try {
       const result = await submitStore({
         storeName: storeName.trim(),
-        slug: storeName.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "") || "store",
         platforms,
         deliverySpeed,
         accessFormat,
         replacementPolicy,
         restrictedRegions,
         sourcing,
-        contactPolicy: contactPolicyAccepted,
+        contactPolicyAccepted,
       });
       setStore(result);
       toast.success(isSubmitted ? "Store updated" : "Store application submitted");

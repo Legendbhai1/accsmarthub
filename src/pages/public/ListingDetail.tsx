@@ -125,7 +125,7 @@ export default function ListingDetail() {
   };
 
   const faqItems = ((listing as unknown as { faq?: { question: string; answer: string }[] }).faq as { question: string; answer: string }[] | undefined) ?? [];
-  const listingCreatedAt = ((listing as unknown as { createdAt?: string }).createdAt as string | undefined) ?? listing.updatedAt;
+  const listingCreatedAt = ((listing as unknown as { createdAt?: string }).createdAt as string | undefined) ?? new Date().toISOString();
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
@@ -192,9 +192,7 @@ export default function ListingDetail() {
               <TabsTrigger value="reviews" className="rounded-lg">
                 Reviews
               </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="description" className="mt-5">
+            </TabsList>              <TabsContent value="description" className="mt-5">
               <p className="max-w-2xl leading-relaxed text-muted-foreground">
                 {listing.summary ?? "This seller has not written a description yet."}
               </p>
@@ -206,7 +204,9 @@ export default function ListingDetail() {
                   </div>
                 ))}
               </dl>
-            </TabsContent>              <TabsContent value="features" className="mt-5">
+            </TabsContent>
+
+            <TabsContent value="features" className="mt-5">
               <ul className="grid max-w-2xl gap-2.5">
                 {(((listing as unknown as { features?: string[] }).features as string[] | undefined) ?? []).map((f) => (
                   <li key={f} className="inset-well flex items-start gap-3 rounded-xl px-4 py-3 text-sm">
@@ -215,7 +215,9 @@ export default function ListingDetail() {
                   </li>
                 ))}
               </ul>
-            </TabsContent>              <TabsContent value="faq" className="mt-5">
+            </TabsContent>
+
+            <TabsContent value="faq" className="mt-5">
               {faqItems.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   The seller has not added any questions yet. Check the description and features above.

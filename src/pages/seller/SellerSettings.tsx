@@ -71,14 +71,13 @@ export default function SellerSettings() {
     try {
       await submitStore({
         storeName: storeName.trim(),
-        slug: store?.slug ?? storeName.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "") || "store",
         platforms,
         deliverySpeed,
         accessFormat,
         replacementPolicy,
         restrictedRegions,
         sourcing,
-        contactPolicy: contactPolicyAccepted,
+        contactPolicyAccepted,
       });
       toast.success("Store updated");
       const updated = await readMyStore();
