@@ -337,7 +337,7 @@ export function useAllOrders() {
         .from("orders")
         .select("*")
         .order("created_at", { ascending: false });
-          if (error) throw new Error(friendlyError(error));
+      if (error) throw new Error(friendlyError(error));
       return (data ?? []).map((r) => ({
         order_no: r.order_no,
         listing_id: r.listing_id,
@@ -733,4 +733,478 @@ async function fetchAdminListings(): Promise<AdminListingRow[]> {
 
 export function useAdminListings() {
   return useSBQuery(fetchAdminListings, []);
+}
+
+/* -------------------- cart, search, payments, reviews, notifications -------------------- */
+
+/**
+ * The signed-in user's cart.
+ */
+export type CartItemRow = {
+  id: string;
+  listing_id: string;
+  quantity: number;
+  added_at: string;
+};
+
+async function fetchCart(user_id: string): Promise<CartItemRow[]> {
+  if (!user_id) return [];
+  const { data, error } = await supabase
+    .from("cart_items")
+    .select("id, listing_id, quantity, added_at")
+    .eq("user_id", user_id)
+    .order("added_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    listing_id: r.listing_id,
+    quantity: Number(r.quantity ?? 0),
+    added_at: r.added_at,
+  }));
+}
+
+export function useCart() {
+  const { user } = useSession();
+  return useSBQuery(
+    () => fetchCart(user?.id ?? ""),
+    [user?.id ?? ""],
+  );
+}
+
+/**
+ * Server-side catalogue search + filters. Goes beyond one page of
+ * `usePublicListings` by filtering server-side and returning only active,
+ * non-hidden, in-stock rows that match the text and/or category and/or price
+ * band. Client-side refinement (saved, sort) is layered on top.
+ */
+export type SearchFilters = {
+  q?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+};
+
+async function fetchSearchListings(filters: SearchFilters): Promise<PublicListing[]> {
+  const base =
+    supabase
+      .from("listings")
+      .select(COLUMNS)
+      .eq("status", "active")
+      .eq("hidden", false)
+      .gt("stock", 0);
+
+  let q = base;
+  if (filters.q && filters.q.trim()) {
+    const needle = filters.q.trim();
+    q = q.or(`title.ilike.%${needle}%,summary.ilike.%${needle}%,brand.ilike.%${needle}%`);
+  }
+  if (filters.category) {
+    q = q.or(`service_category.eq.${filters.category},brand.eq.${filters.category}`);
+  }
+  if (filters.minPrice != null && filters.minPrice > 0) {
+    q = q.gte("price_usd", String(filters.minPrice));
+  }
+  if (filters.maxPrice != null && filters.maxPrice > 0) {
+    q = q.lte("price_usd", String(filters.maxPrice));
+  }
+
+  const { data, error } = await q.order("created_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map((r) => toPublic(r as unknown as PublicListingRow));
+}
+
+export function useSearchListings(filters: SearchFilters) {
+  const key = [
+    filters.q ?? "",
+    filters.category ?? "",
+    String(filters.minPrice ?? 0),
+    String(filters.maxPrice ?? 0),
+  ].join("|");
+  return useSBQuery(() => fetchSearchListings(filters), [key]);
+}
+
+/**
+ * Full catalogue with server-side search/filter defaults. Used by the
+ * dedicated /search page so the initial result set is already filtered by the
+ * server and not just one page of active listings.
+ */
+export type SearchResult = {
+  listings: PublicListing[];
+  total: number;
+  filters: SearchFilters;
+};
+
+export async function searchCatalog(filters: SearchFilters): Promise<SearchResult> {
+  const listings = await fetchSearchListings(filters);
+  return { listings, total: listings.length, filters };
+}
+
+/**
+ * Order payments for an order — the funding ledger.
+ */
+export type OrderPaymentRow = {
+  id: string;
+  order_no: string | null;
+  method: string;
+  provider: string | null;
+  provider_track_id: string | null;
+  provider_amount: number | null;
+  provider_currency: string;
+  provider_status: string | null;
+  status: string;
+  amount_usd: number;
+  captured_at: string | null;
+  created_at: string;
+};
+
+async function fetchOrderPayments(orderNo: string): Promise<OrderPaymentRow[]> {
+  const { data, error } = await supabase
+    .from("order_payments")
+    .select("*")
+    .eq("order_no", orderNo)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    order_no: r.order_no,
+    method: r.method,
+    provider: r.provider,
+    provider_track_id: r.provider_track_id,
+    provider_amount: r.provider_amount != null ? Number(r.provider_amount) : null,
+    provider_currency: r.provider_currency,
+    provider_status: r.provider_status,
+    status: r.status,
+    amount_usd: Number(r.amount_usd ?? 0),
+    captured_at: r.captured_at,
+    created_at: r.created_at,
+  }));
+}
+
+export function useOrderPayments(orderNo: string) {
+  return useSBQuery(
+    () => fetchOrderPayments(orderNo ?? ""),
+    [orderNo ?? ""],
+  );
+}
+
+/**
+ * Product reviews for a listing.
+ */
+export type ReviewRow = {
+  id: string;
+  order_no: string;
+  listing_id: string;
+  buyer_id: string;
+  seller_id: string;
+  rating: number;
+  title: string;
+  body: string;
+  created_at: string;
+};
+
+async function fetchReviews(listingId: string): Promise<ReviewRow[]> {
+  const { data, error } = await supabase
+    .from("reviews")
+    .select("*")
+    .eq("listing_id", listingId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    order_no: r.order_no,
+    listing_id: r.listing_id,
+    buyer_id: r.buyer_id,
+    seller_id: r.seller_id,
+    rating: Number(r.rating),
+    title: r.title,
+    body: r.body,
+    created_at: r.created_at,
+  }));
+}
+
+export function useReviews(listingId: string) {
+  return useSBQuery(
+    () => fetchReviews(listingId ?? ""),
+    [listingId ?? ""],
+  );
+}
+
+/**
+ * Buyer order history — every order the signed-in buyer ever placed.
+ */
+export type BuyerOrderRow = {
+  order_no: string;
+  listing_id: string;
+  listing_title: string;
+  brand: string;
+  quantity: number;
+  unit_price_usd: number;
+  gross_amount: number;
+  escrow_fee_usd: number;
+  total_usd: number;
+  status: string;
+  payment_method: string;
+  delivery_status: string;
+  delivered_at: string | null;
+  created_at: string;
+};
+
+async function fetchBuyerOrders(userId: string): Promise<BuyerOrderRow[]> {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      "order_no, listing_id, listing_title, brand, quantity, unit_price_usd,"
+      + " gross_amount, escrow_fee_usd, total_usd, status, payment_method,"
+      + " delivery_status, delivered_at, created_at",
+    )
+    .eq("buyer_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map((r) => ({
+    order_no: r.order_no,
+    listing_id: r.listing_id,
+    listing_title: r.listing_title,
+    brand: r.brand,
+    quantity: Number(r.quantity ?? 0),
+    unit_price_usd: Number(r.unit_price_usd ?? 0),
+    gross_amount: Number(r.gross_amount ?? 0),
+    escrow_fee_usd: Number(r.escrow_fee_usd ?? 0),
+    total_usd: Number(r.total_usd ?? 0),
+    status: r.status,
+    payment_method: r.payment_method,
+    delivery_status: r.delivery_status,
+    delivered_at: r.delivered_at,
+    created_at: r.created_at,
+  }));
+}
+
+export function useBuyerOrders() {
+  const { user } = useSession();
+  return useSBQuery(
+    () => fetchBuyerOrders(user?.id ?? ""),
+    [user?.id ?? ""],
+  );
+}
+
+/**
+ * Seller order queue — every order against the signed-in seller's listings,
+ * with delivery state so the seller can act on pending deliveries.
+ */
+export type SellerOrderRow = {
+  order_no: string;
+  listing_id: string;
+  listing_title: string;
+  brand: string;
+  buyer_id: string;
+  quantity: number;
+  unit_price_usd: number;
+  gross_amount: number;
+  escrow_fee_usd: number;
+  total_usd: number;
+  seller_net_amount: number;
+  status: string;
+  payment_method: string;
+  delivery_status: string;
+  delivered_at: string | null;
+  inspection_deadline: string | null;
+  created_at: string;
+};
+
+async function fetchSellerOrders(userId: string): Promise<SellerOrderRow[]> {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      "order_no, listing_id, listing_title, brand, buyer_id, quantity,"
+      + " unit_price_usd, gross_amount, escrow_fee_usd, total_usd,"
+      + " seller_net_amount, status, payment_method, delivery_status,"
+      + " delivered_at, inspection_deadline, created_at",
+    )
+    .eq("seller_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map((r) => ({
+    order_no: r.order_no,
+    listing_id: r.listing_id,
+    listing_title: r.listing_title,
+    brand: r.brand,
+    buyer_id: r.buyer_id,
+    quantity: Number(r.quantity ?? 0),
+    unit_price_usd: Number(r.unit_price_usd ?? 0),
+    gross_amount: Number(r.gross_amount ?? 0),
+    escrow_fee_usd: Number(r.escrow_fee_usd ?? 0),
+    total_usd: Number(r.total_usd ?? 0),
+    seller_net_amount: Number(r.seller_net_amount ?? 0),
+    status: r.status,
+    payment_method: r.payment_method,
+    delivery_status: r.delivery_status,
+    delivered_at: r.delivered_at,
+    inspection_deadline: r.inspection_deadline,
+    created_at: r.created_at,
+  }));
+}
+
+export function useSellerOrders() {
+  const { user } = useSession();
+  return useSBQuery(
+    () => fetchSellerOrders(user?.id ?? ""),
+    [user?.id ?? ""],
+  );
+}
+
+/**
+ * Admin dispute queue — every open / under_review dispute, with the order and
+ * seller/buyer names resolved for display. Evidence messages come from the real
+ * dispute_messages table.
+ */
+export type AdminDisputeRow = {
+  id: string;
+  order_no: string;
+  listing_title: string;
+  brand: string;
+  buyer_id: string;
+  buyer_name: string;
+  seller_id: string;
+  seller_name: string;
+  reason: string;
+  detail: string;
+  status: string;
+  resolution: string | null;
+  resolution_note: string | null;
+  created_at: string;
+  messages: { id: string; author_id: string; author_role: string; body: string; created_at: string }[];
+};
+
+async function fetchAdminDisputes(): Promise<AdminDisputeRow[]> {
+  const { data, error } = await supabase
+    .from("disputes")
+    .select("id, order_no, opened_by, reason, detail, status, resolution, resolution_note, created_at")
+    .in("status", ["open", "under_review"])
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  const rows = data ?? [];
+  if (rows.length === 0) return [];
+
+  const orderNos = rows.map((r) => r.order_no);
+  const orders = await Promise.all(
+    orderNos.map(async (ono) => {
+      const { data: o, error: oe } = await supabase
+        .from("orders")
+        .select("listing_id, listing_title, brand, buyer_id, seller_id")
+        .eq("order_no", ono)
+        .maybeSingle();
+      if (oe) return null;
+      return o;
+    }),
+  );
+
+  const orderMap = new Map<string, typeof orders[number]>();
+  rows.forEach((r, i) => orderMap.set(r.order_no, orders[i]));
+
+  const people = new Set<string>();
+  rows.forEach((r) => {
+    const o = orderMap.get(r.order_no);
+    if (o) { people.add(o.buyer_id); people.add(o.seller_id); }
+  });
+  const pids = [...people];
+  const { data: profiles, error: pe } = await supabase
+    .from("profiles")
+    .select("id, name")
+    .in("id", pids);
+  const nameBy = new Map<string, string>();
+  if (!pe && profiles) {
+    for (const p of profiles) nameBy.set(p.id, p.name ?? "Member");
+  }
+
+  const disputeIds = rows.map((r) => r.id);
+  const messagesByDispute = new Map<string, AdminDisputeRow["messages"]>();
+  await Promise.all(
+    disputeIds.map(async (did) => {
+      const { data: msgs, error: me } = await supabase
+        .from("dispute_messages")
+        .select("id, author_id, author_role, body, created_at")
+        .eq("dispute_id", did)
+        .order("created_at", { ascending: true });
+      if (!me) messagesByDispute.set(did, (msgs ?? []).map((m) => ({
+        id: m.id,
+        author_id: m.author_id,
+        author_role: m.author_role,
+        body: m.body,
+        created_at: m.created_at,
+      })));
+    }),
+  );
+
+  return rows.map((r) => {
+    const o = orderMap.get(r.order_no);
+    return {
+      id: r.id,
+      order_no: r.order_no,
+      listing_title: o?.listing_title ?? "(removed)",
+      brand: o?.brand ?? "",
+      buyer_id: o?.buyer_id ?? "",
+      buyer_name: nameBy.get(o?.buyer_id ?? "") ?? "Member",
+      seller_id: o?.seller_id ?? "",
+      seller_name: nameBy.get(o?.seller_id ?? "") ?? "Member",
+      reason: r.reason,
+      detail: r.detail,
+      status: r.status,
+      resolution: r.resolution,
+      resolution_note: r.resolution_note,
+      created_at: r.created_at,
+      messages: messagesByDispute.get(r.id) ?? [],
+    };
+  });
+}
+
+export function useAdminDisputes() {
+  return useSBQuery(fetchAdminDisputes, []);
+}
+
+/**
+ * User notifications (real table).
+ */
+export type NotificationRow = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  reference: string | null;
+  read: boolean;
+  created_at: string;
+};
+
+async function fetchNotifications(userId: string): Promise<NotificationRow[]> {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id, kind, title, body, reference, read, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    kind: r.kind,
+    title: r.title,
+    body: r.body,
+    reference: r.reference,
+    read: Boolean(r.read),
+    created_at: r.created_at,
+  }));
+}
+
+export function useNotifications() {
+  const { user } = useSession();
+  return useSBQuery(
+    () => fetchNotifications(user?.id ?? ""),
+    [user?.id ?? ""],
+  );
+}
+
+export async function markNotificationsReadForUser(userId: string): Promise<number> {
+  if (!userId) return 0;
+  const { data, error } = await supabase.rpc("mark_notifications_read", { p_user: userId });
+  if (error) throw new Error(friendlyError(error));
+  return Number(data ?? 0);
 }

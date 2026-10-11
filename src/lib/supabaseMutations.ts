@@ -632,3 +632,180 @@ export async function resolveDispute(
   });
   if (error) throw new Error(friendlyError(error));
 }
+
+/* -------------------- cart, checkout, delivery, disputes, reviews -------------------- */
+
+/** Cart — add a listing with a quantity (server-validates availability). */
+export type CartAddInput = { listingId: string; quantity: number };
+export async function cartAdd(input: CartAddInput): Promise<string> {
+  const { data, error } = await supabase.rpc("cart_add", {
+    p_listing_id: input.listingId,
+    p_quantity: input.quantity,
+  });
+  if (error) throw new Error(friendlyError(error));
+  return data as string;
+}
+
+/** Cart — set a listing's quantity (0 removes it). */
+export type CartSetInput = { listingId: string; quantity: number };
+export async function cartSet(input: CartSetInput): Promise<void> {
+  const { error } = await supabase.rpc("cart_set", {
+    p_listing_id: input.listingId,
+    p_quantity: input.quantity,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/** Cart — remove a listing. */
+export type CartRemoveInput = { listingId: string };
+export async function cartRemove(input: CartRemoveInput): Promise<void> {
+  const { error } = await supabase.rpc("cart_remove", {
+    p_listing_id: input.listingId,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/**
+ * Checkout — Buy Now (single listing) funded from the wallet.
+ *
+ * Re-validates price/stock/eligibility server-side and funds escrow atomically.
+ * Returns the created order_no. For a cart checkout use `checkoutCart`.
+ */
+export type CheckoutBuyNowInput = {
+  listingId: string;
+  quantity: number;
+  idempotencyKey?: string;
+};
+export async function checkoutBuyNow(input: CheckoutBuyNowInput): Promise<string> {
+  const key = input.idempotencyKey ?? crypto.randomUUID();
+  const { data, error } = await supabase.rpc("checkout", {
+    p_listing_id: input.listingId,
+    p_cart_ids: null,
+    p_quantity: input.quantity,
+    p_idempotency_key: key,
+  });
+  if (error) throw new Error(friendlyError(error));
+  return data as string;
+}
+
+/**
+ * Checkout — cart-funded (wallet) purchase.
+ *
+ * Creates one order per cart item in one transaction, clears the cart, and
+ * returns the first created order_no as the landing anchor. Each item is
+ * re-validated server-side; a retry of the same idempotency key is a no-op.
+ */
+export type CheckoutCartInput = {
+  cartIds: string[];
+  idempotencyKey?: string;
+};
+export async function checkoutCart(input: CheckoutCartInput): Promise<string> {
+  const key = input.idempotencyKey ?? crypto.randomUUID();
+  const ids = input.cartIds.map((s) => (typeof s === "string" ? s : s));
+  const { data, error } = await supabase.rpc("checkout", {
+    p_listing_id: null,
+    p_cart_ids: ids,
+    p_quantity: null,
+    p_idempotency_key: key,
+  });
+  if (error) throw new Error(friendlyError(error));
+  return data as string;
+}
+
+/**
+ * Buyer confirms delivery and releases escrow.
+ *
+ * Only works when the seller has marked the order delivered, or when the order
+ * has claimed credentials (implicit digital delivery), and only inside the
+ * inspection window.
+ */
+export type ConfirmDeliveryInput = { orderNo: string };
+export async function confirmDelivery(input: ConfirmDeliveryInput): Promise<void> {
+  const { error } = await supabase.rpc("confirm_delivery", {
+    p_order_no: input.orderNo,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/**
+ * Seller marks an order delivered (manual or explicit digital).
+ */
+export type MarkDeliveredInput = { orderNo: string; method?: "digital" | "manual" };
+export async function markOrderDelivered(input: MarkDeliveredInput): Promise<void> {
+  const { error } = await supabase.rpc("mark_order_delivered", {
+    p_order_no: input.orderNo,
+    p_method: input.method ?? "digital",
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/**
+ * Buyer requests a replacement for an in-escrow order.
+ */
+export type RequestReplacementInput = { orderNo: string; reason: string };
+export async function requestReplacement(input: RequestReplacementInput): Promise<string> {
+  const { data, error } = await supabase.rpc("request_replacement", {
+    p_order_no: input.orderNo,
+    p_reason: input.reason,
+  });
+  if (error) throw new Error(friendlyError(error));
+  return data as string;
+}
+
+/**
+ * Buyer requests cancellation of an in-escrow order.
+ */
+export type RequestCancellationInput = { orderNo: string; reason: string };
+export async function requestCancellation(input: RequestCancellationInput): Promise<string> {
+  const { data, error } = await supabase.rpc("request_cancellation", {
+    p_order_no: input.orderNo,
+    p_reason: input.reason,
+  });
+  if (error) throw new Error(friendlyError(error));
+  return data as string;
+}
+
+/** Admin resolves a replacement/cancellation request. */
+export type ResolveRequestInput = {
+  requestId: string;
+  outcome: "approved" | "dismissed";
+  note: string;
+};
+export async function resolveOrderRequest(input: ResolveRequestInput): Promise<void> {
+  const { error } = await supabase.rpc("resolve_order_request", {
+    p_request_id: input.requestId,
+    p_outcome: input.outcome,
+    p_note: input.note,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/**
+ * Buyer submits a review for a completed order (eligible-purchaser-only).
+ */
+export type SubmitReviewInput = {
+  orderNo: string;
+  rating: number;
+  title: string;
+  body: string;
+};
+export async function submitReview(input: SubmitReviewInput): Promise<string> {
+  const { data, error } = await supabase.rpc("submit_review", {
+    p_order_no: input.orderNo,
+    p_rating: input.rating,
+    p_title: input.title,
+    p_body: input.body,
+  });
+  if (error) throw new Error(friendlyError(error));
+  return data as string;
+}
+
+/** Mark all of the signed-in user's notifications as read. */
+export async function markNotificationsRead(): Promise<number> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) return 0;
+  const { data, error } = await supabase.rpc("mark_notifications_read", { p_user: userId });
+  if (error) throw new Error(friendlyError(error));
+  return Number(data ?? 0);
+}

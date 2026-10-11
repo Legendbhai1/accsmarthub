@@ -152,6 +152,8 @@ export function friendlyError(error: unknown): string {
   return raw.replace(/^Failed to run sql query:\s*ERROR:\s*/, "").trim();
 }
 
+type GenericStringError = Error & { message: string };
+
 // ---------------------------------------------------------------------
 // React hooks
 // ---------------------------------------------------------------------
