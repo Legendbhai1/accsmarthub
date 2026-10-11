@@ -20,10 +20,14 @@ import { toast } from "sonner";
 type Filter = "pending" | "approved" | "rejected";
 
 /**
- * The approval gate. Until an admin presses Approve, the applicant's store
- * stays "pending" and the server rejects their listing inserts. Ratings, sales
- * counts and KYC flags are deliberately absent: none of those are recorded
- * anywhere in the database, so they are not shown.
+ * Store-profile review queue.
+ *
+ * This is no longer the gate on selling: a member can create a listing the
+ * moment they are confirmed, and each listing is approved individually in
+ * Listings. Approving here awards the verified store badge and publishes the
+ * buyer-facing answers. Ratings, sales counts and KYC flags are deliberately
+ * absent: none of those are recorded anywhere in the database, so they are not
+ * shown.
  */
 export default function AdminSellers() {
   const [filter, setFilter] = useState<Filter>("pending");
@@ -97,8 +101,9 @@ export default function AdminSellers() {
             <div>
               <h3 className="font-semibold">Store applications</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Check the answers and logo. Approving flips the account to an
-                approved seller and unlocks listing creation.
+                Check the answers and logo. Approving awards the verified store
+                badge. It does not gate selling — listings are approved
+                individually, in Listings.
               </p>
             </div>
             <div className="flex gap-1.5">

@@ -194,11 +194,11 @@ export default function Home() {
             <div className="glass mt-6 px-6 py-16 text-center">
               <p className="font-semibold">No live listings yet</p>
               <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
-                Every listing is published by an approved seller and starts
-                pending moderation. Check back shortly, or apply to sell.
+                Every listing is reviewed by an admin before it goes live.
+                Check back shortly, or list an account of your own.
               </p>
               <Button className="mt-5 rounded-full" asChild>
-                <Link to="/seller/apply">Apply to sell</Link>
+                <Link to="/seller/listings?new=1">Start selling</Link>
               </Button>
             </div>
           )}

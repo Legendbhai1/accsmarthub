@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { CheckCircle2, KeyRound, Lock, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { CheckCircle2, KeyRound, Pencil, Plus, ShieldAlert, Store, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,8 +58,10 @@ const emptyDraft = {
 /**
  * Listings and inventory.
  *
- * Creating a listing requires a store an admin has approved — the server
- * rejects it otherwise, and every new listing lands in `pending`.
+ * Creating a listing needs no store profile: any confirmed account can write
+ * one immediately. Every new listing lands in `pending` and the server pins it
+ * there, so what a seller cannot do is publish — an admin has to approve it
+ * before it appears in the marketplace.
  *
  * Stock is NOT set by hand. The moderation trigger pins `listings.stock` on
  * seller writes, and `upload_credentials` resets it to the number of credential
@@ -91,7 +93,10 @@ export default function SellerListings() {
   const [savingVault, setSavingVault] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const approved = user?.sellerStatus === "approved";
+  // Whether the optional store profile has been approved. It no longer
+  // decides anything about selling — it only decides whether we prompt the
+  // seller to fill one in.
+  const storeApproved = user?.sellerStatus === "approved";
 
   const openEdit = (listing: SellerListingsRow) => {
     setEditing(listing);
@@ -286,38 +291,16 @@ export default function SellerListings() {
     }
   };
 
-  if (!approved) {
-    return (
-      <SellerLayout>
-        <div className="card mx-auto max-w-lg text-center">
-          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-500/15">
-            <Lock className="size-5 text-amber-600" />
-          </span>
-          <h2 className="mt-4 text-lg font-semibold">Store approval required</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            {user?.sellerStatus === "pending"
-              ? "Your store is being reviewed. Listing creation unlocks the moment an admin approves it."
-              : "Set up your store and answer the required questions before you can publish listings."}
-          </p>
-          <Button className="mt-5 rounded-xl" asChild>
-            <Link to="/seller/apply">
-              {user?.sellerStatus === "pending" ? "View store status" : "Set up my store"}
-            </Link>
-          </Button>
-        </div>
-      </SellerLayout>
-    );
-  }
-
   return (
     <SellerLayout>
       <div className="seller-page space-y-5">
         <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
+          <p className="max-w-2xl text-sm text-muted-foreground">
             {myListings.length} listing{myListings.length === 1 ? "" : "s"} ·{" "}
             {myListings.reduce((sum, l) => sum + l.stock, 0)} units in stock · stock is
             the number of credential accounts nobody has claimed yet, so it updates in
-            real time across the marketplace.
+            real time across the marketplace. New listings stay in review until an
+            admin approves them — that is the step that makes one live.
           </p>
           <Button
             className="rounded-xl"
@@ -332,6 +315,23 @@ export default function SellerListings() {
             Create listing
           </Button>
         </div>
+
+        {!storeApproved && (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+            <Store className="size-3.5 shrink-0 text-primary" />
+            You do not need a store profile to sell. Adding one is optional —
+            buyers see your delivery, warranty and sourcing answers on every
+            listing.{" "}
+            <Link
+              to="/seller/apply"
+              className="font-medium text-foreground underline underline-offset-2 hover:no-underline"
+            >
+              {user?.sellerStatus === "pending"
+                ? "View store status"
+                : "Add a store profile"}
+            </Link>
+          </p>
+        )}
 
         <p className="flex items-start gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-xs text-emerald-700">
           <ShieldAlert className="mt-px size-3.5 shrink-0" />
@@ -401,7 +401,11 @@ export default function SellerListings() {
                         units
                       </span>
                     </span>
-                    <StatusBadge status={l.status} />
+                    {/* `pending` is the admin-approval queue, so name it that
+                        way rather than showing a bare "pending". */}
+                    <StatusBadge
+                      status={l.status === "pending" ? "under_review" : l.status}
+                    />
                     <span className="seller-order-action flex w-full justify-end gap-1.5 lg:w-auto">
                       <Button
                         variant="outline"

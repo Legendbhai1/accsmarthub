@@ -51,12 +51,16 @@ const PLATFORM_OPTIONS = SERVICE_CATEGORIES.slice(0, 8).map((p) => ({
 }));
 
 /**
- * Store setup, step one of becoming a seller.
+ * The optional store profile.
  *
- * The seller answers the questions a buyer genuinely needs before purchase,
- * adds a logo, picks the platform they sell on, and accepts the no-off-platform-contact
- * policy. The store is then locked in "pending" until an admin approves it — listings
- * cannot be created before that, and the server rejects any attempt.
+ * Not a gate: listings can be created without it, and each listing is
+ * approved on its own. What this page collects is the part of trust a buyer
+ * wants next to a listing — what arrives on transfer, how fast, how long the
+ * replacement window is, where you do not deliver, and where the inventory
+ * comes from — plus the no-off-platform-contact agreement.
+ *
+ * Submitting locks the row in "pending" until an admin reviews it, which
+ * awards the verified store badge. Nothing else waits on that.
  *
  * The raw "platforms" text field is kept so sellers can still list multiple
  * platforms if they want, but the primary platform is now a select so the
@@ -179,14 +183,16 @@ export default function SellerApply() {
       : null;
 
   return (
-    <SellerLayout title="Set up your store">
+    <SellerLayout title="Store profile">
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Set up your store</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Your store profile</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Every account can buy and sell. To sell, answer the questions
-            below — buyers see them on every listing — then wait for admin
-            approval before you can publish.
+            Optional. You can create listings right now — every new one is
+            reviewed on its own before it goes live. Filling this in adds the
+            delivery, warranty and sourcing answers buyers read next to those
+            listings, and earns the verified store badge once an admin approves
+            it.
           </p>
         </div>
 
@@ -195,11 +201,11 @@ export default function SellerApply() {
             <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-500/15">
               <Clock className="size-6 text-amber-600" />
             </span>
-            <h3 className="mt-4 font-semibold">Store under review</h3>
+            <h3 className="mt-4 font-semibold">Store profile under review</h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Your answers are with the trust team. Listing creation unlocks the
-              moment an admin approves — you&apos;ll keep full buyer access in
-              the meantime.
+              Your answers are with the trust team. Nothing is blocked while
+              this is pending — keep creating and editing listings; only the
+              verified store badge waits on the review.
             </p>
             {store?.platforms && (
               <p className="mt-3 text-xs text-muted-foreground">
@@ -224,7 +230,7 @@ export default function SellerApply() {
                 {
                   icon: Store,
                   title: "Start selling",
-                  text: "Create listings once your store is approved.",
+                  text: "List any time — each listing goes live after review.",
                 },
               ].map(({ icon: Icon, title, text }) => (
                 <div key={title} className="inset-well rounded-xl p-4">
@@ -444,7 +450,7 @@ export default function SellerApply() {
                 ) : (
                   <Send className="size-4" />
                 )}
-                Submit store for approval
+                Submit store profile for review
               </Button>
               <p className="text-center text-xs text-muted-foreground">
                 Fields marked * are required. They appear on your listings so

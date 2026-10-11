@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
-import { ArrowRightLeft, ShoppingBag, Store } from "lucide-react";
+import { ArrowRightLeft, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/site/Logo";
 import { MobileChipNav, MobileTabBar } from "@/components/site/MobileTabBar";
@@ -29,22 +29,17 @@ export function DashLayout({
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [location.pathname]);
 
-  // Cross-role navigation: buyers can jump to their seller dashboard (after
-  // approval) and sellers back to their buyer account, from the same shell.
+  // Cross-role navigation: buyers can jump straight into the seller studio,
+  // because creating a listing no longer waits on an approved store, and
+  // sellers can jump back to their buyer account.
   const area = nav[0]?.to.startsWith("/seller")
     ? "seller"
     : nav[0]?.to.startsWith("/admin")
       ? "admin"
       : "buyer";
-  const canSell =
-    user?.role === "seller" ||
-    user?.role === "admin" ||
-    user?.sellerStatus === "approved";
   const switchItems: NavItem[] =
     area === "buyer"
-      ? canSell
-        ? [{ label: "Seller dashboard", to: "/seller", icon: ArrowRightLeft }]
-        : [{ label: "Become a seller", to: "/seller/apply", icon: Store }]
+      ? [{ label: "Seller studio", to: "/seller", icon: ArrowRightLeft }]
       : area === "seller"
         ? [{ label: "Buyer account", to: "/account", icon: ShoppingBag }]
         : [

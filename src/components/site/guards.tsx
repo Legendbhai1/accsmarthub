@@ -128,7 +128,9 @@ export function RequireRole({ roles, children }: { roles: Role[]; children: Reac
     return <VerifyEmailGate email={user.email} onSignOut={signOut} />;
   }
 
-  // An approved store application also unlocks the seller area.
+  // Every /seller route now also accepts `buyer`, because creating a listing
+  // no longer depends on a store profile. The sellerStatus clause stays as a
+  // fallback for any future route that is gated on "seller" alone.
   const allowed =
     roles.includes(user.role) ||
     (roles.includes("seller") && user.sellerStatus === "approved");

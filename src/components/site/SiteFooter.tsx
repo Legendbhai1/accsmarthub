@@ -16,7 +16,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
   {
     title: "Sell",
     links: [
-      { label: "Become a seller", to: "/auth?mode=register" },
+      { label: "Start selling", to: "/seller/listings?new=1" },
       { label: "Seller dashboard", to: "/seller" },
       { label: "Fees & payouts", to: "/faq" },
       { label: "Verification", to: "/trust" },
@@ -86,8 +86,9 @@ export function SiteFooter() {
         <div className="mt-12 border-t border-border/70 pt-6 text-xs text-muted-foreground">
           <p>
             © {new Date().getFullYear()} AccsMartHub. Orders, balances,
-            listings and payouts are real and escrow-protected. Listing copy
-            shown before an approved seller publishes it is sample content.
+            listings and payouts are real and escrow-protected. Every listing
+            in the marketplace was reviewed and approved by an admin before it
+            went live.
           </p>
         </div>
       </div>

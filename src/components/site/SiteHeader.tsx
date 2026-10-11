@@ -139,19 +139,16 @@ export function SiteHeader() {
                         ? "Seller dashboard"
                         : "My account"}
                   </DropdownMenuItem>
-                  {/* Cross-role shortcuts: every account can reach both sides. */}
-                  {user.role === "buyer" &&
-                    (canSell ? (
-                      <DropdownMenuItem onClick={() => navigate("/seller")}>
-                        <Store className="size-4" />
-                        Seller dashboard
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem onClick={() => navigate("/seller/apply")}>
-                        <Store className="size-4" />
-                        Become a seller
-                      </DropdownMenuItem>
-                    ))}
+                  {/* Cross-role shortcuts: every account can reach both sides.
+                      The studio is open to everyone now — creating a listing
+                      does not wait on a store profile, so this link no longer
+                      branches to the store application. */}
+                  {user.role === "buyer" && (
+                    <DropdownMenuItem onClick={() => navigate("/seller")}>
+                      <Store className="size-4" />
+                      {canSell ? "Seller dashboard" : "Start selling"}
+                    </DropdownMenuItem>
+                  )}
                   {user.role !== "buyer" && (
                     <DropdownMenuItem onClick={() => navigate("/account")}>
                       <ShoppingBag className="size-4" />
@@ -220,18 +217,14 @@ export function SiteHeader() {
               type="button"
               onClick={() => {
                 setMobileOpen(false);
-                navigate(
-                  canSell && user?.role !== "buyer"
-                    ? "/seller"
-                    : "/seller/apply",
-                );
+                navigate("/seller");
               }}
               className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-accent"
             >
               <Store className="size-4" />
               {canSell && user?.role !== "buyer"
                 ? "Seller dashboard"
-                : "Become a seller"}
+                : "Start selling"}
             </button>
             <button
               type="button"

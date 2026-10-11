@@ -3,27 +3,23 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/site/BrandMark";
 import { SectionHeading } from "@/components/common/Primitives";
-import { categories, useDb } from "@/lib/db";
-import { useLiveStock } from "@/lib/supabaseQueries";
+import { categories } from "@/lib/db";
+import { usePublicListings } from "@/lib/supabaseQueries";
 
 /**
  * /categories — the full platform directory.
  *
  * Counts are the number of listings a seller has actually stocked and had
- * approved, read live from the server. A platform with nothing approved yet
- * says so plainly rather than advertising a made-up total.
+ * approved, read live from the server. `usePublicListings` already filters to
+ * `status = 'active'`, not hidden, and in stock, so every row counted here has
+ * been through admin review. A platform with nothing approved yet says so
+ * plainly rather than advertising a made-up total.
  */
 export default function Categories() {
-  const { listings } = useDb();
-  const liveStock = useLiveStock(listings.map((l) => l.id)).data;
+  const { data: listings = [] } = usePublicListings();
 
   const isLive = (brand: string) =>
-    listings.filter(
-      (l) =>
-        l.brand === brand &&
-        l.status === "active" &&
-        (liveStock ? (liveStock[l.id]?.stock ?? 0) > 0 : true),
-    );
+    listings.filter((listing) => listing.brand === brand);
 
   return (
     <div className="overflow-x-clip">
@@ -78,12 +74,13 @@ export default function Categories() {
               Not seeing your platform?
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Approved sellers can list any account they can document ownership
-              of. Apply to sell and add your own inventory.
+              Any member can list an account they can document ownership of —
+              no store setup first. Every listing is reviewed by an admin
+              before it appears here.
             </p>
           </div>
           <Button className="rounded-full" asChild>
-            <Link to="/seller/apply">Apply to sell</Link>
+            <Link to="/seller/listings?new=1">Start selling</Link>
           </Button>
         </div>
       </section>

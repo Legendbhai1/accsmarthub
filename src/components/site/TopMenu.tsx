@@ -33,13 +33,12 @@ export function TopMenu({
   const { theme, toggleTheme } = useTheme();
 
   const isDark = theme === "dark";
-  const canSell =
-    user?.role === "seller" ||
-    user?.role === "admin" ||
-    user?.sellerStatus === "approved";
+  const isSeller = user?.role === "seller" || user?.role === "admin";
 
-  const goToSeller = () =>
-    navigate(canSell && user?.role !== "buyer" ? "/seller" : "/seller/apply");
+  // The studio is open to every confirmed account: a listing can be created
+  // without a store profile, so this no longer routes sellers-to-be through
+  // the store application first.
+  const goToSeller = () => navigate("/seller");
 
   return (
     <DropdownMenu>
@@ -71,7 +70,7 @@ export function TopMenu({
 
         <DropdownMenuItem onSelect={goToSeller}>
           <Store className="size-4" />
-          {canSell && user?.role !== "buyer" ? "Seller dashboard" : "Become a seller"}
+          {isSeller ? "Seller dashboard" : "Start selling"}
         </DropdownMenuItem>
 
         <DropdownMenuItem

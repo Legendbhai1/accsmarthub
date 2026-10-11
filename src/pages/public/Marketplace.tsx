@@ -371,13 +371,14 @@ export default function Marketplace() {
           <div className="ink-panel mt-8 px-5 py-5 text-center">
             <p className="text-sm font-semibold">Want to sell an account?</p>
             <p className="mt-1 text-[11px] leading-snug opacity-70">
-              Apply to sell, then list accounts that go live in the marketplace.
+              Create a listing in minutes — it goes live once an admin approves
+              it.
             </p>
             <Link
-              to="/seller/apply"
+              to="/seller/listings?new=1"
               className="mt-3 inline-flex h-9 items-center justify-center rounded-full bg-primary px-5 text-xs font-semibold text-primary-foreground"
             >
-              Apply to sell
+              Start selling
             </Link>
           </div>
         </div>

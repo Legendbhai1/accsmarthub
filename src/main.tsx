@@ -193,17 +193,23 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/account/support" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerSupport /></RequireRole>} />
               <Route path="/account/profile" element={<RequireRole roles={["buyer", "seller", "admin"]}><BuyerProfile /></RequireRole>} />
 
-              {/* Seller area */}
+              {/* Seller area.
+                  Open to any confirmed account, not only approved sellers:
+                  creating a listing no longer depends on a store profile, so
+                  a brand-new seller must be able to reach the editor. What
+                  they publish still starts as `pending` and only an admin can
+                  make it `active`. `/seller/apply` is the optional store
+                  profile, kept for sellers who want one. */}
               <Route path="/seller/apply" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerApply /></RequireRole>} />
-              <Route path="/seller" element={<RequireRole roles={["seller", "admin"]}><SellerDashboard /></RequireRole>} />
-              <Route path="/seller/listings" element={<RequireRole roles={["seller", "admin"]}><SellerListings /></RequireRole>} />
-              <Route path="/seller/orders" element={<RequireRole roles={["seller", "admin"]}><SellerOrders /></RequireRole>} />
-              <Route path="/seller/earnings" element={<RequireRole roles={["seller", "admin"]}><SellerEarnings /></RequireRole>} />
-              <Route path="/seller/disputes" element={<RequireRole roles={["seller", "admin"]}><SellerDisputes /></RequireRole>} />
-              <Route path="/seller/transactions" element={<RequireRole roles={["seller", "admin"]}><SellerTransactions /></RequireRole>} />
-              <Route path="/seller/analytics" element={<RequireRole roles={["seller", "admin"]}><SellerAnalytics /></RequireRole>} />
-              <Route path="/seller/settings" element={<RequireRole roles={["seller", "admin"]}><SellerSettings /></RequireRole>} />
-              <Route path="/seller/profile" element={<RequireRole roles={["seller", "admin"]}><SellerProfile /></RequireRole>} />
+              <Route path="/seller" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerDashboard /></RequireRole>} />
+              <Route path="/seller/listings" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerListings /></RequireRole>} />
+              <Route path="/seller/orders" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerOrders /></RequireRole>} />
+              <Route path="/seller/earnings" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerEarnings /></RequireRole>} />
+              <Route path="/seller/disputes" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerDisputes /></RequireRole>} />
+              <Route path="/seller/transactions" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerTransactions /></RequireRole>} />
+              <Route path="/seller/analytics" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerAnalytics /></RequireRole>} />
+              <Route path="/seller/settings" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerSettings /></RequireRole>} />
+              <Route path="/seller/profile" element={<RequireRole roles={["buyer", "seller", "admin"]}><SellerProfile /></RequireRole>} />
 
               {/* Admin panel */}
               <Route path="/admin" element={<RequireRole roles={["admin"]}><AdminDashboard /></RequireRole>} />

@@ -667,3 +667,70 @@ async function fetchPublicListing(id: string): Promise<PublicListing | null> {
 export function usePublicListing(id: string | undefined) {
   return useSBQuery(() => fetchPublicListing(id ?? ""), [id ?? ""]);
 }
+
+/**
+ * The moderation queue: every listing, whatever its status.
+ *
+ * `read listings` only exposes `active` rows to the public, so this returns
+ * anything at all only for a real admin (or a seller's own rows, which the
+ * admin page never asks for). Seller names come from a second read against
+ * `profiles` rather than an embedded select, because `listings.seller_id`
+ * points at `auth.users` and PostgREST cannot embed `public.profiles`
+ * through that relationship.
+ */
+export type AdminListingRow = {
+  id: string;
+  seller_id: string;
+  seller_name: string;
+  seller_email: string | null;
+  title: string;
+  brand: string;
+  service_category: string | null;
+  price_usd: number;
+  stock: number;
+  status: string;
+  hidden: boolean;
+  created_at: string;
+};
+
+async function fetchAdminListings(): Promise<AdminListingRow[]> {
+  const { data, error } = await supabase
+    .from("listings")
+    .select(
+      "id, seller_id, title, brand, service_category, price_usd, stock, status, hidden, created_at",
+    )
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+
+  const rows = data ?? [];
+  const sellerIds = [...new Set(rows.map((r) => r.seller_id))];
+  const people = new Map<string, { name: string | null; email: string | null }>();
+  if (sellerIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, name, email")
+      .in("id", sellerIds);
+    for (const p of profiles ?? []) {
+      people.set(p.id, { name: p.name, email: p.email });
+    }
+  }
+
+  return rows.map((r) => ({
+    id: r.id,
+    seller_id: r.seller_id,
+    seller_name: people.get(r.seller_id)?.name || "Member",
+    seller_email: people.get(r.seller_id)?.email ?? null,
+    title: r.title,
+    brand: r.brand,
+    service_category: r.service_category,
+    price_usd: Number(r.price_usd ?? 0),
+    stock: Number(r.stock ?? 0),
+    status: r.status,
+    hidden: Boolean(r.hidden),
+    created_at: r.created_at,
+  }));
+}
+
+export function useAdminListings() {
+  return useSBQuery(fetchAdminListings, []);
+}
