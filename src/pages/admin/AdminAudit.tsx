@@ -1,45 +1,47 @@
 import { useState } from "react";
-import { Search, Ticket, Clock, ChevronRight } from "lucide-react";
+import { Search, Shield, Clock, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
-import { supabase } from "@/lib/supabase";
+import { invokableSupabase } from "@/lib/supabase";
 
 type AuditRow = {
   id: string;
   actor_id: string;
   action: string;
-  resource: string | null;
+  resource_type: string;
   resource_id: string | null;
+  resource_text: string | null;
   note: string | null;
   created_at: string;
 };
 
 export default function AdminAudit() {
-  const [q, setQ] = useState("");
+  const [search, setSearch] = useState("");
   const [rows, setRows] = useState<AuditRow[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase
-        .from("audit_logs")
-        .select("id, actor_id, action, resource, resource_id, note, created_at")
+      const supabase = invokableSupabase();
+      const { data, error: fetchError } = await supabase
+        .from("admin_audit")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(100);
 
-      if (error) throw new Error(error.message);
-      setRows(data ?? []);
+      if (fetchError) throw new Error(fetchError.message);
+      setRows((data ?? []).map((r) => ({ ...r })));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : "Could not load audit log.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -51,12 +53,12 @@ export default function AdminAudit() {
   };
 
   const filtered =
-    q.trim()
+    search.trim()
       ? rows.filter(
           (r) =>
-            r.action.toLowerCase().includes(q.trim().toLowerCase()) ||
-            r.resource?.toLowerCase().includes(q.trim().toLowerCase()) ||
-            r.resource_id?.toLowerCase().includes(q.trim().toLowerCase())
+            r.action.toLowerCase().includes(search.trim().toLowerCase()) ||
+            r.resource_type.toLowerCase().includes(search.trim().toLowerCase()) ||
+            r.resource_text?.toLowerCase().includes(search.trim().toLowerCase()),
         )
       : rows;
 
@@ -64,22 +66,22 @@ export default function AdminAudit() {
     <DashLayout title="Audit log" nav={adminNav}>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Review privileged actions and wallet movements. Every sensitive change
-          leaves a trail here so moderation decisions stay traceable.
+          Review privileged actions and moderation decisions. Every sensitive
+          change leaves a trail here so admin work stays traceable.
         </p>
 
         <div className="flex flex-wrap gap-3">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search action, resource, or ID"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+              placeholder="Search action, resource, or note"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
             />
           </div>
           <Button className="rounded-xl" onClick={loadOnce}>
-            <Ticket className="size-4 mr-2" />
+            <Shield className="size-4 mr-2" />
             Refresh
           </Button>
         </div>
@@ -90,25 +92,26 @@ export default function AdminAudit() {
           </div>
         )}
 
-        {isLoading ? (
+        {loading ? (
           <EmptyState
             title="Loading audit log…"
             description="Fetching recent privileged actions."
           />
         ) : filtered.length === 0 ? (
           <EmptyState
-            title={q.trim() ? "No audit entries found" : "No audit entries yet"}
+            title={search.trim() ? "No audit entries found" : "No audit entries yet"}
             description={
-              q.trim()
+              search.trim()
                 ? "Try a different search term."
                 : "Privileged actions will appear here once the platform records them."
             }
           />
         ) : (
           <div className="glass overflow-hidden">
-            <div className="hidden grid-cols-[1fr_8rem_6rem_6rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
+            <div className="hidden grid-cols-[1fr_7rem_8rem_6rem_6rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
               <span>Audit entry</span>
               <span>Action</span>
+              <span className="text-right">Resource</span>
               <span className="text-right">By</span>
               <span className="text-right">When</span>
             </div>
@@ -124,7 +127,8 @@ export default function AdminAudit() {
                         {r.action}
                       </span>
                       <span className="block text-xs text-muted-foreground">
-                        {r.resource ? `${r.resource} · ${r.resource_id?.slice(0, 8)}…` : r.resource_id?.slice(0, 8) ?? "—"}
+                        {r.resource_type}
+                        {r.resource_text ? ` — ${r.resource_text}` : ""}
                       </span>
                       {r.note && (
                         <span className="mt-1 block text-xs text-muted-foreground">
@@ -136,8 +140,11 @@ export default function AdminAudit() {
                       variant="outline"
                       className="rounded-full border-border/70 text-xs font-medium uppercase tracking-wide"
                     >
-                      {r.action?.toLowerCase()}
+                      {r.action}
                     </Badge>
+                    <span className="w-24 text-right text-xs text-muted-foreground truncate">
+                      {r.resource_text ? r.resource_text.slice(0, 22) : r.resource_id?.slice(0, 22) ?? "—"}
+                    </span>
                     <span className="w-20 text-right text-xs text-muted-foreground truncate">
                       {r.actor_id.slice(0, 8)}…
                     </span>

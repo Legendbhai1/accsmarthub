@@ -3,133 +3,157 @@ import { UserX, Shield, Mail, CheckCheck, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
-import { useSession, type SessionUser } from "@/lib/session";
-import { supabase } from "@/lib/supabase";
+import { useSession } from "@/lib/session";
+import { invokableSupabase } from "@/lib/supabase";
 
 type AdminUserRow = {
   id: string;
   email: string;
   name: string | null;
-  updated_at: string;
-  aud: string | null;
+  last_sign_in_at: string | null;
   role: string | null;
 };
 
-type ProfileRow = {
-  id: string;
-  role: string | null;
-  name: string | null;
-  avatar_path: string | null;
-};
-
-type UsersResult = {
+type AdminUsersPayload = {
   users: AdminUserRow[];
-  isLoading: boolean;
-  error: string | null;
+  total: number;
+  page: number;
+  per_page: number;
 };
 
-type UsersQueryReturn = {
-  data: UsersResult | undefined;
-  isLoading: boolean;
+type AdminUsersResult = {
+  data?: AdminUsersPayload;
   error: string | null;
+  loading: boolean;
   refresh: () => void;
 };
 
-function useUsers(queryKey: string[]): UsersQueryReturn {
-  const [data, setData] = useState<UsersResult | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(false);
+const PAGE_SIZE = 50;
+
+function useAdminUsers(
+  page: number,
+  roleFilter: string,
+  search: string,
+): AdminUsersResult {
+  const [data, setData] = useState<AdminUsersPayload | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
-
-  const run = async () => {
-    setIsLoading(true);
+  const [loading, setLoading] = useState(false);
+  const fetcherRef = useState(() => async () => {
     setError(null);
+    setLoading(true);
     try {
-      const profResult = await supabase
-        .from("profiles")
-        .select("id, role, name, avatar_path")
-        .order("created_at", { ascending: false });
+      const supabase = invokableSupabase();
+      const status = roleFilter === "all" ? "all" : roleFilter;
+      const { data: invokeData, error: invokeError } = await supabase.functions
+        .invoke("admin-users", {
+          body: { page, per_page: PAGE_SIZE, status, search },
+        });
 
-      if (profResult.error) throw new Error(profResult.error.message);
-      const profiles: ProfileRow[] = profResult.data ?? [];
-
-      const ids = profiles.map((p) => p.id);
-      const users: AdminUserRow[] = [];
-
-      for (const id of ids) {
-        const adminResult = await supabase.auth.admin.getUserById(id);
-        if (!adminResult.error && adminResult.data?.user) {
-          const u = adminResult.data.user;
-          const profile = profiles.find((p) => p.id === id);
-          users.push({
-            id: u.id,
-            email: u.email ?? "",
-            name: profile?.name ?? null,
-            updated_at: u.last_sign_in_at ?? u.created_at ?? "",
-            aud: u.aud ?? null,
-            role: profile?.role ?? null,
-          });
-        }
+      if (invokeError) {
+        throw new Error(
+          invokeError.message ?? "AdminUsers service returned an error.",
+        );
       }
 
-      users.sort(
-        (a, b) =>
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      );
-      setData({ users, isLoading: false, error: null });
+      const payload = (invokeData as AdminUsersPayload) ?? {
+        users: [],
+        total: 0,
+        page,
+        per_page: PAGE_SIZE,
+      };
+      setData(payload);
     } catch (err) {
-      setData({ users: [], isLoading: false, error: err instanceof Error ? err.message : "Unknown error" });
+      setError(
+        err instanceof Error ? err.message : "Could not load admin users.",
+      );
+      setData({ users: [], total: 0, page, per_page: PAGE_SIZE });
     } finally {
-      if (data === undefined) setIsLoading(false);
+      setLoading(false);
     }
-  };
+  }).ref;
 
   useEffect(() => {
     let cancelled = false;
-    run();
+    fetcherRef.current().then(() => {
+      if (!cancelled) return;
+    });
     return () => {
       cancelled = true;
     };
-  }, queryKey);
+  }, [page, roleFilter, search]);
 
   return {
     data,
-    isLoading,
     error,
-    refresh: run,
+    loading,
+    refresh: () => {
+      let mounted = true;
+      fetcherRef.current().then(() => {
+        if (!mounted) return;
+      });
+      // Not awaited here; the caller uses `loading` in the meantime.
+    },
   };
+}
+
+function AdminUsersError({
+  message,
+  retry,
+}: {
+  message: string;
+  retry: () => void;
+}) {
+  return (
+    <div className="rounded-xl border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {message}
+      <div className="mt-2">
+        <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={retry}>
+          Try again
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export default function AdminUsers() {
   const { user } = useSession();
-  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
-  const query = useUsers([q.trim().toLowerCase(), roleFilter]);
-  const usersResult = query.data;
-  const users = usersResult?.users ?? [];
-  const isLoading = usersResult === undefined ? query.isLoading : usersResult.isLoading;
-  const error = usersResult?.error ?? query.error;
+  const query = useAdminUsers(page, roleFilter, search.trim());
+  const payload = query.data;
+  const rows = payload?.users ?? [];
+  const total = payload?.total ?? 0;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const filtered =
-    roleFilter === "all"
-      ? q.trim()
-        ? users.filter(
+    roleFilter === "all" && !search.trim()
+      ? rows
+      : search.trim()
+        ? rows.filter(
             (u) =>
-              u.email.toLowerCase().includes(q.trim().toLowerCase()) ||
-              u.name?.toLowerCase().includes(q.trim().toLowerCase())
+              u.email.toLowerCase().includes(search.trim().toLowerCase()) ||
+              u.name?.toLowerCase().includes(search.trim().toLowerCase()),
           )
-        : users
-      : users.filter((u) => u.role === roleFilter);
+        : rows.filter((u) => u.role === roleFilter);
 
   return (
     <DashLayout title="User management" nav={adminNav}>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Accounts across all roles. Filter by role or email to find a specific
-          user, and review activity from here before taking moderation action.
+          Accounts across all roles. Filtering and paging happen on the server so
+          this page does not load every account into the browser.
         </p>
 
         <div className="flex flex-wrap gap-3">
@@ -137,43 +161,63 @@ export default function AdminUsers() {
             <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search by email or name"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               className="pl-9"
             />
           </div>
-          <select
-            className="rounded-xl border-border/70 bg-card px-3 py-2 text-sm shadow-sm focus:border-ring focus:outline-none"
+          <Select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
+            onValueChange={(value) => {
+              setRoleFilter(value);
+              setPage(1);
+            }}
           >
-            <option value="all">All roles</option>
-            <option value="admin">Admin</option>
-            <option value="seller">Seller</option>
-            <option value="buyer">Buyer</option>
-          </select>
-          <Button className="rounded-xl" onClick={() => query.refresh()}>
+            <SelectTrigger className="w-[170px] rounded-xl">
+              <SelectValue placeholder="All roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All roles</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="seller">Seller</SelectItem>
+              <SelectItem value="buyer">Buyer</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            className="rounded-xl"
+            onClick={() => query.refresh()}
+            disabled={query.loading}
+          >
             <Shield className="size-4 mr-2" />
             Refresh
           </Button>
         </div>
 
-        {error && (
-          <div className="rounded-xl border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            Could not load users: {error}
-          </div>
+        {query.error && (
+          <AdminUsersError
+            message={query.error}
+            retry={() => query.refresh()}
+          />
         )}
 
-        {isLoading ? (
+        {query.loading && rows.length === 0 ? (
           <EmptyState
             title="Loading users…"
-            description="Fetching accounts from the platform."
+            description="Fetching accounts from the admin service."
           />
         ) : filtered.length === 0 ? (
           <EmptyState
-            title={roleFilter === "all" || q.trim() ? "No users found" : "No users here"}
+            title={
+              roleFilter !== "all" || search.trim()
+                ? "No users found"
+                : "No users here"
+            }
             description={
-              roleFilter === "all" || q.trim()
+              roleFilter !== "all" || search.trim()
                 ? "Try a different search or filter."
                 : "No accounts match the selected role yet."
             }
@@ -190,8 +234,9 @@ export default function AdminUsers() {
             </div>
             <ul className="divide-y divide-border/60">
               {filtered.map((u) => {
-                const normalizedRole = (u.role ?? "member").toLowerCase();
-                const isActive = u.aud === "authenticated";
+                const normalizedRole =
+                  (u.role ?? "member").toLowerCase();
+                const isActive = u.last_sign_in_at != null;
                 return (
                   <li
                     key={u.id}
@@ -199,7 +244,9 @@ export default function AdminUsers() {
                   >
                     <div className="flex items-start gap-3">
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-600 text-sm font-bold text-amber-950">
-                        {(u.name ?? u.email.charAt(0).toUpperCase()).charAt(0)}
+                        {u.name != null
+                          ? u.name.charAt(0).toUpperCase()
+                          : u.email.charAt(0).toUpperCase()}
                       </span>
                       <div className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">
@@ -220,7 +267,9 @@ export default function AdminUsers() {
                         </Badge>
                       </div>
                       <span className="hidden w-24 text-right text-xs text-muted-foreground sm:block">
-                        {u.updated_at ? new Date(u.updated_at).toLocaleDateString() : "—"}
+                        {u.last_sign_in_at
+                          ? new Date(u.last_sign_in_at).toLocaleDateString()
+                          : "—"}
                       </span>
                       <div className="flex items-center justify-center sm:flex-col gap-1.5">
                         {isActive ? (
@@ -237,6 +286,7 @@ export default function AdminUsers() {
                       </div>
                       <div className="flex items-center justify-end gap-1.5 sm:flex-col sm:gap-2">
                         <Button
+                          type="button"
                           variant="outline"
                           size="sm"
                           className="rounded-lg"
@@ -244,6 +294,7 @@ export default function AdminUsers() {
                           <Shield className="size-3.5" />
                         </Button>
                         <Button
+                          type="button"
                           variant="ghost"
                           size="sm"
                           className="rounded-lg"
@@ -256,6 +307,36 @@ export default function AdminUsers() {
                 );
               })}
             </ul>
+          </div>
+        )}
+
+        {total > 0 && pages > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              Showing page {page} of {pages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-lg"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-lg"
+                disabled={page >= pages}
+                onClick={() => setPage((p) => Math.min(pages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </div>

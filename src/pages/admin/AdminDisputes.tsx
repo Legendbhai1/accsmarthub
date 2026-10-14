@@ -3,7 +3,6 @@ import {
   Shield,
   MessageSquare,
   CheckCheck,
-  Clock,
   AlertTriangle,
   ChevronRight,
 } from "lucide-react";
@@ -20,43 +19,52 @@ import {
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
-import { formatPrice } from "@/lib/format";
 import { useAdminDisputes } from "@/lib/supabaseQueries";
-import { supabase } from "@/lib/supabase";
+import { resolveDispute } from "@/lib/supabaseMutations";
 
 const TABS = [
   { key: "open", label: "Open" },
   { key: "under_review", label: "Under review" },
-  { key: "resolved", label: "Resolved" },
-  { key: "closed", label: "Closed" },
+  { key: "resolved_buyer", label: "Resolved - buyer" },
+  { key: "resolved_seller", label: "Resolved - seller" },
+  { key: "dismissed", label: "Dismissed" },
 ] as const;
 
+type TabKey = (typeof TABS)[number]["key"];
+
 export default function AdminDisputes() {
-  const [tab, setTab] = useState<string>("open");
+  const [tab, setTab] = useState<TabKey>("open");
   const [openId, setOpenId] = useState<string | null>(null);
-  const [resolution, setResolution] = useState("");
+  const [outcome, setOutcome] = useState<
+    "resolved_buyer" | "resolved_seller" | "dismissed"
+  >("resolved_seller");
+  const [note, setNote] = useState("");
 
   const disputesQuery = useAdminDisputes();
   const disputes = disputesQuery.data ?? [];
 
-  const filtered = tab === "closed"
-    ? []
-    : disputes.filter((d) => d.status === tab || (tab === "resolved" && d.status === "resolved"));
+  const filtered = disputes.filter(
+    (d) =>
+      tab === "open"
+        ? d.status === "open"
+        : tab === "under_review"
+          ? d.status === "under_review"
+          : d.status === tab,
+  );
 
   const openDispute = disputes.find((d) => d.id === openId);
   const isOpen = openDispute !== undefined;
 
   const resolve = async () => {
-    if (!openId || !resolution.trim()) return;
-    const { error } = await supabase.rpc("close_dispute", {
-      p_dispute_id: openId,
-      p_resolution: resolution.trim(),
-      p_resolution_note: resolution.trim(),
-    });
-    if (error) throw new Error(error.message);
-    setOpenId(null);
-    setResolution("");
-    disputesQuery.refresh();
+    if (!openId || !note.trim()) return;
+    try {
+      await resolveDispute(openId, outcome, note.trim());
+      setOpenId(null);
+      setNote("");
+      disputesQuery.refresh();
+    } catch (err) {
+      throw err instanceof Error ? err : new Error("Could not resolve dispute");
+    }
   };
 
   return (
@@ -64,7 +72,7 @@ export default function AdminDisputes() {
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           Review open disputes and guide both sides toward resolution. Every
-          dispute keeps the order in escrow until an admin closes it.
+          dispute keeps the order in escrow until an admin resolves it.
         </p>
 
         <div className="flex flex-wrap gap-2">
@@ -84,21 +92,22 @@ export default function AdminDisputes() {
           ))}
         </div>
 
-        {tab === "closed" ? (
+        {filtered.length === 0 ? (
           <div className="glass overflow-hidden">
             <EmptyState
-              title="No closed disputes shown"
-              description="Closed disputes are hidden here for now."
-            />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="glass overflow-hidden">
-            <EmptyState
-              title={tab === "under_review" ? "Nothing under review" : `No ${tab} disputes`}
+              title={
+                tab === "open"
+                  ? "Nothing open"
+                  : tab === "under_review"
+                    ? "Nothing under review"
+                    : `No ${tab.replace("_", " ")} disputes`
+              }
               description={
-                tab === "under_review"
-                  ? "All disputes are either open or already being handled."
-                  : `There are no ${tab} disputes right now.`
+                tab === "open"
+                  ? "All disputes are either under review or already resolved."
+                  : tab === "under_review"
+                    ? "All disputes are either open or already being handled."
+                    : `There are no ${tab.replace("_", " ")} disputes right now.`
               }
             />
           </div>
@@ -141,11 +150,11 @@ export default function AdminDisputes() {
                           d.status === "open"
                             ? "border-amber-500/30 text-amber-700 dark:text-amber-400"
                             : d.status === "under_review"
-                            ? "border-primary/50 text-primary"
-                            : "border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                              ? "border-primary/50 text-primary"
+                              : "border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
                         }`}
                       >
-                        {d.status.replace("_", " ")}
+                        {d.status.replace(/_/g, " ")}
                       </Badge>
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -155,7 +164,14 @@ export default function AdminDisputes() {
                         className="rounded-lg"
                         onClick={() => {
                           setOpenId(d.id);
-                          setResolution(d.resolution_note ?? "");
+                          setNote(d.resolution_note ?? "");
+                          setOutcome(
+                            d.status === "resolved_buyer"
+                              ? "resolved_buyer"
+                              : d.status === "resolved_seller"
+                                ? "resolved_seller"
+                                : "resolved_seller",
+                          );
                         }}
                       >
                         <MessageSquare className="size-3.5" />
@@ -183,11 +199,47 @@ export default function AdminDisputes() {
                   <p className="mt-1 text-muted-foreground">{openDispute.reason}</p>
                 </div>
 
+                <div className="grid gap-3">
+                  <label className="text-sm font-medium">Resolution</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      type="button"
+                      variant={outcome === "resolved_buyer" ? "default" : "outline"}
+                      className="rounded-lg"
+                      onClick={() =>
+                        setOutcome("resolved_buyer")
+                      }
+                    >
+                      Refund buyer
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={outcome === "resolved_seller" ? "default" : "outline"}
+                      className="rounded-lg"
+                      onClick={() =>
+                        setOutcome("resolved_seller")
+                      }
+                    >
+                      Release to seller
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={outcome === "dismissed" ? "default" : "outline"}
+                      className="rounded-lg"
+                      onClick={() =>
+                        setOutcome("dismissed")
+                      }
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Resolution note</label>
                   <Textarea
-                    value={resolution}
-                    onChange={(e) => setResolution(e.target.value)}
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
                     placeholder="Summarize what happened and how this dispute is being closed."
                     rows={5}
                   />
@@ -196,28 +248,35 @@ export default function AdminDisputes() {
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 text-amber-700 dark:text-amber-400">
                     <AlertTriangle className="size-3.5" />
-                    Closing a dispute releases the escrow hold.
+                    This uses the database’s resolve_dispute outcome set and
+                    records an audit note when the function is wired up.
                   </span>
                 </div>
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" className="rounded-xl" onClick={() => setOpenId(null)}>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setOpenId(null)}
+              >
                 Cancel
               </Button>
               <Button
                 className="rounded-xl"
-                disabled={!resolution.trim()}
+                disabled={!note.trim()}
                 onClick={async () => {
                   try {
                     await resolve();
                   } catch (err) {
-                    alert(err instanceof Error ? err.message : "Could not resolve dispute");
+                    alert(
+                      err instanceof Error ? err.message : "Could not resolve dispute",
+                    );
                   }
                 }}
               >
                 <CheckCheck className="size-4 mr-2" />
-                Close dispute
+                Resolve dispute
               </Button>
             </DialogFooter>
           </DialogContent>

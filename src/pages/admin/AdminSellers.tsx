@@ -1,22 +1,39 @@
 import { useState } from "react";
 import {
   Shield,
-  CheckCheck,
-  XCircle,
   Search,
   Eye,
-  Clock,
-  AlertTriangle,
+  CheckCheck,
+  XCircle,
   MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
-import { useSession, type SessionUser } from "@/lib/session";
-import { supabase } from "@/lib/supabase";
+import { useReviewQueue } from "@/lib/supabaseQueries";
+import { reviewStore } from "@/lib/supabaseMutations";
+
+type SellerRow = {
+  id: string;
+  user_id: string;
+  store_name: string;
+  slug: string;
+  platforms: string[];
+  status: "pending" | "approved" | "rejected";
+  review_note: string | null;
+  created_at: string;
+};
 
 const TABS = [
   { key: "pending", label: "Pending" },
@@ -24,59 +41,40 @@ const TABS = [
   { key: "rejected", label: "Rejected" },
 ] as const;
 
+type TabKey = (typeof TABS)[number]["key"];
+
 export default function AdminSellers() {
-  const { user } = useSession();
-  const [tab, setTab] = useState<"pending" | "approved" | "rejected">("pending");
+  const [tab, setTab] = useState<TabKey>("pending");
   const [q, setQ] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [approve, setApprove] = useState<boolean>(false);
+  const [note, setNote] = useState("");
 
-  const fetcher = async () => {
-    const { data, error } = await supabase
-      .from("stores")
-      .select("*")
-      .eq("status", tab)
-      .order("created_at", { ascending: false });
-
-    if (error) throw new Error(error.message);
-    return (data ?? []).map((r) => ({
-      ...r,
-      platforms:
-        typeof r.platforms === "string" && r.platforms
-          ? (JSON.parse(r.platforms) as string[])
-          : ([] as string[]),
-    }));
-  };
-
-  const [rows, setRows] = useState<Awaited<ReturnType<typeof fetcher>>>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      setRows(await fetcher());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadOnce = () => {
-    let ran = false;
-    load().then(() => {
-      if (!ran) ran = true;
-    });
-  };
+  const queueQuery = useReviewQueue(tab);
+  const stores = queueQuery.data ?? [];
 
   const filtered =
     q.trim()
-      ? rows.filter(
+      ? stores.filter(
           (r) =>
             r.store_name.toLowerCase().includes(q.trim().toLowerCase()) ||
-            r.slug.toLowerCase().includes(q.trim().toLowerCase())
+            r.slug.toLowerCase().includes(q.trim().toLowerCase()),
         )
-      : rows;
+      : stores;
+
+  const openStore = stores.find((r) => r.id === openId);
+
+  const submitReview = async () => {
+    if (!openId) return;
+    try {
+      await reviewStore({ storeId: openId, approve, note: note.trim() ?? undefined });
+      setOpenId(null);
+      setNote("");
+      queueQuery.refresh();
+    } catch (err) {
+      throw err instanceof Error ? err : new Error("Could not review store");
+    }
+  };
 
   return (
     <DashLayout title="Seller management" nav={adminNav}>
@@ -113,32 +111,26 @@ export default function AdminSellers() {
               className="pl-9"
             />
           </div>
-          <Button className="rounded-xl" onClick={loadOnce}>
+          <Button
+            className="rounded-xl"
+            onClick={() => queueQuery.refresh()}
+          >
             <Shield className="size-4 mr-2" />
             Refresh
           </Button>
         </div>
 
-        {error && (
-          <div className="rounded-xl border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            Could not load sellers: {error}
+        {filtered.length === 0 ? (
+          <div className="glass overflow-hidden">
+            <EmptyState
+              title={q.trim() ? "No stores found" : `No ${tab} stores`}
+              description={
+                q.trim()
+                  ? "Try a different search term."
+                  : `There are no ${tab} stores to review right now.`
+              }
+            />
           </div>
-        )}
-
-        {isLoading ? (
-          <EmptyState
-            title="Loading stores…"
-            description={`Fetching the ${tab} queue.`}
-          />
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            title={q.trim() ? "No stores found" : `No ${tab} stores`}
-            description={
-              q.trim()
-                ? "Try a different search term."
-                : `There are no ${tab} stores to review right now.`
-            }
-          />
         ) : (
           <div className="glass overflow-hidden">
             <div className="border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -160,20 +152,10 @@ export default function AdminSellers() {
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      {r.logo_path && (
-                        <span className="text-xs text-muted-foreground">
-                          Logo
-                        </span>
-                      )}
-                      {r.banner_path && (
-                        <span className="text-xs text-muted-foreground">
-                          Banner
-                        </span>
-                      )}
                       {r.platforms.length > 0 && (
                         <span className="text-xs text-muted-foreground">
-                          {(r.platforms?.[0] ?? "").charAt(0).toUpperCase() +
-                            (r.platforms?.[0] ?? "").slice(1)}
+                          {r.platforms[0].charAt(0).toUpperCase() +
+                            r.platforms[0].slice(1)}
                         </span>
                       )}
                     </div>
@@ -187,8 +169,8 @@ export default function AdminSellers() {
                           tab === "approved"
                             ? "border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
                             : tab === "rejected"
-                            ? "border-destructive/30 text-destructive"
-                            : "border-amber-500/30 text-amber-700 dark:text-amber-400"
+                              ? "border-destructive/30 text-destructive"
+                              : "border-amber-500/30 text-amber-700 dark:text-amber-400"
                         }`}
                       >
                         {tab}
@@ -200,10 +182,16 @@ export default function AdminSellers() {
                           Note
                         </span>
                       )}
-                      <Button variant="ghost" size="sm" className="rounded-lg">
-                        <Eye className="size-3.5" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="rounded-lg">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg"
+                        onClick={() => {
+                          setOpenId(r.id);
+                          setApprove(tab === "approved");
+                          setNote(r.review_note ?? "");
+                        }}
+                      >
                         <MoreHorizontal className="size-3.5" />
                       </Button>
                     </div>
@@ -213,6 +201,82 @@ export default function AdminSellers() {
             </ul>
           </div>
         )}
+
+        <Dialog open={openId !== null} onOpenChange={() => setOpenId(null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Review store</DialogTitle>
+            </DialogHeader>
+            {openStore && (
+              <div className="space-y-4">
+                <div className="rounded-xl border-border/70 bg-muted/40 p-4 text-sm">
+                  <p className="font-medium">{openStore.store_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {openStore.slug} · {openStore.user_id.slice(0, 8)}…
+                  </p>
+                </div>
+
+                <div className="grid gap-3">
+                  <label className="text-sm font-medium">Decision</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={approve ? "default" : "outline"}
+                      className="rounded-lg"
+                      onClick={() => setApprove(true)}
+                    >
+                      <CheckCheck className="size-4 mr-2" />
+                      Approve
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={!approve ? "default" : "outline"}
+                      className="rounded-lg"
+                      onClick={() => setApprove(false)}
+                    >
+                      <XCircle className="size-4 mr-2" />
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Review note</label>
+                  <Textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Explain the decision for the applicant."
+                    rows={4}
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setOpenId(null)}
+              >
+                Close
+              </Button>
+              <Button
+                className="rounded-xl"
+                disabled={!note.trim()}
+                onClick={async () => {
+                  try {
+                    await submitReview();
+                  } catch (err) {
+                    alert(
+                      err instanceof Error ? err.message : "Could not review store",
+                    );
+                  }
+                }}
+              >
+                Save review
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashLayout>
   );

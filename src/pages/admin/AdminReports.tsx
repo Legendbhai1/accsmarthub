@@ -4,9 +4,7 @@ import {
   Search,
   Eye,
   CheckCheck,
-  Clock,
   AlertTriangle,
-  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,30 +21,45 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { useReports } from "@/lib/supabaseQueries";
-import { supabase } from "@/lib/supabase";
+import { resolveReport } from "@/lib/supabaseMutations";
 
 const TABS = [
   { key: "open", label: "Open" },
   { key: "reviewing", label: "Under review" },
   { key: "resolved", label: "Resolved" },
+  { key: "dismissed", label: "Dismissed" },
 ] as const;
 
+type TabKey = (typeof TABS)[number]["key"];
+
 export default function AdminReports() {
-  const [tab, setTab] = useState<"open" | "reviewing" | "resolved">("open");
+  const [tab, setTab] = useState<TabKey>("open");
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
-  const [actionNote, setActionNote] = useState("");
+  const [note, setNote] = useState("");
 
-  const query = useReports(tab === "resolved" ? "resolved" : tab);
-  const reports = query.data ?? [];
+  const reportsQuery = useReports(
+    tab === "resolved" ? "resolved" : tab === "dismissed" ? "resolved" : tab,
+  );
+  const reports = reportsQuery.data ?? [];
+
   const filtered =
     q.trim()
       ? reports.filter(
           (r) =>
             r.reason.toLowerCase().includes(q.trim().toLowerCase()) ||
-            r.detail.toLowerCase().includes(q.trim().toLowerCase())
+            r.detail.toLowerCase().includes(q.trim().toLowerCase()),
         )
-      : reports;
+      : reports.filter(
+          (r) =>
+            tab === "resolved"
+              ? r.status === "resolved"
+              : tab === "dismissed"
+                ? r.status === "resolved"
+                : r.status === tab,
+        );
+
+  const openReport = reports.find((r) => r.id === openId);
 
   return (
     <DashLayout title="Reports" nav={adminNav}>
@@ -83,7 +96,10 @@ export default function AdminReports() {
               className="pl-9"
             />
           </div>
-          <Button className="rounded-xl" onClick={() => query.refresh?.()}>
+          <Button
+            className="rounded-xl"
+            onClick={() => reportsQuery.refresh()}
+          >
             <Ticket className="size-4 mr-2" />
             Refresh
           </Button>
@@ -92,11 +108,11 @@ export default function AdminReports() {
         {filtered.length === 0 ? (
           <div className="glass overflow-hidden">
             <EmptyState
-              title={q.trim() ? "No reports found" : `No ${tab} reports`}
+              title={q.trim() ? "No reports found" : `No ${tab.replace("_", " ")} reports`}
               description={
                 q.trim()
                   ? "Try a different search term."
-                  : `There are no ${tab} reports to review right now.`
+                  : `There are no ${tab.replace("_", " ")} reports to review right now.`
               }
             />
           </div>
@@ -117,26 +133,27 @@ export default function AdminReports() {
                         {r.reason}
                       </span>
                       <span className="block text-xs text-muted-foreground">
+                        {r.order_no ? `${r.order_no} · ` : ""}
                         {r.detail}
                       </span>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {r.id.slice(0, 8)}… · {new Date(r.created_at).toLocaleDateString()}
+                        reported by{" "}
+                        {r.reporter_id.slice(0, 8)}…
+                        {r.reported_user_id
+                          ? ` against ${r.reported_user_id.slice(0, 8)}…`
+                          : ""}
+                        · {new Date(r.created_at).toLocaleDateString()}
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      {r.order_no && (
-                        <span className="text-xs text-muted-foreground">
-                          {r.order_no}
-                        </span>
-                      )}
                       <Badge
                         variant="outline"
                         className={`rounded-full border-border/70 text-xs font-medium uppercase tracking-wide ${
                           r.status === "open"
                             ? "border-amber-500/30 text-amber-700 dark:text-amber-400"
                             : r.status === "reviewing"
-                            ? "border-primary/50 text-primary"
-                            : "border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                              ? "border-primary/50 text-primary"
+                              : "border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
                         }`}
                       >
                         {r.status}
@@ -165,56 +182,66 @@ export default function AdminReports() {
             <DialogHeader>
               <DialogTitle>Review report</DialogTitle>
             </DialogHeader>
-            {openId && (
+            {openReport && (
               <div className="space-y-4">
-                {(() => {
-                  const r = reports.find((x) => x.id === openId);
-                  if (!r) return null;
-                  return (
-                    <>
-                      <div className="rounded-xl border-border/70 bg-muted/40 p-4 text-sm space-y-2">
-                        <p className="font-medium">{r.reason}</p>
-                        <p className="text-muted-foreground">{r.detail}</p>
-                        {r.order_no && (
-                          <p className="text-muted-foreground">
-                            Order: {r.order_no}
-                          </p>
-                        )}
-                      </div>
+                <div className="rounded-xl border-border/70 bg-muted/40 p-4 text-sm space-y-2">
+                  <p className="font-medium">{openReport.reason}</p>
+                  <p className="text-muted-foreground">{openReport.detail}</p>
+                  {openReport.order_no && (
+                    <p className="text-muted-foreground">
+                      Order: {openReport.order_no}
+                    </p>
+                  )}
+                </div>
 
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                          Admin action note
-                        </label>
-                        <Textarea
-                          value={actionNote}
-                          onChange={(e) => setActionNote(e.target.value)}
-                          placeholder="What action was taken and why."
-                          rows={4}
-                        />
-                      </div>
-                    </>
-                  );
-                })()}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Admin action note
+                  </label>
+                  <Textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="What action was taken and why."
+                    rows={4}
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="size-3.5" />
+                    This calls resolve_report against the database. Make sure the
+                    report status and any penalty are set on the real row.
+                  </span>
+                </div>
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" className="rounded-xl" onClick={() => setOpenId(null)}>
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setOpenId(null)}
+              >
                 Close
               </Button>
               <Button
                 className="rounded-xl"
-                disabled={!actionNote.trim()}
+                disabled={!note.trim()}
                 onClick={async () => {
-                  if (!openId || !actionNote.trim()) return;
-                  const { error } = await supabase.rpc("close_report", {
-                    p_report_id: openId,
-                    p_note: actionNote.trim(),
-                  });
-                  if (error) throw new Error(error.message);
-                  setOpenId(null);
-                  setActionNote("");
-                  query.refresh?.();
+                  if (!openId || !note.trim()) return;
+                  try {
+                    await resolveReport({
+                      reportId: openId,
+                      status: "resolved",
+                      penalty: null,
+                    });
+                    setOpenId(null);
+                    setNote("");
+                    reportsQuery.refresh();
+                  } catch (err) {
+                    alert(
+                      err instanceof Error ? err.message : "Could not resolve report",
+                    );
+                  }
                 }}
               >
                 <CheckCheck className="size-4 mr-2" />

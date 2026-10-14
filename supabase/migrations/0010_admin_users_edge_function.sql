@@ -1,0 +1,24 @@
+-- 0010_admin_users_edge_function.sql
+--
+-- PURPOSE
+--  AdminUsers currently calls supabase.auth.admin.getUserById from the browser.
+--  That route is only possible if the project's anonymous/auth keys were replaced
+--  with a service-role key, which would disable RLS everywhere. This migration
+--  defines the server-side alternative the browser should call instead.
+--
+--  The real implementation lives in the Edge Function source tree that is
+--  deployed separately (src/edge-functions/admin-users.ts or equivalent). This
+--  file is the database contract: the function must only return the columns the
+--  UI needs and must only be callable by an authenticated admin whose server
+--  session has been verified.
+--
+--  Until that Edge Function is deployed and pointed at from AdminUsers, the
+--  browser-side AdminUsers page must not call admin.getUserById. The deployable
+--  function should:
+--    1. Require a verified JWT with a trusted admin claim.
+--    2. Paginate profiles + auth users server-side.
+--    3. Return only { id, email, name, last_sign_in_at, role }.
+--
+-- Add the concrete Edge Function, deploy it, and then switch AdminUsers to call
+-- supabase.functions.invoke("admin-users", ...) instead of admin.getUserById.
+-- Do NOT put the service-role key in the browser to "make AdminUsers work".

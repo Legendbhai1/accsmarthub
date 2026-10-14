@@ -22,21 +22,15 @@ import {
 import { SellerLayout } from "@/components/dash/SellerLayout";
 import { StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { useDb } from "@/lib/db";
 import { useEarningsSummary } from "@/lib/supabaseQueries";
 import { toast } from "sonner";
 
-/**
- * Earnings — payouts and available balance for the seller.
- */
+/** Earnings — payouts and available balance for the seller. */
 export default function SellerEarnings() {
-  const { withdrawals } = useDb();
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("Bank transfer");
   const [open, setOpen] = useState(false);
 
-  // Authoritative figures come from the order ledger on the server. No
-  // demo-seeded fallback: an empty ledger legitimately reads as zero.
   const summaryQuery = useEarningsSummary();
   const loading = summaryQuery.loading;
 
@@ -44,10 +38,6 @@ export default function SellerEarnings() {
   const commission = summaryQuery.data?.commissionUsd ?? 0;
   const escrow = summaryQuery.data?.escrowUsd ?? 0;
   const available = summaryQuery.data?.netUsd ?? 0;
-  const myWithdrawals = withdrawals;
-  const paidOut = myWithdrawals
-    .filter((w) => w.status === "paid")
-    .reduce((s, w) => s + w.amount, 0);
 
   const request = () => {
     const value = Number(amount);
@@ -135,8 +125,7 @@ export default function SellerEarnings() {
             <div>
               <h3 className="font-semibold">Withdraw funds</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {formatPrice(paidOut)} paid out so far · payouts are processed
-                within one business day.
+                Withdrawals are processed once the payout provider is connected.
               </p>
             </div>
             <Dialog open={open} onOpenChange={setOpen}>
@@ -197,20 +186,20 @@ export default function SellerEarnings() {
             <span className="text-right">Status</span>
           </div>
           <ul className="divide-y divide-border/60">
-            {myWithdrawals.map((w) => (
-              <li key={w.id} className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
-                <span className="seller-order-cell min-w-0 flex-1">
-                  <span className="seller-order-title block text-sm font-medium">{w.method}</span>
-                  <span className="seller-order-meta text-xs text-muted-foreground">
-                    {new Date(w.requestedAt).toLocaleDateString()}
-                  </span>
+            <li className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
+              <span className="seller-order-cell min-w-0 flex-1">
+                <span className="seller-order-title block text-sm font-medium">
+                  Withdrawals not wired yet
                 </span>
-                <span className="w-20 text-sm font-semibold tabular-nums">{formatPrice(w.amount)}</span>
-                <span className="ml-auto">
-                  <StatusBadge status={w.status} />
+                <span className="seller-order-meta text-xs text-muted-foreground">
+                  Pending payout provider setup
                 </span>
-              </li>
-            ))}
+              </span>
+              <span className="w-20 text-sm font-semibold tabular-nums">—</span>
+              <span className="ml-auto">
+                <StatusBadge status="pending" />
+              </span>
+            </li>
           </ul>
         </div>
       </div>
