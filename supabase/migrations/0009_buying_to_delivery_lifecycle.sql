@@ -1477,3 +1477,18 @@ update public.orders
   set inspection_deadline = now() + interval '14 days',
       delivery_status = 'pending'
   where status = 'in_escrow' and inspection_deadline is null;
+
+-- Readable roles for dispute message authors, used by the seller disputes UI.
+-- Kept here rather than in 0003 because this is the first migration that
+-- introduces a read path for dispute_messages outside the dispute functions
+-- themselves, and we want the column to exist before we start selecting it.
+create or replace function public.dispute_message_author_role(p_author_id uuid)
+returns text language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select 'seller'  from public.listings l where l.seller_id = p_author_id limit 1),
+    (select 'buyer'   from public.orders o where o.buyer_id = p_author_id limit 1),
+    'member'
+  );
+$$;
+
+grant execute on function public.dispute_message_author_role(uuid) to authenticated;

@@ -13,7 +13,6 @@ import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { addDisputeMessage } from "@/lib/supabaseMutations";
-import { fetchOrder } from "@/lib/supabaseQueries";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/supabaseData";
 import { useSession } from "@/lib/session";
@@ -29,7 +28,14 @@ export type SellerDisputeRow = {
   createdAt: string;
   buyerName: string;
   listingTitle: string;
-  buyerMessageCount: number;
+  messages: {
+    id: string;
+    authorId: string;
+    authorName: string;
+    authorRole: string;
+    body: string;
+    createdAt: string;
+  }[];
   canReply: boolean;
 };
 
@@ -84,16 +90,35 @@ async function fetchSellerDisputes(
   }
 
   const disputeIds = disputeRows.map((d) => d.id);
-  const messagesByDispute = new Map<string, number>();
+  type MessageRow = {
+    id: string;
+    author_id: string;
+    author_role: string | null;
+    author_name: string | null;
+    body: string;
+    created_at: string;
+  };
+  const messagesByDispute = new Map<string, MessageRow[]>();
 
   for (const did of disputeIds) {
     const { data: msgs, error: me } = await supabase
       .from("dispute_messages")
-      .select("id")
-      .eq("dispute_id", did);
+      .select("id, author_id, author_role, body, created_at")
+      .eq("dispute_id", did)
+      .order("created_at", { ascending: true });
 
     if (me) throw new Error(friendlyError(me));
-    messagesByDispute.set(did, msgs?.length ?? 0);
+    messagesByDispute.set(
+      did,
+      (msgs ?? []).map((m) => ({
+        id: m.id,
+        author_id: m.author_id,
+        author_role: m.author_role,
+        author_name: null,
+        body: m.body,
+        created_at: m.created_at,
+      })),
+    );
   }
 
   return disputeRows.map((d) => {
@@ -188,8 +213,33 @@ export default function SellerDisputes() {
                 <p className="mt-3 rounded-xl bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
                   {d.detail}
                 </p>
+                {d.messages.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Message thread
+                    </p>
+                    {d.messages.map((m) => (
+                      <div key={m.id} className="rounded-xl bg-muted/40 px-4 py-3 text-sm">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          {m.authorRole === "seller" ? (
+                            <>
+                              <span className="font-medium text-foreground">You</span>
+                              <span className="text-muted-foreground/60">{new Date(m.createdAt).toLocaleString()}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="font-medium">{m.authorName}</span>
+                              <span className="text-muted-foreground/60">{new Date(m.createdAt).toLocaleString()}</span>
+                            </>
+                          )}
+                        </div>
+                        <p className="mt-1.5 text-foreground">{m.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {d.buyerMessageCount} buyer message{d.buyerMessageCount === 1 ? "" : "s"}
+                  {d.messages.length} message{d.messages.length === 1 ? "" : "s"}
                 </p>
                 {d.canReply && (
                   <Button
@@ -203,33 +253,33 @@ export default function SellerDisputes() {
               </li>
             ))}
           </ul>
-        )}
-
-      <Dialog open={!!respondTo} onOpenChange={() => setRespondTo(null)}>
-        <DialogContent className="card border-border/70 sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Respond to dispute</DialogTitle>
-            <DialogDescription>
-              Your response is shared with the buyer and the trust team.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="inset-well min-h-28 rounded-xl border-border/60"
-            placeholder="Share your evidence and explanation…"
-          />
-          <DialogFooter>
-            <Button variant="ghost" className="rounded-xl" onClick={() => setRespondTo(null)}>
-              Cancel
-            </Button>
-            <Button className="rounded-xl" onClick={reply} disabled={!text.trim()}>
-              Submit response
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}        <Dialog open={!!respondTo} onOpenChange={() => setRespondTo(null)}>            <DialogContent className="card border-border/70 sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Respond to dispute</DialogTitle>
+              <DialogDescription>
+                Your response is shared with the buyer and the trust team.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="inset-well min-h-28 rounded-xl border-border/60"
+              placeholder="Share your evidence and explanation…"
+            />
+            <DialogFooter>
+              <Button variant="ghost" className="rounded-xl" onClick={() => setRespondTo(null)}>
+                Cancel
+              </Button>
+              <Button className="rounded-xl" onClick={reply} disabled={!text.trim()}>
+                Submit response
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </SellerLayout>
   );
 }
+
+
+
