@@ -1,403 +1,347 @@
-/* DO NOT CHANGE */
-@import "tailwindcss";
-@import "tw-animate-css";
-@custom-variant dark (&:is(.dark *));
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
 
-/* DO NOT CHANGE */
-@theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-}
-
-/* CHANGE VALUES FOR THEME — AccsMartHub: an app-wide "gilded glass" theme.
-   Warm ivory canvas in light, deep espresso charcoal in dark, one gold accent,
-   and translucent blurred panels in both. Every page, rail, top bar and card
-   reads its colours from these tokens, so the public site, the marketplace,
-   the buyer dashboard, the admin panel and the seller studio stay one product
-   instead of four skins. */
-:root {
-  --radius: 1.25rem;
-
-  /* The shared panel recipe. `.glass`, `.panel`, `.card`, the rails and the
-     top bars all paint from these three, which is what keeps the studio and
-     the rest of the app on the same surface. */
-  --surface: color-mix(in oklab, var(--card) 84%, transparent);
-  --surface-strong: color-mix(in oklab, var(--card) 94%, transparent);
-  --hairline: color-mix(in oklab, var(--border) 62%, transparent);
-  --glass-blur: 18px;
-
-  /* Ambient washes behind the page (gold, violet) and the two brand surfaces.
-     Tokens because every one of them inverts in dark mode without the
-     utilities having to know which theme is active. */
-  --glow: oklch(0.72 0.14 72 / 22%);
-  --glow-2: oklch(0.68 0.1 300 / 13%);
-  --scroll-thumb: oklch(0.45 0.03 70 / 22%);
-  --gradient-from: oklch(0.66 0.15 70);
-  --gradient-to: oklch(0.44 0.13 42);
-  --ink-panel-bg: oklch(0.19 0.02 60);
-  --ink-panel-border: oklch(0.8 0.14 80 / 24%);
-  --ink-panel-fg: oklch(0.98 0.008 85);
-
-  --background: oklch(0.99 0.005 85);
-  --foreground: oklch(0.19 0.012 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.19 0.012 65);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.012 65);
-
-  /* Gold. `--primary` is the accent everywhere: solid pills, active nav, the
-     brand mark and the ~30 icon accents written as `text-primary`.
-
-     On the light canvas it is a deep amber so those accents stay legible on
-     white (a pale gold would wash out to ~1.9:1), and its foreground is white.
-     In dark mode it lifts to a bright gold with near-black text — the same
-     inversion the old ink/white primary used, so solid pills keep their punch
-     against the canvas instead of vanishing into it. */
-  --primary: oklch(0.56 0.135 55);
-  --primary-foreground: oklch(1 0 0);
-
-  --secondary: oklch(0.97 0.008 85);
-  --secondary-foreground: oklch(0.19 0.012 65);
-
-  /* App surface used for wells, icon circles and neutral fills. */
-  --muted: oklch(0.965 0.01 85);
-  --muted-foreground: oklch(0.51 0.018 70);
-
-  --accent: oklch(0.955 0.022 85);
-  --accent-foreground: oklch(0.19 0.012 65);
-
-  --destructive: oklch(0.58 0.21 20);
-  --border: oklch(0.24 0.02 70 / 11%);
-  --input: oklch(0.24 0.02 70 / 13%);
-  --ring: oklch(0.62 0.14 60 / 55%);
-
-  --chart-1: oklch(0.62 0.14 58);
-  --chart-2: oklch(0.62 0.11 160);
-  --chart-3: oklch(0.62 0.13 42);
-  --chart-4: oklch(0.62 0.15 300);
-  --chart-5: oklch(0.58 0.21 20);
-
-  --sidebar: color-mix(in oklab, oklch(1 0 0) 88%, transparent);
-  --sidebar-foreground: oklch(0.19 0.012 65);
-  --sidebar-primary: oklch(0.56 0.135 55);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.965 0.01 85);
-  --sidebar-accent-foreground: oklch(0.19 0.012 65);
-  --sidebar-border: oklch(0.24 0.02 70 / 11%);
-  --sidebar-ring: oklch(0.62 0.14 60 / 55%);
-}
-
-/* Dark mode. Same gilded-glass language, inverted: espresso canvas, raised
-   surfaces one step lighter, and `--primary` becomes a brighter gold that
-   still carries near-black text, so solid pills keep their contrast instead
-   of washing out against the canvas. */
-.dark {
-  --glow: oklch(0.82 0.15 80 / 22%);
-  --glow-2: oklch(0.72 0.12 300 / 16%);
-  --scroll-thumb: oklch(1 0 0 / 24%);
-  --gradient-from: oklch(0.9 0.13 90);
-  --gradient-to: oklch(0.7 0.15 58);
-  --ink-panel-bg: oklch(0.225 0.02 70);
-  --ink-panel-border: oklch(0.85 0.14 82 / 26%);
-  --ink-panel-fg: oklch(0.98 0.008 85);
-
-  --background: oklch(0.15 0.012 70);
-  --foreground: oklch(0.97 0.008 85);
-  --card: oklch(0.2 0.013 70);
-  --card-foreground: oklch(0.97 0.008 85);
-  --popover: oklch(0.215 0.013 70);
-  --popover-foreground: oklch(0.97 0.008 85);
-
-  --primary: oklch(0.84 0.14 82);
-  --primary-foreground: oklch(0.19 0.03 65);
-
-  --secondary: oklch(0.255 0.013 70);
-  --secondary-foreground: oklch(0.97 0.008 85);
-
-  --muted: oklch(0.245 0.013 70);
-  --muted-foreground: oklch(0.73 0.014 80);
-
-  --accent: oklch(0.3 0.016 70);
-  --accent-foreground: oklch(0.97 0.008 85);
-
-  --destructive: oklch(0.66 0.19 22);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.84 0.14 82 / 55%);
-
-  --chart-1: oklch(0.84 0.14 82);
-  --chart-2: oklch(0.7 0.11 160);
-  --chart-3: oklch(0.74 0.14 50);
-  --chart-4: oklch(0.7 0.15 300);
-  --chart-5: oklch(0.66 0.19 22);
-
-  --sidebar: color-mix(in oklab, oklch(0.2 0.013 70) 88%, transparent);
-  --sidebar-foreground: oklch(0.97 0.008 85);
-  --sidebar-primary: oklch(0.84 0.14 82);
-  --sidebar-primary-foreground: oklch(0.19 0.03 65);
-  --sidebar-accent: oklch(0.265 0.013 70);
-  --sidebar-accent-foreground: oklch(0.97 0.008 85);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.84 0.14 82 / 55%);
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+    --primary: 38 92% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 10% 96%;
+    --secondary-foreground: 220 20% 10%;
+    --muted: 220 10% 96%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 220 10% 96%;
+    --accent-foreground: 220 20% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 10% 90%;
+    --input: 220 10% 90%;
+    --ring: 38 92% 50%;
+    --radius: 0.625rem;
+    --chart-1: 38 92% 50%;
+    --chart-2: 220 10% 45%;
+    --chart-3: 160 80% 45%;
+    --chart-4: 30 80% 50%;
+    --chart-5: 280 80% 50%;
+  }
+
+  .dark {
+    --background: 220 20% 6%;
+    --foreground: 220 20% 94%;
+    --card: 220 20% 7%;
+    --card-foreground: 220 20% 94%;
+    --popover: 220 20% 7%;
+    --popover-foreground: 220 20% 94%;
+    --primary: 38 92% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 10% 14%;
+    --secondary-foreground: 220 20% 94%;
+    --muted: 220 10% 14%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 220 10% 14%;
+    --accent-foreground: 220 20% 94%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 10% 18%;
+    --input: 220 10% 18%;
+    --ring: 38 92% 60%;
+  }
+
   * {
-    @apply border-border outline-ring/50;
+    border-color: hsl(var(--border));
   }
-  html {
-    scroll-behavior: smooth;
-  }
+
   body {
     @apply bg-background text-foreground antialiased;
-    /* The site-wide ambient wash. Because it lives on <body> and is fixed, it
-       sits behind every route — public pages, marketplace, dashboards and the
-       seller studio alike — so no shell has to render its own layer. */
-    background-image:
-      radial-gradient(52rem 26rem at 6% -14%, var(--glow), transparent 62%),
-      radial-gradient(46rem 24rem at 94% -10%, var(--glow-2), transparent 60%),
-      radial-gradient(44rem 22rem at 50% 118%, var(--glow), transparent 62%);
-    background-attachment: fixed;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
-  button:not([disabled]),
-  [role="button"]:not([disabled]) {
-    cursor: pointer;
-  }
+
   ::selection {
-    background: color-mix(in oklab, var(--primary) 32%, transparent);
+    background-color: hsl(var(--ring) / 0.2);
   }
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
-  ::-webkit-scrollbar-thumb {
-    background: var(--scroll-thumb);
-    border-radius: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
+
+  html {
+    scroll-behavior: smooth;
   }
 }
 
 @layer utilities {
-  /* The shared panel surface: translucent, hairline-bordered, blurred. Used
-     by the public site, both dashboards and the seller studio, so a card looks
-     the same everywhere. Radius lives here (not on the element) because this
-     custom utility is emitted after Tailwind's generated ones and would win
-     over `rounded-*`. */
+  .animate-in {
+    animation-duration: 0.3s;
+    animation-fill-mode: both;
+  }
+
+  .fade-in {
+    animation-name: fade-in;
+  }
+
+  .slide-in-from-bottom-4 {
+    animation-name: slide-in-from-bottom-4;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-in-from-bottom-4 {
+    from {
+      transform: translateY(1rem);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
   .glass {
-    background: var(--surface);
-    border: 1px solid var(--hairline);
-    box-shadow: 0 20px 44px -38px oklch(0 0 0 / 45%);
-    border-radius: 1.75rem;
-    backdrop-filter: blur(var(--glass-blur));
+    @apply bg-white/70 dark:bg-black/30 backdrop-blur-xl border border-border/70;
   }
 
-  /* Card with hover transition — subtle lift, matching the app-shell feel */
-  .glass-hover {
-    transition:
-      border-color 0.2s ease,
-      box-shadow 0.25s ease,
-      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .glass-hover:hover {
-    border-color: color-mix(in oklab, var(--primary) 45%, transparent);
-    box-shadow: 0 18px 34px -22px oklch(0 0 0 / 40%);
-    transform: translateY(-2px);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .glass-hover:hover {
-      transform: none;
-    }
-  }
-
-  /* Raised translucent panel (sidebar shells, drawers, top bars) */
-  .panel {
-    background: var(--surface-strong);
-    border: 1px solid var(--hairline);
-    border-radius: 1.75rem;
-    backdrop-filter: blur(20px);
-  }
-
-  /* Subtle inset well for inputs */
   .inset-well {
-    background: color-mix(in oklab, var(--muted) 88%, transparent);
-    border: 1px solid var(--hairline);
-    box-shadow: inset 0 1px 2px oklch(0 0 0 / 5%);
-    border-radius: 1rem;
-  }
-
-  /* Wordmark accent — brushed gold gradient */
-  .text-gradient {
-    background: linear-gradient(92deg, var(--gradient-from), var(--gradient-to));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  /* Dark block panel — espresso block with a gold hairline, for hero / CTA
-     contrast against the glass shells */
-  .ink-panel {
-    background: var(--ink-panel-bg);
-    border: 1px solid var(--ink-panel-border);
-    color: var(--ink-panel-fg);
-    border-radius: 1.5rem;
-  }
-
-  /* Floating ambient orbs (hero art) */
-  @keyframes orb-a {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-    50% {
-      transform: translate3d(2.5rem, -1.75rem, 0) scale(1.1);
-    }
-  }
-  @keyframes orb-b {
-    0%,
-    100% {
-      transform: translate3d(0, 0, 0) scale(1.05);
-    }
-    50% {
-      transform: translate3d(-3rem, 1.5rem, 0) scale(0.95);
-    }
-  }
-  .animate-orb-a {
-    animation: orb-a 16s ease-in-out infinite;
-  }
-  .animate-orb-b {
-    animation: orb-b 20s ease-in-out infinite;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .animate-orb-a,
-    .animate-orb-b {
-      animation: none;
-    }
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Seller studio                                                       */
-  /* The studio runs on the same global glass now; these classes only     */
-  /* carry its own layout and ledger conventions.                        */
-  /* ------------------------------------------------------------------ */
-  .seller-studio {
-    /* The rail and top bar read the shared panel recipe, so the studio is
-       literally the same surface as the buyer and admin shells. */
-    --seller-surface: var(--surface);
-    --seller-hairline: var(--hairline);
-  }
-
-  /* The studio's glass panel. Pages use it bare, so padding lives here. */
-  .card {
-    background: var(--seller-surface, var(--surface));
-    border: 1px solid var(--seller-hairline, var(--hairline));
-    box-shadow: 0 20px 45px -34px oklch(0 0 0 / 40%);
-    border-radius: 1.75rem;
-    backdrop-filter: blur(var(--glass-blur));
-    padding: 1.5rem;
+    @apply bg-muted/30;
   }
 
   .seller-page {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    @apply text-foreground;
+  }
+
+  .seller-page-head {
+    @apply flex flex-wrap items-center justify-between gap-3;
   }
 
   .seller-sub {
-    max-width: 48ch;
+    @apply text-sm text-muted-foreground;
   }
 
-  /* Studio navigation rail */
-  .seller-sidebar {
-    background: var(--surface-strong);
-  }
-  .seller-brand-mark {
-    border-radius: 0.9rem;
-  }
-  .seller-nav-item.active,
-  .seller-nav-item-active {
-    font-weight: 600;
-  }
-  .seller-sidebar-user {
-    border-radius: 1rem;
+  .seller-stat-grid {
+    @apply grid gap-4;
   }
 
-  /* Ledger rows and table headers shared by orders, listings and money */
+  @media (min-width: 640px) {
+    .seller-stat-grid {
+      @apply sm:grid-cols-2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .seller-stat-grid {
+      @apply lg:grid-cols-4;
+    }
+  }
+
   .seller-table-head {
-    letter-spacing: 0.07em;
+    @apply border-b-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground;
   }
+
   .seller-order-row {
-    transition: background-color 0.18s ease;
+    @apply flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6;
   }
-  .seller-order-row:hover {
-    background: color-mix(in oklab, var(--muted) 45%, transparent);
+
+  .seller-order-cell {
+    @apply min-w-0 flex-1;
   }
+
   .seller-order-title {
-    letter-spacing: -0.01em;
+    @apply block truncate text-sm font-medium;
   }
 
-  /* Stat tiles */
-  .seller-stat-grid > * {
-    min-width: 0;
+  .seller-order-meta {
+    @apply text-xs text-muted-foreground;
   }
 
-  /* Analytics chart rows */
-  .seller-chart-value {
-    font-variant-numeric: tabular-nums;
+  .seller-order-action {
+    @apply flex w-full justify-end lg:w-auto;
+  }
+
+  .seller-order-amount {
+    @apply w-20 text-right text-sm font-semibold tabular-nums;
+  }
+
+  .seller-list {
+    @apply space-y-3;
   }
 
   .seller-editor {
-    border-radius: 1.75rem;
+    @apply rounded-2xl border-border/70 bg-card p-6 text-card-foreground;
   }
 
-  /* Dispute cards stack with a little breathing room */
-  .seller-list > * + * {
-    margin-top: 0.75rem;
+  .seller-brand-mark {
+    @apply flex size-9 items-center justify-center bg-gradient-to-br from-amber-400 to-amber-600 shadow-sm;
   }
 
-  /* The studio top bar sits flush against the content it labels */
-  .seller-topbar {
-    border-bottom-style: solid;
+  .seller-nav-item {
+    @apply flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-amber-400/10 hover:text-foreground;
   }
 
-  @media (max-width: 1023px) {
-    /* On small screens the rail is hidden, so the logo/brand chip stands in. */
-    .seller-sidebar {
-      display: none;
-    }
+  .seller-nav-item-active {
+    @apply bg-amber-400/15 text-amber-800 hover:bg-amber-400/15 hover:text-amber-800 dark:text-amber-300;
+  }
+
+  .seller-sidebar {
+    @apply fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border/50 backdrop-blur-2xl lg:flex;
+  }
+
+  .seller-studio {
+    @apply relative min-h-screen bg-background;
+  }
+
+  .bg-amber-400 {
+    @apply bg-amber-400/10;
+  }
+
+  .text-amber-800 {
+    @apply text-amber-800;
+  }
+
+  .dark .text-amber-800 {
+    @apply text-amber-300;
+  }
+
+  .bg-amber-400\/15 {
+    @apply bg-amber-400/15;
+  }
+
+  .border-amber-400\/10 {
+    @apply border-amber-400/10;
+  }
+
+  .text-amber-800 {
+    @apply text-amber-800;
+  }
+
+  .text-amber-700 {
+    @apply text-amber-700;
+  }
+
+  .dark .text-amber-700 {
+    @apply text-amber-400;
+  }
+
+  .text-amber-600 {
+    @apply text-amber-600;
+  }
+
+  .dark .text-amber-600 {
+    @apply text-amber-400;
+  }
+
+  .bg-amber-500\/10 {
+    @apply bg-amber-500/10;
+  }
+
+  .text-amber-700 {
+    @apply text-amber-700;
+  }
+
+  .bg-destructive {
+    @apply bg-destructive;
+  }
+
+  .text-destructive {
+    @apply text-destructive;
+  }
+
+  .bg-emerald-500\/10 {
+    @apply bg-emerald-500/10;
+  }
+
+  .text-emerald-700 {
+    @apply text-emerald-700;
+  }
+
+  .dark .text-emerald-700 {
+    @apply text-emerald-400;
+  }
+
+  .text-emerald-600 {
+    @apply text-emerald-600;
+  }
+
+  .dark .text-emerald-600 {
+    @apply text-emerald-400;
+  }
+
+  .bg-emerald-500\/15 {
+    @apply bg-emerald-500/15;
+  }
+
+  .text-emerald-700 {
+    @apply text-emerald-700;
+  }
+
+  .bg-primary\/10 {
+    @apply bg-primary/10;
+  }
+
+  .bg-primary\/15 {
+    @apply bg-primary/15;
+  }
+
+  .border-primary\/50 {
+    @apply border-primary/50;
+  }
+
+  .border-primary\/60 {
+    @apply border-primary/60;
+  }
+
+  .bg-muted\/40 {
+    @apply bg-muted/40;
+  }
+
+  .bg-muted\/60 {
+    @apply bg-muted/60;
+  }
+
+  .bg-muted\/20 {
+    @apply bg-muted/20;
+  }
+
+  .bg-red-500\/10 {
+    @apply bg-red-500/10;
+  }
+
+  .text-red-600 {
+    @apply text-red-600;
+  }
+
+  .border-red-500\/30 {
+    @apply border-red-500/30;
+  }
+
+  .border-amber-500\/30 {
+    @apply border-amber-500/30;
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+  }
+}
+
+@layer base {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }

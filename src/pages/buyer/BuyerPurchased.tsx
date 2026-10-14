@@ -5,13 +5,12 @@ import { buyerNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
-import { useDb } from "@/lib/db";
+import { useMyOrders } from "@/lib/supabaseQueries";
 
 export default function BuyerPurchased() {
-  const { orders } = useDb();
-  const completed = orders.filter(
-    (o) => o.buyerId === "u-me" && o.status === "completed",
-  );
+  const ordersQuery = useMyOrders("buyer");
+  const orders = ordersQuery.data ?? [];
+  const completed = orders.filter((o) => o.status === "completed");
 
   return (
     <DashLayout title="Purchased items" nav={buyerNav}>
@@ -34,20 +33,20 @@ export default function BuyerPurchased() {
           </div>
           <ul className="divide-y divide-border/60">
             {completed.map((order) => (
-              <li key={order.id} className="px-6 py-4 transition-colors hover:bg-accent/30">
-                <Link to={`/account/orders/${order.id}`} className="flex flex-wrap items-center gap-3">
+              <li key={order.order_no} className="px-6 py-4 transition-colors hover:bg-accent/30">
+                <Link to={`/account/orders/${encodeURIComponent(order.order_no)}`} className="flex flex-wrap items-center gap-3">
                   <span className="flex size-10 items-center justify-center rounded-xl border border-border/60 bg-muted/40">
                     <BrandMark brand={order.brand} colored className="size-5" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{order.listingTitle}</span>
-                    <span className="text-xs text-muted-foreground">#{order.id}</span>
+                    <span className="block truncate text-sm font-medium">{order.listing_title}</span>
+                    <span className="text-xs text-muted-foreground">{order.order_no}</span>
                   </span>
                   <span className="w-20 text-right text-sm font-semibold tabular-nums">
-                    {formatPrice(order.total)}
+                    {formatPrice(order.total_usd)}
                   </span>
                   <span className="hidden w-24 text-right text-xs text-muted-foreground sm:block">
-                    {new Date(order.updatedAt).toLocaleDateString()}
+                    {new Date(order.created_at).toLocaleDateString()}
                   </span>
                 </Link>
               </li>

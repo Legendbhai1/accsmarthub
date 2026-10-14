@@ -3,15 +3,31 @@ import { Button } from "@/components/ui/button";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { buyerNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
-import { api, useDb } from "@/lib/db";
+import { useNotifications, markNotificationsReadForUser } from "@/lib/supabaseQueries";
+import { useSession } from "@/lib/session";
+import { toast } from "sonner";
 
 export default function BuyerNotifications() {
-  const { notifications } = useDb();
-  const mine = notifications.filter((n) => n.userId === "u-me");
+  const { user } = useSession();
+  const notificationsQuery = useNotifications();
+  const notifications = notificationsQuery.data ?? [];
+
+  const markAllRead = async () => {
+    if (!user) return;
+    try {
+      await markNotificationsReadForUser(user.id);
+      notificationsQuery.refresh();
+      toast.success("All notifications read");
+    } catch (err) {
+      toast.error("Could not mark notifications read", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    }
+  };
 
   return (
     <DashLayout title="Notifications" nav={buyerNav}>
-      {mine.length === 0 ? (
+      {notifications.length === 0 ? (
         <EmptyState title="No notifications" description="Order updates will appear here." />
       ) : (
         <div className="space-y-4">
@@ -20,14 +36,14 @@ export default function BuyerNotifications() {
               variant="outline"
               size="sm"
               className="rounded-xl"
-              onClick={() => api.markNotificationsRead("u-me")}
+              onClick={markAllRead}
             >
               <CheckCheck className="size-4" />
               Mark all read
             </Button>
           </div>
           <ul className="space-y-2.5">
-            {mine.map((n) => (
+            {notifications.map((n) => (
               <li
                 key={n.id}
                 className={`glass flex items-start gap-3 p-4 ${n.read ? "opacity-70" : ""}`}
@@ -43,7 +59,7 @@ export default function BuyerNotifications() {
                   <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>
                 </div>
                 <time className="shrink-0 text-xs text-muted-foreground">
-                  {new Date(n.date).toLocaleDateString()}
+                  {new Date(n.created_at).toLocaleDateString()}
                 </time>
               </li>
             ))}

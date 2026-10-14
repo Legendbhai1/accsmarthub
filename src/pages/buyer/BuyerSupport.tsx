@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { LifeBuoy, MessageSquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,22 +16,95 @@ import { Textarea } from "@/components/ui/textarea";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { buyerNav } from "@/components/dash/navs";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
-import { api, useDb } from "@/lib/db";
+import { useSession } from "@/lib/session";
+import { supabase } from "@/lib/supabase";
+import { friendlyError } from "@/lib/supabaseData";
+import { fileReport, type FileReportInput } from "@/lib/supabaseMutations";
+import { toast } from "sonner";
+
+export type SupportTicket = {
+  id: string;
+  status: "open" | "answered" | "closed";
+  createdAt: string;
+  subject: string;
+};
 
 export default function BuyerSupport() {
-  const { tickets } = useDb();
+  const { user } = useSession();
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState("");
   const [detail, setDetail] = useState("");
 
-  const mine = tickets.filter((t) => t.userId === "u-me");
+  const load = useCallback(async () => {
+    if (!user) {
+      setTickets([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      const { data: rows, error: re } = await supabase
+        .from("off_platform_reports")
+        .select("id, status, created_at, reason, detail")
+        .eq("reporter_id", user.id)
+        .order("created_at", { ascending: false });
 
-  const create = () => {
-    if (!subject.trim()) return;
-    api.createTicket("u-me", subject.trim());
-    setSubject("");
-    setDetail("");
-    setOpen(false);
+      if (re) throw new Error(friendlyError(re));
+
+      setTickets(
+        (rows ?? []).map((r) => ({
+          id: r.id,
+          subject:
+            r.reason === "shared_contact"
+              ? "Off-platform contact reported"
+              : r.reason === "payment_offsite"
+                ? "Off-platform payment reported"
+                : r.reason === "refused_escrow"
+                  ? "Escrow refusal reported"
+                  : r.reason === "impersonation"
+                    ? "Impersonation reported"
+                    : "Support report filed",
+          status:
+            r.status === "resolved"
+              ? "answered"
+              : r.status === "dismissed"
+                ? "closed"
+                : "open",
+          createdAt: r.created_at,
+        })),
+      );
+    } catch {
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const create = async () => {
+    if (!user || !subject.trim()) return;
+    try {
+      await fileReport({
+        reason: "other",
+        detail: `${subject.trim()}\n\n${detail.trim()}`,
+        reportedUserId: user.id,
+      } as FileReportInput);
+      setSubject("");
+      setDetail("");
+      setOpen(false);
+      await load();
+      toast.success("Ticket submitted", {
+        description: "Our team will reply here.",
+      });
+    } catch (err) {
+      toast.error("Could not submit the ticket", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    }
   };
 
   return (
@@ -89,7 +162,9 @@ export default function BuyerSupport() {
           </Dialog>
         </div>
 
-        {mine.length === 0 ? (
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading tickets…</p>
+        ) : tickets.length === 0 ? (
           <EmptyState
             title="No tickets"
             description="Support conversations appear here."
@@ -101,20 +176,15 @@ export default function BuyerSupport() {
           />
         ) : (
           <ul className="space-y-3">
-            {mine.map((t) => (
+            {tickets.map((t) => (
               <li key={t.id} className="glass p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-medium">{t.subject}</p>
                   <StatusBadge status={t.status} />
                 </div>
-                <ul className="mt-3 space-y-2.5">
-                  {t.messages.map((m, i) => (
-                    <li key={i} className="inset-well rounded-xl px-4 py-3 text-sm">
-                      <p className="font-medium">{m.author}</p>
-                      <p className="mt-1 text-muted-foreground">{m.text}</p>
-                    </li>
-                  ))}
-                </ul>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {new Date(t.createdAt).toLocaleDateString()}
+                </p>
               </li>
             ))}
           </ul>

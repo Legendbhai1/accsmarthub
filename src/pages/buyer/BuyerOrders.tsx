@@ -5,27 +5,26 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { buyerNav } from "@/components/dash/navs";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { useDb, type OrderStatus } from "@/lib/db";
+import { useMyOrders, type OrderRow } from "@/lib/supabaseQueries";
 import { cn } from "@/lib/utils";
 
-const FILTERS: { label: string; values: OrderStatus[] | "all" }[] = [
+const FILTERS: { label: string; values: OrderRow["status"][] | "all" }[] = [
   { label: "All", values: "all" },
   { label: "In escrow", values: ["in_escrow"] },
-  { label: "Transferring", values: ["transferring"] },
   { label: "Completed", values: ["completed"] },
-  { label: "Disputed / refunded", values: ["disputed", "refunded"] },
+  { label: "Disputed / refunded", values: ["disputed", "refunded", "expired"] },
 ];
 
 export default function BuyerOrders() {
-  const { orders } = useDb();
+  const ordersQuery = useMyOrders("buyer");
+  const orders = ordersQuery.data ?? [];
   const [filter, setFilter] = useState<string>("all");
 
-  const mine = orders.filter((o) => o.buyerId === "u-me");
   const activeFilter = FILTERS.find((f) => f.label === filter);
   const list =
     activeFilter && activeFilter.values !== "all"
-      ? mine.filter((o) => (activeFilter.values as OrderStatus[]).includes(o.status))
-      : mine;
+      ? orders.filter((o) => activeFilter.values!.includes(o.status))
+      : orders;
 
   return (
     <DashLayout title="My orders" nav={buyerNav}>
@@ -69,23 +68,23 @@ export default function BuyerOrders() {
             </div>
             <ul className="divide-y divide-border/60">
               {list.map((order) => (
-                <li key={order.id} className="px-6 py-4 transition-colors hover:bg-accent/30">
-                  <Link to={`/account/orders/${order.id}`} className="block">
+                <li key={order.order_no} className="px-6 py-4 transition-colors hover:bg-accent/30">
+                  <Link to={`/account/orders/${encodeURIComponent(order.order_no)}`} className="block">
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">
-                          {order.listingTitle}
+                          {order.listing_title}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          #{order.id} · Qty {order.quantity}
+                          {order.order_no} · Qty {order.quantity}
                         </span>
                       </span>
                       <StatusBadge status={order.status} />
                       <span className="w-20 text-right text-sm font-semibold tabular-nums">
-                        {formatPrice(order.total)}
+                        {formatPrice(order.total_usd)}
                       </span>
                       <span className="hidden w-24 text-right text-xs text-muted-foreground sm:block">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        {new Date(order.created_at).toLocaleDateString()}
                       </span>
                     </div>
                   </Link>
