@@ -64,23 +64,29 @@ const PageWrapper = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 );
 
-const buyerLayout = ({ children }: { children: React.ReactNode }) => (
-  <RequireRole roles={["buyer", "seller", "admin"]}>
-    <PageWrapper>{children}</PageWrapper>
-  </RequireRole>
-);
+function BuyerLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireRole roles={["buyer", "seller", "admin"]}>
+      <PageWrapper>{children}</PageWrapper>
+    </RequireRole>
+  );
+}
 
-const sellerLayout = ({ children }: { children: React.ReactNode }) => (
-  <RequireRole roles={["buyer", "seller", "admin"]}>
-    <PageWrapper>{children}</PageWrapper>
-  </RequireRole>
-);
+function SellerLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireRole roles={["buyer", "seller", "admin"]}>
+      <PageWrapper>{children}</PageWrapper>
+    </RequireRole>
+  );
+}
 
-const adminLayout = ({ children }: { children: React.ReactNode }) => (
-  <RequireRole roles={["admin"]}>
-    <PageWrapper>{children}</PageWrapper>
-  </RequireRole>
-);
+function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <RequireRole roles={["admin"]}>
+      <PageWrapper>{children}</PageWrapper>
+    </RequireRole>
+  );
+}
 
 const router = createBrowserRouter([
   {
@@ -133,7 +139,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/account",
-    element: < buyerLayout><BuyerDashboard /></buyerLayout>,
+    element: <BuyerLayout><BuyerDashboard /></BuyerLayout>,
     children: [
       { index: true, element: <BuyerDashboard /> },
       { path: "orders", element: <BuyerOrders /> },
@@ -147,7 +153,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/seller",
-    element: < sellerLayout><SellerDashboard /></sellerLayout>,
+    element: <SellerLayout><SellerDashboard /></SellerLayout>,
     children: [
       { index: true, element: <SellerDashboard /> },
       { path: "listings", element: <SellerListings /> },
@@ -163,7 +169,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/admin",
-    element: < adminLayout><AdminDashboard /></adminLayout>,
+    element: <AdminLayout><AdminDashboard /></AdminLayout>,
     children: [
       { index: true, element: <AdminDashboard /> },
       { path: "users", element: <AdminUsers /> },
