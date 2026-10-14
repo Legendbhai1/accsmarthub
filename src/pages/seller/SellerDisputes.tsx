@@ -103,22 +103,12 @@ async function fetchSellerDisputes(
   for (const did of disputeIds) {
     const { data: msgs, error: me } = await supabase
       .from("dispute_messages")
-      .select("id, author_id, author_role, body, created_at")
+      .select("id, author_id, author_role, author_name, body, created_at")
       .eq("dispute_id", did)
       .order("created_at", { ascending: true });
 
     if (me) throw new Error(friendlyError(me));
-    messagesByDispute.set(
-      did,
-      (msgs ?? []).map((m) => ({
-        id: m.id,
-        author_id: m.author_id,
-        author_role: m.author_role,
-        author_name: null,
-        body: m.body,
-        created_at: m.created_at,
-      })),
-    );
+    messagesByDispute.set(did, msgs ?? []);
   }
 
   return disputeRows.map((d) => {
@@ -133,7 +123,14 @@ async function fetchSellerDisputes(
       createdAt: d.created_at,
       buyerName: nameBy.get(o?.buyer_id ?? "") ?? "Member",
       listingTitle: o?.listing_title ?? "(removed)",
-      buyerMessageCount: messagesByDispute.get(d.id) ?? 0,
+      messages: (messagesByDispute.get(d.id) ?? []).map((m) => ({
+        id: m.id,
+        authorId: m.author_id,
+        authorName: m.author_name ?? "Member",
+        authorRole: m.author_role ?? (buyerIds.has(m.author_id) ? "buyer" : "member"),
+        body: m.body,
+        createdAt: m.created_at,
+      })),
       canReply:
         d.status === "open" || d.status === "under_review",
     };
@@ -240,6 +237,7 @@ export default function SellerDisputes() {
                 )}
                 <p className="mt-2 text-xs text-muted-foreground">
                   {d.messages.length} message{d.messages.length === 1 ? "" : "s"}
+                  {d.canReply && d.messages.length === 0 && " · you can be the first to reply"}
                 </p>
                 {d.canReply && (
                   <Button
@@ -253,25 +251,39 @@ export default function SellerDisputes() {
               </li>
             ))}
           </ul>
-        )}        <Dialog open={!!respondTo} onOpenChange={() => setRespondTo(null)}>            <DialogContent className="card border-border/70 sm:max-w-md">
+        )}
+
+        <Dialog open={respondTo !== null} onOpenChange={() => setRespondTo(null)}>
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Respond to dispute</DialogTitle>
               <DialogDescription>
-                Your response is shared with the buyer and the trust team.
+                Your response is added to the message thread and visible to the buyer and trust team.
               </DialogDescription>
             </DialogHeader>
-            <Textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              className="inset-well min-h-28 rounded-xl border-border/60"
-              placeholder="Share your evidence and explanation…"
-            />
+            <div className="space-y-2">
+              <textarea
+                className="flex min-h-24 w-full rounded-lg border px-3 py-2 text-sm"
+                placeholder="Add your response…"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+              />
+            </div>
             <DialogFooter>
-              <Button variant="ghost" className="rounded-xl" onClick={() => setRespondTo(null)}>
+              <Button variant="outline" onClick={() => setRespondTo(null)}>
                 Cancel
               </Button>
-              <Button className="rounded-xl" onClick={reply} disabled={!text.trim()}>
-                Submit response
+              <Button
+                disabled={!text.trim()}
+                onClick={async () => {
+                  try {
+                    await reply();
+                  } catch {
+                    /* handled in reply */
+                  }
+                }}
+              >
+                Post response
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -280,6 +292,3 @@ export default function SellerDisputes() {
     </SellerLayout>
   );
 }
-
-
-
