@@ -40,12 +40,18 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@convex-dev/auth": "^0.0.96",
+    "@types/node": "^26.6.5",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "convex": "^1.47.0",
     "eslint": "^9.16.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
     "postcss": "^8.4.49",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2",
@@ -53,7 +59,7 @@
     "vitest": "^3.0.9"
   },
   "overrides": {
-    "vite": "^6.0.6"
+    "vite": "^6.0.7"
   },
   "pnpm": {
     "overrides": {
