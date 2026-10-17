@@ -7,3 +7,8 @@ dist
 # import these generated types, so `tsc -b` fails on Netlify/Vercel if the files
 # are missing from the repo. Commit them (run `bun convex dev --once` locally to
 # refresh after changing the Convex schema).
+
+
+# dotenvx decryption keys — never commit
+.env.keys
+.env.keys.*

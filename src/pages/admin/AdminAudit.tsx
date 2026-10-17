@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { Search, Shield, Clock, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Search, Shield, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
-import { invokableSupabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 type AuditRow = {
   id: string;
@@ -19,17 +19,51 @@ type AuditRow = {
   created_at: string;
 };
 
+/**
+ * `admin_audit` is created by two migrations with different column names
+ * (0007: admin_id/target/detail, 0012: actor_id/resource_type/...). Read the
+ * row as-is and normalise, so the page works against either shape instead of
+ * needing a service-role key in the browser.
+ */
+type RawAuditRow = {
+  id: string;
+  action: string;
+  created_at: string;
+  actor_id?: string | null;
+  admin_id?: string | null;
+  resource_type?: string | null;
+  target?: string | null;
+  resource_id?: string | null;
+  resource_text?: string | null;
+  detail?: string | null;
+  note?: string | null;
+};
+
+function normaliseRow(r: RawAuditRow): AuditRow {
+  return {
+    id: r.id,
+    actor_id: r.actor_id ?? r.admin_id ?? "",
+    action: r.action,
+    resource_type: r.resource_type ?? "general",
+    resource_id: r.resource_id ?? null,
+    resource_text: r.resource_text ?? r.target ?? null,
+    note: r.note ?? r.detail ?? null,
+    created_at: r.created_at,
+  };
+}
+
 export default function AdminAudit() {
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  // RLS on admin_audit only lets admins read, so the normal publishable-key
+  // client is enough — no service-role key belongs in the browser.
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const supabase = invokableSupabase();
       const { data, error: fetchError } = await supabase
         .from("admin_audit")
         .select("*")
@@ -37,20 +71,19 @@ export default function AdminAudit() {
         .limit(100);
 
       if (fetchError) throw new Error(fetchError.message);
-      setRows((data ?? []).map((r) => ({ ...r })));
+      setRows(((data ?? []) as RawAuditRow[]).map(normaliseRow));
     } catch (err) {
+      // Keep any rows already displayed; a failed refresh is an error, not an
+      // empty audit log.
       setError(err instanceof Error ? err.message : "Could not load audit log.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadOnce = () => {
-    let ran = false;
-    load().then(() => {
-      if (!ran) ran = true;
-    });
-  };
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const filtered =
     search.trim()
@@ -80,7 +113,7 @@ export default function AdminAudit() {
               className="pl-9"
             />
           </div>
-          <Button className="rounded-xl" onClick={loadOnce}>
+          <Button className="rounded-xl" onClick={() => void load()} disabled={loading}>
             <Shield className="size-4 mr-2" />
             Refresh
           </Button>
@@ -92,10 +125,15 @@ export default function AdminAudit() {
           </div>
         )}
 
-        {loading ? (
+        {loading && rows.length === 0 ? (
           <EmptyState
             title="Loading audit log…"
             description="Fetching recent privileged actions."
+          />
+        ) : rows.length === 0 && error ? (
+          <EmptyState
+            title="Audit log could not be loaded"
+            description="Use Refresh to try again."
           />
         ) : filtered.length === 0 ? (
           <EmptyState
@@ -146,7 +184,7 @@ export default function AdminAudit() {
                       {r.resource_text ? r.resource_text.slice(0, 22) : r.resource_id?.slice(0, 22) ?? "—"}
                     </span>
                     <span className="w-20 text-right text-xs text-muted-foreground truncate">
-                      {r.actor_id.slice(0, 8)}…
+                      {r.actor_id ? `${r.actor_id.slice(0, 8)}…` : "—"}
                     </span>
                     <span className="w-20 text-right text-xs text-muted-foreground">
                       {new Date(r.created_at).toLocaleDateString()}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { UserX, Shield, Mail, CheckCheck, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,12 +13,11 @@ import {
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
-import { useSession } from "@/lib/session";
-import { invokableSupabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 type AdminUserRow = {
   id: string;
-  email: string;
+  email: string | null;
   name: string | null;
   last_sign_in_at: string | null;
   role: string | null;
@@ -31,79 +30,24 @@ type AdminUsersPayload = {
   per_page: number;
 };
 
-type AdminUsersResult = {
-  data?: AdminUsersPayload;
-  error: string | null;
-  loading: boolean;
-  refresh: () => void;
-};
-
 const PAGE_SIZE = 50;
+const SEARCH_DEBOUNCE_MS = 300;
 
-function useAdminUsers(
-  page: number,
-  roleFilter: string,
-  search: string,
-): AdminUsersResult {
-  const [data, setData] = useState<AdminUsersPayload | undefined>(undefined);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const fetcherRef = useState(() => async () => {
-    setError(null);
-    setLoading(true);
+/** Turn a FunctionsHttpError (or anything else) into a readable message. */
+async function describeFunctionError(error: unknown): Promise<string> {
+  const ctx = (error as { context?: unknown })?.context;
+  if (ctx instanceof Response) {
     try {
-      const supabase = invokableSupabase();
-      const status = roleFilter === "all" ? "all" : roleFilter;
-      const { data: invokeData, error: invokeError } = await supabase.functions
-        .invoke("admin-users", {
-          body: { page, per_page: PAGE_SIZE, status, search },
-        });
-
-      if (invokeError) {
-        throw new Error(
-          invokeError.message ?? "AdminUsers service returned an error.",
-        );
-      }
-
-      const payload = (invokeData as AdminUsersPayload) ?? {
-        users: [],
-        total: 0,
-        page,
-        per_page: PAGE_SIZE,
-      };
-      setData(payload);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not load admin users.",
-      );
-      setData({ users: [], total: 0, page, per_page: PAGE_SIZE });
-    } finally {
-      setLoading(false);
+      const body = (await ctx.json()) as { error?: unknown };
+      if (typeof body?.error === "string" && body.error) return body.error;
+    } catch {
+      // Non-JSON error body: fall through to the generic message.
     }
-  }).ref;
-
-  useEffect(() => {
-    let cancelled = false;
-    fetcherRef.current().then(() => {
-      if (!cancelled) return;
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [page, roleFilter, search]);
-
-  return {
-    data,
-    error,
-    loading,
-    refresh: () => {
-      let mounted = true;
-      fetcherRef.current().then(() => {
-        if (!mounted) return;
-      });
-      // Not awaited here; the caller uses `loading` in the meantime.
-    },
-  };
+    if (ctx.status === 401) return "Your session expired. Sign in again.";
+    if (ctx.status === 403) return "Your account does not have admin access.";
+  }
+  if (error instanceof Error && error.message) return error.message;
+  return "Could not load users.";
 }
 
 function AdminUsersError({
@@ -114,7 +58,10 @@ function AdminUsersError({
   retry: () => void;
 }) {
   return (
-    <div className="rounded-xl border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+    <div
+      role="alert"
+      className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+    >
       {message}
       <div className="mt-2">
         <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={retry}>
@@ -126,27 +73,78 @@ function AdminUsersError({
 }
 
 export default function AdminUsers() {
-  const { user } = useSession();
   const [page, setPage] = useState(1);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const query = useAdminUsers(page, roleFilter, search.trim());
-  const payload = query.data;
-  const rows = payload?.users ?? [];
-  const total = payload?.total ?? 0;
+  const [rows, setRows] = useState<AdminUserRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Monotonic request id: only the newest response may touch state, so a slow
+  // earlier request can never overwrite a newer one.
+  const requestRef = useRef(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const load = useCallback(
+    async (nextPage: number, nextRole: string, nextSearch: string) => {
+      const requestId = ++requestRef.current;
+      setLoading(true);
+      setError(null);
+      try {
+        const { data, error: invokeError } = await supabase.functions.invoke(
+          "admin-users",
+          {
+            body: {
+              page: nextPage,
+              per_page: PAGE_SIZE,
+              role: nextRole,
+              search: nextSearch,
+            },
+          },
+        );
+
+        // A newer request started while this one was in flight: drop the result.
+        if (requestId !== requestRef.current) return;
+
+        if (invokeError) throw invokeError;
+
+        const payload = data as Partial<AdminUsersPayload> | null;
+        if (!payload || !Array.isArray(payload.users)) {
+          throw new Error("Admin users service returned an unexpected response.");
+        }
+
+        setRows(payload.users);
+        setTotal(typeof payload.total === "number" ? payload.total : 0);
+      } catch (err) {
+        if (requestId !== requestRef.current) return;
+        // Keep whatever rows are already on screen; never pretend a failed
+        // request produced an empty user list.
+        setError(await describeFunctionError(err));
+      } finally {
+        if (requestId === requestRef.current) setLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    void load(page, roleFilter, debouncedSearch);
+  }, [load, page, roleFilter, debouncedSearch, refreshKey]);
+
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  const filtered =
-    roleFilter === "all" && !search.trim()
-      ? rows
-      : search.trim()
-        ? rows.filter(
-            (u) =>
-              u.email.toLowerCase().includes(search.trim().toLowerCase()) ||
-              u.name?.toLowerCase().includes(search.trim().toLowerCase()),
-          )
-        : rows.filter((u) => u.role === roleFilter);
+  const hasFilters = roleFilter !== "all" || debouncedSearch !== "";
+  const showFirstLoad = loading && rows.length === 0;
 
   return (
     <DashLayout title="User management" nav={adminNav}>
@@ -162,11 +160,9 @@ export default function AdminUsers() {
             <Input
               placeholder="Search by email or name"
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
+              aria-label="Search users by email or name"
             />
           </div>
           <Select
@@ -189,35 +185,36 @@ export default function AdminUsers() {
           <Button
             type="button"
             className="rounded-xl"
-            onClick={() => query.refresh()}
-            disabled={query.loading}
+            onClick={() => setRefreshKey((k) => k + 1)}
+            disabled={loading}
           >
             <Shield className="size-4 mr-2" />
             Refresh
           </Button>
         </div>
 
-        {query.error && (
+        {error && (
           <AdminUsersError
-            message={query.error}
-            retry={() => query.refresh()}
+            message={error}
+            retry={() => setRefreshKey((k) => k + 1)}
           />
         )}
 
-        {query.loading && rows.length === 0 ? (
+        {showFirstLoad ? (
           <EmptyState
             title="Loading users…"
             description="Fetching accounts from the admin service."
           />
-        ) : filtered.length === 0 ? (
+        ) : rows.length === 0 && error ? (
           <EmptyState
-            title={
-              roleFilter !== "all" || search.trim()
-                ? "No users found"
-                : "No users here"
-            }
+            title="Users could not be loaded"
+            description="The admin service request failed. Use Try again above."
+          />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            title={hasFilters ? "No users found" : "No users here"}
             description={
-              roleFilter !== "all" || search.trim()
+              hasFilters
                 ? "Try a different search or filter."
                 : "No accounts match the selected role yet."
             }
@@ -233,10 +230,10 @@ export default function AdminUsers() {
               <span className="text-right">Actions</span>
             </div>
             <ul className="divide-y divide-border/60">
-              {filtered.map((u) => {
-                const normalizedRole =
-                  (u.role ?? "member").toLowerCase();
+              {rows.map((u) => {
+                const normalizedRole = (u.role ?? "buyer").toLowerCase();
                 const isActive = u.last_sign_in_at != null;
+                const email = u.email ?? "—";
                 return (
                   <li
                     key={u.id}
@@ -244,13 +241,11 @@ export default function AdminUsers() {
                   >
                     <div className="flex items-start gap-3">
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-600 text-sm font-bold text-amber-950">
-                        {u.name != null
-                          ? u.name.charAt(0).toUpperCase()
-                          : u.email.charAt(0).toUpperCase()}
+                        {(u.name ?? email).charAt(0).toUpperCase()}
                       </span>
                       <div className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">
-                          {u.email}
+                          {email}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {u.id.slice(0, 8)}…
@@ -274,17 +269,15 @@ export default function AdminUsers() {
                       <div className="flex items-center justify-center sm:flex-col gap-1.5">
                         {isActive ? (
                           <span className="flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-                            <CheckCheck className="size-3.5" />
-                            Active
+                            <CheckCheck className="size-3.5" /> Active
                           </span>
                         ) : (
                           <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                            <UserX className="size-3.5" />
-                            Inactive
+                            <UserX className="size-3.5" /> Inactive
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center justify-end gap-1.5 sm:flex-col sm:gap-2">
+                      <div className="flex items-center justify-end gap-1.5 sm:flex-col gap-2">
                         <Button
                           type="button"
                           variant="outline"
@@ -313,7 +306,7 @@ export default function AdminUsers() {
         {total > 0 && pages > 1 && (
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
-              Showing page {page} of {pages}
+              Showing page {page} of {pages} · {total} users
             </p>
             <div className="flex gap-2">
               <Button
@@ -321,7 +314,7 @@ export default function AdminUsers() {
                 variant="outline"
                 size="sm"
                 className="rounded-lg"
-                disabled={page <= 1}
+                disabled={page <= 1 || loading}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
                 Previous
@@ -331,7 +324,7 @@ export default function AdminUsers() {
                 variant="outline"
                 size="sm"
                 className="rounded-lg"
-                disabled={page >= pages}
+                disabled={page >= pages || loading}
                 onClick={() => setPage((p) => Math.min(pages, p + 1))}
               >
                 Next

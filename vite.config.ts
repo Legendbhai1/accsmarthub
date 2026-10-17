@@ -48,7 +48,7 @@ export default defineConfig({
           ],
           "framer-motion": ["framer-motion"],
           "charts": ["recharts"],
-          "forms": ["react-hook-form", "@hookform/resolvers", "zod"],
+          "forms": ["react-hook-form", "zod"],
         },
         chunkFileNames: "assets/[name]-[hash].js",
         entryFileNames: "assets/[name]-[hash].js",

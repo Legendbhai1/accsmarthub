@@ -573,7 +573,7 @@ export async function fileReport(input: FileReportInput): Promise<Report> {
 export type ResolveReportInput = {
   reportId: string;
   status: string;
-  penalty?: string;
+  penalty?: string | null;
 };
 
 export async function resolveReport(input: ResolveReportInput) {
