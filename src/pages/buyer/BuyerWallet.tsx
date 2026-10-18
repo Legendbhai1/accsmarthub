@@ -75,31 +75,19 @@ export default function BuyerWallet() {
   }, []);
 
   useEffect(() => {
-    setLoadingDeposits(true);
-    void (async () => {
-      try {
-        const rows = await readDeposits();
-        setDeposits(rows ?? []);
-      } catch {
-        setDeposits([]);
-      } finally {
-        setLoadingDeposits(false);
-      }
-    })();
+    void Promise.resolve()
+      .then(readDeposits)
+      .then((rows) => setDeposits(rows ?? []))
+      .catch(() => setDeposits([]))
+      .finally(() => setLoadingDeposits(false));
   }, []);
 
   useEffect(() => {
-    setLoadingLedger(true);
-    void (async () => {
-      try {
-        const rows = await readLedger(20);
-        setLedger(rows ?? []);
-      } catch {
-        setLedger([]);
-      } finally {
-        setLoadingLedger(false);
-      }
-    })();
+    void Promise.resolve()
+      .then(() => readLedger(20))
+      .then((rows) => setLedger(rows ?? []))
+      .catch(() => setLedger([]))
+      .finally(() => setLoadingLedger(false));
   }, []);
 
   const startDeposit = async () => {

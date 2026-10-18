@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Settings, Save, RefreshCw, Shield, Loader2 } from "lucide-react";
+import { Save, RefreshCw, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -13,7 +12,6 @@ import { Switch } from "@/components/ui/switch";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
-import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 
 type SettingRow = {
@@ -90,7 +88,6 @@ function AdminSettingsError({
 }
 
 export default function AdminSettings() {
-  const { user } = useSession();
   const [values, setValues] = useState<Record<string, string | boolean>>(
     Object.fromEntries(
       SETTINGS.map((s) => [

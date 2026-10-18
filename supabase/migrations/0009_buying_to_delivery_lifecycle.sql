@@ -259,17 +259,18 @@ create policy "eligible buyer may submit one review per order" on public.reviews
     )
   );
 
+-- A buyer may edit only the free-text body of their own review. RLS has no
+-- `new`/`old` record variables (that is trigger syntax), so the immutable
+-- columns are protected by a column-level grant instead: only `body` is
+-- updatable. Combined with the `using` clause, a buyer cannot retarget a
+-- review at another order, listing or seller, or rewrite its rating.
+revoke update on public.reviews from authenticated;
+grant update (body) on public.reviews to authenticated;
+
 drop policy if exists "review owner may edit body" on public.reviews;
 create policy "review owner may edit body" on public.reviews for update
   using (auth.uid() = buyer_id)
-  with check (
-    auth.uid() = buyer_id
-    and new.buyer_id = old.buyer_id
-    and new.listing_id = old.listing_id
-    and new.seller_id = old.seller_id
-    and new.rating = old.rating
-    and new.created_at = old.created_at
-  );
+  with check (auth.uid() = buyer_id);
 
 -- ============================================================
 -- 6. NOTIFICATIONS
@@ -448,6 +449,11 @@ create or replace function public.checkout(
 declare
   v_user uuid := auth.uid();
   v_listing public.listings%rowtype;
+  -- The cart loop below selects a six-column projection, not a listings row, so
+  -- it needs its own record type. Assigning that projection to a
+  -- `listings%rowtype` variable raises "invalid input syntax for type uuid"
+  -- because the first column is a uuid and the second is text.
+  v_item record;
   v_order_no text;
   v_first_order_no text := null;
   v_any_existing boolean := false;
@@ -484,11 +490,11 @@ begin
   -- an order under a derived key this whole checkout is a retry — return the
   -- first existing order and do not create anything (the function is atomic,
   -- so a partial can never have landed; this is strictly a retry guard).
-  for v_listing in
+  for v_item in
     select id from public.listings where id = any(p_cart_ids) for update skip locked loop
     if exists (select 1 from public.orders
                where buyer_id = v_user
-                 and idempotency_key = (p_idempotency_key || ':' || v_listing.id::text)) then
+                 and idempotency_key = (p_idempotency_key || ':' || v_item.id::text)) then
       v_any_existing := true;
     end if;
   end loop;
@@ -502,7 +508,7 @@ begin
   end if;
 
   -- One order per cart item, all in this transaction.
-  for v_listing in
+  for v_item in
     select c.listing_id, c.quantity, l.title, l.brand, l.price_usd, l.seller_id
       from public.cart_items c
       join public.listings l on l.id = c.listing_id
@@ -510,7 +516,7 @@ begin
       order by c.added_at
       for update skip locked loop
     declare
-      v_derived text := p_idempotency_key || ':' || v_listing.listing_id::text;
+      v_derived text := p_idempotency_key || ':' || v_item.listing_id::text;
       v_subtotal numeric(12,2);
       v_escrow_fee numeric(12,2);
       v_total numeric(12,2);
@@ -519,14 +525,14 @@ begin
       v_balance numeric(12,2);
       v_item_no text;
     begin
-      if v_listing.stock < v_listing.quantity then
+      if v_listing.stock < v_item.quantity then
         raise exception 'One of your cart items is out of stock';
       end if;
-      if v_listing.seller_id = v_user then
+      if v_item.seller_id = v_user then
         raise exception 'You cannot buy your own listing';
       end if;
 
-      v_subtotal := v_listing.price_usd * v_listing.quantity;
+      v_subtotal := v_item.price_usd * v_item.quantity;
       v_escrow_fee := round(v_subtotal * 0.03, 2);
       v_total := v_subtotal + v_escrow_fee;
       v_commission := round(v_subtotal * 0.10, 2);
@@ -541,12 +547,10 @@ begin
       perform set_config('app.trusted_write','on',true);
       v_item_no := 'AMH-' || upper(substr(replace(gen_random_uuid()::text,'-',''),1,10));
       perform public.apply_wallet(v_user, -v_total, 0, 'purchase', v_item_no, null);
-      perform public.apply_wallet(v_listing.seller_id, 0, v_net, 'escrow_hold', v_item_no, null);
-      insert into public.order_payments (order_no, method, amount_usd, status, captured_at)
-        values (v_item_no, 'wallet', v_total, 'captured', now());
+      perform public.apply_wallet(v_item.seller_id, 0, v_net, 'escrow_hold', v_item_no, null);
 
-      update public.listings set stock = stock - v_listing.quantity
-        where id = v_listing.listing_id;
+      update public.listings set stock = stock - v_item.quantity
+        where id = v_item.listing_id;
 
       insert into public.orders (
         order_no, listing_id, listing_title, brand, buyer_id, seller_id, quantity,
@@ -554,19 +558,23 @@ begin
         commission_rate, commission_amount, seller_net_amount,
         payment_method, status, idempotency_key, escrow_expires_at,
         delivery_status, inspection_deadline)
-      values (v_item_no, v_listing.listing_id, v_listing.title, v_listing.brand,
-              v_user, v_listing.seller_id, v_listing.quantity, v_listing.price_usd,
+      values (v_item_no, v_item.listing_id, v_item.title, v_item.brand,
+              v_user, v_item.seller_id, v_item.quantity, v_item.price_usd,
               v_subtotal, v_escrow_fee, v_total,
               0.10, v_commission, v_net,
               'wallet', 'in_escrow', v_derived, now() + interval '14 days',
               'pending', now() + interval '14 days');
 
+      -- Written after the order row, which order_payments.order_no references.
+      insert into public.order_payments (order_no, method, amount_usd, status, captured_at)
+        values (v_item_no, 'wallet', v_total, 'captured', now());
+
       update public.listing_credentials
          set claimed_by_order = v_item_no, claimed_at = now()
        where id in (
          select id from public.listing_credentials
-          where listing_id = v_listing.listing_id and claimed_by_order is null
-          order by created_at limit v_listing.quantity for update skip locked
+          where listing_id = v_item.listing_id and claimed_by_order is null
+          order by created_at limit v_item.quantity for update skip locked
        );
 
       perform public.finish_single_order_delivery(v_item_no, v_user);

@@ -8,7 +8,7 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { sellerNav } from "@/components/dash/navs";
 import { SERVICE_CATEGORIES } from "@/lib/db";
 import { readMyStore, friendlyError } from "@/lib/supabaseData";
-import { submitStore, publicAssetUrl } from "@/lib/supabaseMutations";
+import { submitStore } from "@/lib/supabaseMutations";
 import { toast } from "sonner";
 
 export default function SellerSettings() {

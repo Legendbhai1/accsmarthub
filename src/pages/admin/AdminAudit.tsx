@@ -55,30 +55,31 @@ function normaliseRow(r: RawAuditRow): AuditRow {
 export default function AdminAudit() {
   const [search, setSearch] = useState("");
   const [rows, setRows] = useState<AuditRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Starts true: the mount effect is always the first load.
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // RLS on admin_audit only lets admins read, so the normal publishable-key
   // client is enough — no service-role key belongs in the browser.
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error: fetchError } = await supabase
+  const load = useCallback(() => {
+    return Promise.resolve(
+      supabase
         .from("admin_audit")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (fetchError) throw new Error(fetchError.message);
-      setRows(((data ?? []) as RawAuditRow[]).map(normaliseRow));
-    } catch (err) {
-      // Keep any rows already displayed; a failed refresh is an error, not an
-      // empty audit log.
-      setError(err instanceof Error ? err.message : "Could not load audit log.");
-    } finally {
-      setLoading(false);
-    }
+        .limit(100),
+    )
+      .then(({ data, error: fetchError }) => {
+        if (fetchError) throw new Error(fetchError.message);
+        setRows(((data ?? []) as RawAuditRow[]).map(normaliseRow));
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        // Keep any rows already displayed; a failed refresh is an error, not an
+        // empty audit log.
+        setError(err instanceof Error ? err.message : "Could not load audit log.");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {

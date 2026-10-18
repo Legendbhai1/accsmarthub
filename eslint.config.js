@@ -28,6 +28,17 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
+      // A leading underscore marks a parameter or binding that exists only to
+      // keep a signature. The legacy Convex stubs in src/lib use it heavily.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
     },
   },
 );

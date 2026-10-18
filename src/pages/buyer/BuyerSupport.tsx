@@ -37,48 +37,51 @@ export default function BuyerSupport() {
   const [subject, setSubject] = useState("");
   const [detail, setDetail] = useState("");
 
-  const load = useCallback(async () => {
-    if (!user) {
-      setTickets([]);
-      setLoading(false);
-      return;
-    }
-    try {
-      const { data: rows, error: re } = await supabase
-        .from("off_platform_reports")
-        .select("id, status, created_at, reason, detail")
-        .eq("reporter_id", user.id)
-        .order("created_at", { ascending: false });
+  const load = useCallback(() => {
+    return Promise.resolve()
+      .then(() => {
+        if (!user) return null;
+        return supabase
+          .from("off_platform_reports")
+          .select("id, status, created_at, reason, detail")
+          .eq("reporter_id", user.id)
+          .order("created_at", { ascending: false });
+      })
+      .then((res) => {
+        if (!res) {
+          setTickets([]);
+          return;
+        }
+        const { data: rows, error: re } = res;
+        if (re) throw new Error(friendlyError(re));
 
-      if (re) throw new Error(friendlyError(re));
-
-      setTickets(
-        (rows ?? []).map((r) => ({
-          id: r.id,
-          subject:
-            r.reason === "shared_contact"
-              ? "Off-platform contact reported"
-              : r.reason === "payment_offsite"
-                ? "Off-platform payment reported"
-                : r.reason === "refused_escrow"
-                  ? "Escrow refusal reported"
-                  : r.reason === "impersonation"
-                    ? "Impersonation reported"
-                    : "Support report filed",
-          status:
-            r.status === "resolved"
-              ? "answered"
-              : r.status === "dismissed"
-                ? "closed"
-                : "open",
-          createdAt: r.created_at,
-        })),
-      );
-    } catch {
-      setTickets([]);
-    } finally {
-      setLoading(false);
-    }
+        setTickets(
+          (rows ?? []).map((r) => ({
+            id: r.id,
+            subject:
+              r.reason === "shared_contact"
+                ? "Off-platform contact reported"
+                : r.reason === "payment_offsite"
+                  ? "Off-platform payment reported"
+                  : r.reason === "refused_escrow"
+                    ? "Escrow refusal reported"
+                    : r.reason === "impersonation"
+                      ? "Impersonation reported"
+                      : "Support report filed",
+            status:
+              r.status === "resolved"
+                ? "answered"
+                : r.status === "dismissed"
+                  ? "closed"
+                  : "open",
+            createdAt: r.created_at,
+          })),
+        );
+      })
+      .catch(() => {
+        setTickets([]);
+      })
+      .finally(() => setLoading(false));
   }, [user]);
 
   useEffect(() => {

@@ -28,6 +28,7 @@ import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Prim
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
 import { fetchOrder, useDispute, type OrderRow } from "@/lib/supabaseQueries";
+import { useNow } from "@/hooks/use-now";
 import {
   openDispute as openDisputeRpc,
   completeOrder,
@@ -69,17 +70,15 @@ export default function BuyerOrderDetail() {
   const [reportReason, setReportReason] = useState<string>("shared_contact");
   const [reportDetail, setReportDetail] = useState("");
   const disputeQuery = useDispute(orderNo);
+  const now = useNow();
 
-  const reload = useCallback(async () => {
-    if (!orderNo) return;
-    setLoading(true);
-    try {
-      setOrder(await fetchOrder(orderNo));
-    } catch {
-      setOrder(null);
-    } finally {
-      setLoading(false);
-    }
+  const reload = useCallback(() => {
+    if (!orderNo) return Promise.resolve();
+    return Promise.resolve()
+      .then(() => fetchOrder(orderNo))
+      .then(setOrder)
+      .catch(() => setOrder(null))
+      .finally(() => setLoading(false));
   }, [orderNo]);
 
   useEffect(() => {
@@ -127,7 +126,6 @@ export default function BuyerOrderDetail() {
   const warrantyExpiryMs = warrantyHours != null
     ? orderCreated + warrantyHours * 60 * 60 * 1000
     : null;
-  const now = Date.now();
   const warrantyOpen = warrantyExpiryMs != null && now < warrantyExpiryMs;
   const warrantyExpired = warrantyExpiryMs != null && now >= warrantyExpiryMs;
   const warrantyFromNow = warrantyExpiryMs != null

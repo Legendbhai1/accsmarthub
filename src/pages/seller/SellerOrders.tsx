@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { SellerLayout } from "@/components/dash/SellerLayout";
-import { markOrderDelivered, type OrderRow } from "@/lib/supabaseMutations";
+import { markOrderDelivered } from "@/lib/supabaseMutations";
 import { fetchOrder, useMyOrders } from "@/lib/supabaseQueries";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";

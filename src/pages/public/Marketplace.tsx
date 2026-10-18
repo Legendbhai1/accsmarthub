@@ -45,7 +45,7 @@ function AccountCard({
     <article className="group rounded-3xl border border-border/70 bg-card/70 p-2 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/40 hover:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.5)]">
       <div className="relative">
         <Link
-          to={`/listing/${listing.id}`}
+          to={`/marketplace/${listing.id}`}
           className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-muted"
         >
           <BrandMark
@@ -77,7 +77,7 @@ function AccountCard({
         </button>
       </div>
 
-      <Link to={`/listing/${listing.id}`} className="mt-2 block px-0.5">
+      <Link to={`/marketplace/${listing.id}`} className="mt-2 block px-0.5">
         <h3 className="truncate text-[13px] font-semibold tracking-tight text-foreground">{listing.title}</h3>
         <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
           {listing.serviceCategory ?? listing.brand}

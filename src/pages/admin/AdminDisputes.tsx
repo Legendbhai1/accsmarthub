@@ -1,10 +1,8 @@
 import { useState } from "react";
 import {
-  Shield,
   MessageSquare,
   CheckCheck,
   AlertTriangle,
-  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

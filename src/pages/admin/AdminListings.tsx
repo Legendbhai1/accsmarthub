@@ -2,11 +2,7 @@ import { useState } from "react";
 import {
   Eye,
   Search,
-  CheckCheck,
-  XCircle,
-  Clock,
   MoreHorizontal,
-  Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

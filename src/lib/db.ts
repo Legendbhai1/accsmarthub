@@ -204,7 +204,7 @@ export const categories: Category[] = [
 
 /* --------------------------- selectors (read-only) --------------------------- */
 
-export function getSeller(id: string): Seller {
+export function getSeller(_id: string): Seller {
   throw new Error("getSeller is a demo helper. Use the Supabase-backed seller profile instead.");
 }
 
@@ -212,11 +212,11 @@ export function getCategory(slug: string): Category {
   return categories.find((c) => c.slug === slug) ?? categories[0];
 }
 
-export function getReviewsFor(listingId: string): Review[] {
+export function getReviewsFor(_listingId: string): Review[] {
   return [];
 }
 
-export function getRelated(listing: Listing, limit = 4): Listing[] {
+export function getRelated(_listing: Listing, _limit = 4): Listing[] {
   return [];
 }
 

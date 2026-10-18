@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { sellerNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
-import { formatPrice } from "@/lib/format";
 import { readMyStore, friendlyError } from "@/lib/supabaseData";
 
 export default function SellerProfile() {

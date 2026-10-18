@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +45,9 @@ async function fetchSellerDisputes(
 
   const { data: ordersBySeller, error: ordersErr } = await supabase
     .from("orders")
-    .select("order_no, listing_title, gross_amount, status, created_at, buyer_id")
+    .select(
+      "order_no, listing_title, gross_amount, status, created_at, buyer_id",
+    )
     .eq("seller_id", sellerId)
     .order("created_at", { ascending: false });
 
@@ -69,9 +70,7 @@ async function fetchSellerDisputes(
   const disputeRows = disputes ?? [];
   if (disputeRows.length === 0) return [];
 
-  const orderMap = new Map(
-    (ordersBySeller ?? []).map((o) => [o.order_no, o]),
-  );
+  const orderMap = new Map((ordersBySeller ?? []).map((o) => [o.order_no, o]));
 
   const buyerIds = new Set<string>();
   disputeRows.forEach((d) => {
@@ -79,10 +78,11 @@ async function fetchSellerDisputes(
     if (o) buyerIds.add(o.buyer_id);
   });
 
-  const { data: profiles, error: pe } = await supabase
+  const { data: profiles, error: profilesError } = await supabase
     .from("profiles")
     .select("id, name")
     .in("id", [...buyerIds]);
+  if (profilesError) throw profilesError;
 
   const nameBy = new Map<string, string>();
   if (profiles) {
@@ -127,12 +127,12 @@ async function fetchSellerDisputes(
         id: m.id,
         authorId: m.author_id,
         authorName: m.author_name ?? "Member",
-        authorRole: m.author_role ?? (buyerIds.has(m.author_id) ? "buyer" : "member"),
+        authorRole:
+          m.author_role ?? (buyerIds.has(m.author_id) ? "buyer" : "member"),
         body: m.body,
         createdAt: m.created_at,
       })),
-      canReply:
-        d.status === "open" || d.status === "under_review",
+      canReply: d.status === "open" || d.status === "under_review",
     };
   });
 }
@@ -144,16 +144,13 @@ export default function SellerDisputes() {
   const [respondTo, setRespondTo] = useState<string | null>(null);
   const [text, setText] = useState("");
 
-  const load = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      setDisputes(await fetchSellerDisputes(user.id));
-    } catch {
-      setDisputes([]);
-    } finally {
-      setLoading(false);
-    }
+  const load = useCallback(() => {
+    if (!user) return Promise.resolve();
+    return Promise.resolve()
+      .then(() => fetchSellerDisputes(user.id))
+      .then(setDisputes)
+      .catch(() => setDisputes([]))
+      .finally(() => setLoading(false));
   }, [user]);
 
   useEffect(() => {
@@ -202,7 +199,8 @@ export default function SellerDisputes() {
                   <div>
                     <p className="text-sm font-medium">{d.listingTitle}</p>
                     <p className="text-xs text-muted-foreground">
-                      {d.order_no} · {d.reason} · {formatPrice(d.amount)} in escrow
+                      {d.order_no} · {d.reason} · {formatPrice(d.amount)} in
+                      escrow
                     </p>
                   </div>
                   <StatusBadge status={d.status} />
@@ -216,17 +214,28 @@ export default function SellerDisputes() {
                       Message thread
                     </p>
                     {d.messages.map((m) => (
-                      <div key={m.id} className="rounded-xl bg-muted/40 px-4 py-3 text-sm">
+                      <div
+                        key={m.id}
+                        className="rounded-xl bg-muted/40 px-4 py-3 text-sm"
+                      >
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           {m.authorRole === "seller" ? (
                             <>
-                              <span className="font-medium text-foreground">You</span>
-                              <span className="text-muted-foreground/60">{new Date(m.createdAt).toLocaleString()}</span>
+                              <span className="font-medium text-foreground">
+                                You
+                              </span>
+                              <span className="text-muted-foreground/60">
+                                {new Date(m.createdAt).toLocaleString()}
+                              </span>
                             </>
                           ) : (
                             <>
-                              <span className="font-medium">{m.authorName}</span>
-                              <span className="text-muted-foreground/60">{new Date(m.createdAt).toLocaleString()}</span>
+                              <span className="font-medium">
+                                {m.authorName}
+                              </span>
+                              <span className="text-muted-foreground/60">
+                                {new Date(m.createdAt).toLocaleString()}
+                              </span>
                             </>
                           )}
                         </div>
@@ -236,8 +245,11 @@ export default function SellerDisputes() {
                   </div>
                 )}
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {d.messages.length} message{d.messages.length === 1 ? "" : "s"}
-                  {d.canReply && d.messages.length === 0 && " · you can be the first to reply"}
+                  {d.messages.length} message
+                  {d.messages.length === 1 ? "" : "s"}
+                  {d.canReply &&
+                    d.messages.length === 0 &&
+                    " · you can be the first to reply"}
                 </p>
                 {d.canReply && (
                   <Button
@@ -253,12 +265,16 @@ export default function SellerDisputes() {
           </ul>
         )}
 
-        <Dialog open={respondTo !== null} onOpenChange={() => setRespondTo(null)}>
+        <Dialog
+          open={respondTo !== null}
+          onOpenChange={() => setRespondTo(null)}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Respond to dispute</DialogTitle>
               <DialogDescription>
-                Your response is added to the message thread and visible to the buyer and trust team.
+                Your response is added to the message thread and visible to the
+                buyer and trust team.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">

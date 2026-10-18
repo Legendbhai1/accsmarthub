@@ -51,9 +51,14 @@ alter table public.disposable_email_domains enable row level security;
 -- ---------------------------------------------------------------------
 create table if not exists public.admin_audit (
   id uuid primary key default gen_random_uuid(),
+  actor_id uuid,
   admin_id uuid,
   action text not null,
-  target text not null,
+  resource_type text not null default 'general',
+  resource_id uuid,
+  resource_text text,
+  target text,
+  note text,
   detail text,
   created_at timestamptz not null default now()
 );
@@ -183,7 +188,7 @@ begin
   if v_domain is null or v_domain = '' or position(' ' in v_domain) > 0 then
     raise exception 'Enter a valid email address';
   end if;
-  if position('.', v_domain) = 0 then
+  if position('.' in v_domain) = 0 then
     raise exception 'Temporary or invalid email addresses are not allowed. Use a permanent email you own.';
   end if;
   if public.is_disposable_domain(v_domain) then
@@ -287,10 +292,12 @@ begin
   perform set_config('app.trusted_write','on',true);
   update public.profiles set is_admin = p_make_admin where id = p_user;
 
-  insert into public.admin_audit (admin_id, action, target, detail)
-  values (auth.uid(),
+  insert into public.admin_audit
+    (admin_id, actor_id, action, resource_type, resource_id, target,
+     resource_text, detail, note)
+  values (auth.uid(), auth.uid(),
           case when p_make_admin then 'admin.grant' else 'admin.revoke' end,
-          p_user::text, v_email);
+          'user', p_user, p_user::text, v_email, v_email, v_email);
 end;
 $$;
 
@@ -315,9 +322,14 @@ begin
     return;
   end if;
   update public.listings set status = p_status where id = p_listing_id;
-  insert into public.admin_audit (admin_id, action, target, detail)
-  values (auth.uid(), 'listing.' || p_status, p_listing_id::text,
-          (select title from public.listings where id = p_listing_id));
+  insert into public.admin_audit
+    (admin_id, actor_id, action, resource_type, resource_id, target,
+     resource_text, detail, note)
+  values (auth.uid(), auth.uid(), 'listing.' || p_status, 'listing',
+          p_listing_id, p_listing_id::text,
+          (select title from public.listings where id = p_listing_id),
+          'listing status set to ' || p_status,
+          'listing status set to ' || p_status);
 end;
 $$;
 

@@ -41,17 +41,13 @@ export default function OrderConfirmed() {
   const [confirming, setConfirming] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  const refreshOrder = useCallback(async () => {
-    if (!orderNo) return;
-    setLoading("checking");
-    try {
-      const row = await fetchOrder(orderNo);
-      setOrder(row);
-    } catch {
-      setOrder(null);
-    } finally {
-      setLoading("ok");
-    }
+  const refreshOrder = useCallback(() => {
+    if (!orderNo) return Promise.resolve();
+    return Promise.resolve()
+      .then(() => fetchOrder(orderNo))
+      .then(setOrder)
+      .catch(() => setOrder(null))
+      .finally(() => setLoading("ok"));
   }, [orderNo]);
 
   useEffect(() => {
@@ -61,10 +57,12 @@ export default function OrderConfirmed() {
   const confirm = async () => {
     if (!orderNo) return;
     setConfirming(true);
+    setLoading("checking");
     try {
       await completeOrderRpc({ orderNo });
       toast.success("Transfer confirmed", {
-        description: "Escrow has been released to the seller, minus our 10% commission.",
+        description:
+          "Escrow has been released to the seller, minus our 10% commission.",
       });
       await refreshOrder();
     } catch (err) {
@@ -102,7 +100,8 @@ export default function OrderConfirmed() {
           ? "Credentials downloaded"
           : `${files.length} accounts downloaded`,
         {
-          description: "Keep these files private — they grant full account access.",
+          description:
+            "Keep these files private — they grant full account access.",
         },
       );
     } catch (err) {
@@ -135,8 +134,8 @@ export default function OrderConfirmed() {
               <span className="font-semibold text-foreground">
                 {formatPrice(order.total_usd)}
               </span>{" "}
-              is now held in escrow. The seller has been notified and will
-              begin the secure transfer.
+              is now held in escrow. The seller has been notified and will begin
+              the secure transfer.
             </>
           ) : (
             "Your payment is held in escrow and the seller has been notified to begin the transfer."
@@ -147,7 +146,9 @@ export default function OrderConfirmed() {
           <>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm">
               <StatusBadge status={order.status} />
-              <span className="text-muted-foreground">· {order.listing_title}</span>
+              <span className="text-muted-foreground">
+                · {order.listing_title}
+              </span>
             </div>
 
             <dl className="mt-5 divide-y divide-border/60 rounded-xl border border-border/60 text-left text-sm">

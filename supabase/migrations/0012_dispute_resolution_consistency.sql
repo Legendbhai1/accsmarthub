@@ -21,16 +21,29 @@
 --  to the existing resolve_dispute signature instead.
 --
 --  Audit table (if/do nothing if it already exists from another migration).
+-- The table may already exist from 0007, which created it with a different
+-- column set. Add whichever of this shape's columns are missing so both writers
+-- work against one table.
 create table if not exists public.admin_audit (
   id uuid primary key default gen_random_uuid(),
-  actor_id uuid not null,
+  actor_id uuid,
   action text not null,
-  resource_type text not null,
+  resource_type text,
   resource_id uuid,
   resource_text text,
   note text,
   created_at timestamptz not null default now()
 );
+
+alter table public.admin_audit add column if not exists actor_id uuid;
+alter table public.admin_audit add column if not exists resource_type text;
+alter table public.admin_audit add column if not exists resource_id uuid;
+alter table public.admin_audit add column if not exists resource_text text;
+alter table public.admin_audit add column if not exists note text;
+alter table public.admin_audit add column if not exists admin_id uuid;
+alter table public.admin_audit add column if not exists target text;
+alter table public.admin_audit add column if not exists detail text;
+update public.admin_audit set resource_type = 'general' where resource_type is null;
 
 -- Keep admin audit visible only to admins and the audit system.
 alter table public.admin_audit enable row level security;

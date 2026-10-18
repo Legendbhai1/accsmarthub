@@ -93,9 +93,11 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
-    onSelect(api)
     api.on("reInit", onSelect)
     api.on("select", onSelect)
+    // Sync the initial state after commit rather than synchronously inside the
+    // effect, which would cascade a render during the effect pass.
+    queueMicrotask(() => onSelect(api))
 
     return () => {
       api?.off("select", onSelect)

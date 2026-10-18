@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   Shield,
   Search,
-  Eye,
   CheckCheck,
   XCircle,
   MoreHorizontal,
@@ -23,17 +22,6 @@ import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { useReviewQueue } from "@/lib/supabaseQueries";
 import { reviewStore } from "@/lib/supabaseMutations";
-
-type SellerRow = {
-  id: string;
-  user_id: string;
-  store_name: string;
-  slug: string;
-  platforms: string[];
-  status: "pending" | "approved" | "rejected";
-  review_note: string | null;
-  created_at: string;
-};
 
 const TABS = [
   { key: "pending", label: "Pending" },

@@ -1,6 +1,5 @@
-import { createBrowserRouter, Navigate } from "react-router";
+import { createBrowserRouter, redirect } from "react-router";
 import { RequireRole } from "@/components/site/guards";
-import { SessionProvider } from "@/lib/session";
 import { motion } from "framer-motion";
 
 // Buyer
@@ -104,6 +103,12 @@ const router = createBrowserRouter([
   {
     path: "/marketplace/:id",
     element: <ListingDetail />,
+  },
+  // Older links and bookmarks used /listing/:id. Keep them working by
+  // redirecting to the canonical route.
+  {
+    path: "/listing/:id",
+    loader: ({ params }) => redirect(`/marketplace/${params.id}`),
   },
   {
     path: "/faq",

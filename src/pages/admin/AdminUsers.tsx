@@ -97,43 +97,42 @@ export default function AdminUsers() {
   }, [search]);
 
   const load = useCallback(
-    async (nextPage: number, nextRole: string, nextSearch: string) => {
+    (nextPage: number, nextRole: string, nextSearch: string) => {
       const requestId = ++requestRef.current;
-      setLoading(true);
-      setError(null);
-      try {
-        const { data, error: invokeError } = await supabase.functions.invoke(
-          "admin-users",
-          {
-            body: {
-              page: nextPage,
-              per_page: PAGE_SIZE,
-              role: nextRole,
-              search: nextSearch,
-            },
+      return Promise.resolve(
+        supabase.functions.invoke("admin-users", {
+          body: {
+            page: nextPage,
+            per_page: PAGE_SIZE,
+            role: nextRole,
+            search: nextSearch,
           },
-        );
+        }),
+      )
+        .then(({ data, error: invokeError }) => {
+          // A newer request started while this one was in flight: drop the result.
+          if (requestId !== requestRef.current) return;
 
-        // A newer request started while this one was in flight: drop the result.
-        if (requestId !== requestRef.current) return;
+          if (invokeError) throw invokeError;
 
-        if (invokeError) throw invokeError;
+          const payload = data as Partial<AdminUsersPayload> | null;
+          if (!payload || !Array.isArray(payload.users)) {
+            throw new Error("Admin users service returned an unexpected response.");
+          }
 
-        const payload = data as Partial<AdminUsersPayload> | null;
-        if (!payload || !Array.isArray(payload.users)) {
-          throw new Error("Admin users service returned an unexpected response.");
-        }
-
-        setRows(payload.users);
-        setTotal(typeof payload.total === "number" ? payload.total : 0);
-      } catch (err) {
-        if (requestId !== requestRef.current) return;
-        // Keep whatever rows are already on screen; never pretend a failed
-        // request produced an empty user list.
-        setError(await describeFunctionError(err));
-      } finally {
-        if (requestId === requestRef.current) setLoading(false);
-      }
+          setRows(payload.users);
+          setTotal(typeof payload.total === "number" ? payload.total : 0);
+          setError(null);
+        })
+        .catch(async (err: unknown) => {
+          if (requestId !== requestRef.current) return;
+          // Keep whatever rows are already on screen; never pretend a failed
+          // request produced an empty user list.
+          setError(await describeFunctionError(err));
+        })
+        .finally(() => {
+          if (requestId === requestRef.current) setLoading(false);
+        });
     },
     [],
   );
