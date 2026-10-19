@@ -188,6 +188,66 @@ export function usePayoutQueue() {
   return useSBQuery(fetchPayoutQueue, []);
 }
 
+/**
+ * The signed-in buyer's saved listing ids, as a Set for O(1) card lookups.
+ * Returns an empty set when signed out so the grid renders unhearted rather
+ * than throwing.
+ */
+async function fetchSavedListingIds(): Promise<string[]> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session?.user.id) return [];
+  const { data, error } = await supabase.from("saved_listings").select("listing_id");
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map((r) => String(r.listing_id));
+}
+
+export function useSavedListingIds() {
+  return useSBQuery(fetchSavedListingIds, []);
+}
+
+export type SavedListing = {
+  id: string;
+  title: string;
+  brand: string;
+  serviceCategory: string | null;
+  priceUsd: number;
+  stock: number;
+  imagePath: string | null;
+  savedAt: string;
+};
+
+async function fetchSavedListings(): Promise<SavedListing[]> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session?.user.id) return [];
+  const { data, error } = await supabase
+    .from("saved_listings")
+    .select(
+      "created_at, listings!inner(id, title, brand, service_category, price_usd, stock, image_path, status)",
+    )
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? [])
+    .map((row) => {
+      const l = row.listings as unknown as Record<string, unknown> | null;
+      if (!l) return null;
+      return {
+        id: String(l.id),
+        title: String(l.title ?? ""),
+        brand: String(l.brand ?? ""),
+        serviceCategory: l.service_category ? String(l.service_category) : null,
+        priceUsd: Number(l.price_usd ?? 0),
+        stock: Number(l.stock ?? 0),
+        imagePath: l.image_path ? String(l.image_path) : null,
+        savedAt: String(row.created_at ?? ""),
+      };
+    })
+    .filter((x): x is SavedListing => x !== null);
+}
+
+export function useSavedListings() {
+  return useSBQuery(fetchSavedListings, []);
+}
+
 export type PlatformStats = {
   grossVolumeUsd: number;
   commissionUsd: number;

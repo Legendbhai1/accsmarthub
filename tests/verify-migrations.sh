@@ -66,6 +66,7 @@ done
 apply s1 "$(mig 0013_reconcile_marketplace.sql)" || status=1
 apply s1 "$(mig 0014_seller_payouts.sql)" || status=1
 apply s1 "$(mig 0015_support_request_safety.sql)" || status=1
+apply s1 "$(mig 0016_saved_listings.sql)" || status=1
 
 # ---------------------------------------------------------------- scenario 2
 echo "SCENARIO 2  legacy chain 0001-0012 (0007/0009/0012 abort) then 0013"
@@ -83,6 +84,7 @@ done
 apply s2 "$(mig 0013_reconcile_marketplace.sql)" || status=1
 apply s2 "$(mig 0014_seller_payouts.sql)" || status=1
 apply s2 "$(mig 0015_support_request_safety.sql)" || status=1
+apply s2 "$(mig 0016_saved_listings.sql)" || status=1
 
 # ---------------------------------------------------------------- scenario 3
 echo "SCENARIO 3  0013 replayed (must be idempotent)"
@@ -94,6 +96,8 @@ apply s1 "$(mig 0014_seller_payouts.sql)" || status=1
 apply s1 "$(mig 0015_support_request_safety.sql)" || status=1
 apply s2 "$(mig 0014_seller_payouts.sql)" || status=1
 apply s2 "$(mig 0015_support_request_safety.sql)" || status=1
+apply s1 "$(mig 0016_saved_listings.sql)" || status=1
+apply s2 "$(mig 0016_saved_listings.sql)" || status=1
 
 # ------------------------------------------------------- required objects
 echo "SCENARIO 4  required objects present in both scenarios"
@@ -157,6 +161,10 @@ for db in s1 s2; do
     "select pg_get_constraintdef(oid) like '%payout_paid%' from pg_constraint where conname='notifications_kind_check'"
   check "$db" "self-reports are refused by policy" \
     "select pg_get_expr(polqual, polrelid) is null and pg_get_expr(polwithcheck, polrelid) like '%reported_user_id%' from pg_policy where polname='file report'"
+  check "$db" "saved_listings pins every write to the caller" \
+    "select count(*) = 3 from pg_policies where schemaname='public' and tablename='saved_listings' and cmd in ('SELECT','INSERT','DELETE') and coalesce(qual, with_check) like '%auth.uid()%'"
+  check "$db" "saved_listings has no update policy" \
+    "select not exists(select 1 from pg_policies where schemaname='public' and tablename='saved_listings' and cmd in ('UPDATE','ALL'))"
   check "$db" "resolve_report will not pause the reporter" \
     "select position('v_r.reported_user_id <> v_r.reporter_id' in pg_get_functiondef('public.resolve_report(uuid,text,text)'::regprocedure)) > 0"
 done

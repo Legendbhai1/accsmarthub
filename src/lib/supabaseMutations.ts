@@ -850,3 +850,33 @@ export async function resolvePayout(input: ResolvePayoutInput): Promise<void> {
   });
   if (error) throw new Error(friendlyError(error));
 }
+
+/**
+ * Save or unsave a listing for the signed-in user. RLS pins `user_id` to the
+ * caller, so the id cannot be spoofed; a repeat save is absorbed by the
+ * primary key rather than raising.
+ */
+export async function toggleSavedListing(
+  listingId: string,
+  save: boolean,
+): Promise<void> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user.id;
+  if (!userId) throw new Error("You need to be signed in to save listings.");
+
+  if (save) {
+    const { error } = await supabase
+      .from("saved_listings")
+      .insert({ user_id: userId, listing_id: listingId });
+    // 23505 is the primary key firing on a double tap, which is a success.
+    if (error && error.code !== "23505") throw new Error(friendlyError(error));
+    return;
+  }
+
+  const { error } = await supabase
+    .from("saved_listings")
+    .delete()
+    .eq("user_id", userId)
+    .eq("listing_id", listingId);
+  if (error) throw new Error(friendlyError(error));
+}

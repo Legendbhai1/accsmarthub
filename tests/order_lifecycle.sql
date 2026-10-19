@@ -1253,6 +1253,71 @@ begin
 end
 $$;
 
+-- ============================================ 19. SAVED LISTINGS ARE PER-USER
+-- The heart on a marketplace card used to write to component state only, so a
+-- saved account vanished on reload. It now writes to saved_listings, whose
+-- policies must pin every row to the caller.
+do $$
+declare v_listing uuid; v_mine integer; v_theirs integer;
+begin
+  select id into v_listing from public.listings
+   where seller_id = '22222222-2222-2222-2222-222222222222'
+   order by created_at limit 1;
+
+  -- A buyer saves a listing.
+  perform set_config('request.jwt.claims',
+    '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect_ok('19a a buyer can save a listing',
+    format($q$insert into public.saved_listings (user_id, listing_id)
+       values ('11111111-1111-1111-1111-111111111111', %L)$q$, v_listing));
+
+  -- Saving it twice is absorbed by the primary key, not an error to the user.
+  perform public.test_expect('19b saving twice is refused as a duplicate',
+    format($q$insert into public.saved_listings (user_id, listing_id)
+       values ('11111111-1111-1111-1111-111111111111', %L)$q$, v_listing), true);
+
+  -- You cannot save on someone else's behalf.
+  perform public.test_expect('19c a buyer cannot save for another user',
+    format($q$insert into public.saved_listings (user_id, listing_id)
+       values ('22222222-2222-2222-2222-222222222222', %L)$q$, v_listing), true);
+
+  -- A buyer sees only their own rows.
+  select count(*) into v_mine from public.saved_listings;
+  reset role;
+  perform public.test_check('19d a buyer sees only their own saved rows',
+    v_mine = 1, 'rows=' || v_mine);
+
+  perform set_config('request.jwt.claims',
+    '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', false);
+  set local role authenticated;
+  select count(*) into v_theirs from public.saved_listings;
+  -- An RLS-filtered delete that matches nothing succeeds with 0 rows rather
+  -- than raising, so the assertion is that the buyer's row survives it.
+  perform public.test_expect_ok('19e a seller cannot delete a buyer''s saved row',
+    format($q$delete from public.saved_listings where listing_id = %L$q$, v_listing));
+  reset role;
+
+  perform public.test_check('19f the buyer''s save survived the seller''s delete',
+    (select count(*) from public.saved_listings
+      where listing_id = v_listing
+        and user_id = '11111111-1111-1111-1111-111111111111') = 1, '');
+
+  perform public.test_check('19g another user cannot see the saved row',
+    v_theirs = 0, 'rows=' || v_theirs);
+
+  perform set_config('request.jwt.claims',
+    '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect_ok('19h a buyer can remove their own save',
+    format($q$delete from public.saved_listings where listing_id = %L$q$, v_listing));
+  reset role;
+
+  perform public.test_check('19i the save is gone after the buyer removes it',
+    (select count(*) from public.saved_listings where listing_id = v_listing) = 0, '');
+end
+$$;
+
 -- ============================================ SUMMARY
 do $$
 declare v_total integer; v_passed integer;

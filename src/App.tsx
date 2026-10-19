@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import BuyerDashboard from "@/pages/buyer/BuyerDashboard";
 import BuyerOrders from "@/pages/buyer/BuyerOrders";
 import BuyerPurchased from "@/pages/buyer/BuyerPurchased";
+import BuyerSaved from "@/pages/buyer/BuyerSaved";
 import BuyerNotifications from "@/pages/buyer/BuyerNotifications";
 import BuyerSupport from "@/pages/buyer/BuyerSupport";
 import BuyerWallet from "@/pages/buyer/BuyerWallet";
@@ -158,6 +159,7 @@ const router = createBrowserRouter([
           { path: "orders", element: <BuyerOrders /> },
           { path: "orders/:orderId", element: <BuyerOrderDetail /> },
           { path: "purchased", element: <BuyerPurchased /> },
+          { path: "saved", element: <BuyerSaved /> },
           { path: "notifications", element: <BuyerNotifications /> },
           { path: "support", element: <BuyerSupport /> },
           { path: "wallet", element: <BuyerWallet /> },

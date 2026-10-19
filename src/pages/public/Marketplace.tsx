@@ -7,7 +7,10 @@ import { TopMenu } from "@/components/site/TopMenu";
 import { Pagination } from "@/components/common/Pagination";
 import { formatPrice } from "@/lib/format";
 import { categories } from "@/lib/db";
-import { usePublicListings, type PublicListing } from "@/lib/supabaseQueries";
+import { usePublicListings, useSavedListingIds, type PublicListing } from "@/lib/supabaseQueries";
+import { toggleSavedListing } from "@/lib/supabaseMutations";
+import { useSession } from "@/lib/session";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const SLIDES = [
@@ -113,7 +116,48 @@ export default function Marketplace() {
   const [query, setQuery] = useState(params.get("q") ?? "");
   const [searchOpen, setSearchOpen] = useState(Boolean(params.get("q")));
   const [slide, setSlide] = useState(0);
-  const [saved, setSaved] = useState<string[]>([]);
+
+  const { user } = useSession();
+  const savedQuery = useSavedListingIds();
+  // Optimistic set so the heart fills on tap; the database is the source of
+  // truth and is re-read after each write.
+  const [saved, setSaved] = useState<string[] | null>(null);
+  const savedIds = useMemo(
+    () => new Set(saved ?? savedQuery.data ?? []),
+    [saved, savedQuery.data],
+  );
+
+  const toggleSaved = async (id: string) => {
+    if (!user) {
+      toast.error("Sign in to save accounts", {
+        description: "Saved accounts are kept with your account.",
+      });
+      navigate("/auth?next=/marketplace");
+      return;
+    }
+    const isSaved = savedIds.has(id);
+    setSaved(
+      (prev) => {
+        const base = prev ?? savedQuery.data ?? [];
+        return isSaved ? base.filter((x) => x !== id) : [...base, id];
+      },
+    );
+    try {
+      await toggleSavedListing(id, !isSaved);
+      savedQuery.refresh();
+    } catch (err) {
+      // Put the heart back: the write did not land.
+      setSaved(
+        (prev) => {
+          const base = prev ?? savedQuery.data ?? [];
+          return isSaved ? [...base, id] : base.filter((x) => x !== id);
+        },
+      );
+      toast.error("Could not update your saved accounts", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    }
+  };
 
   useEffect(() => {
     const timer = window.setInterval(() => setSlide((s) => (s + 1) % SLIDES.length), 4500);
@@ -463,10 +507,8 @@ export default function Marketplace() {
                   <AccountCard
                     key={listing.id}
                     listing={listing}
-                    liked={saved.includes(listing.id)}
-                    onToggleLike={(id) =>
-                      setSaved((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
-                    }
+                    liked={savedIds.has(listing.id)}
+                    onToggleLike={toggleSaved}
                   />
                 ))}
               </div>
