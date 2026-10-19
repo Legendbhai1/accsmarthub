@@ -64,6 +64,8 @@ for f in 0001_core 0002_storage 0003_disputes 0004_payments \
   apply s1 "$(mig "$f.sql")" || status=1
 done
 apply s1 "$(mig 0013_reconcile_marketplace.sql)" || status=1
+apply s1 "$(mig 0014_seller_payouts.sql)" || status=1
+apply s1 "$(mig 0015_support_request_safety.sql)" || status=1
 
 # ---------------------------------------------------------------- scenario 2
 echo "SCENARIO 2  legacy chain 0001-0012 (0007/0009/0012 abort) then 0013"
@@ -79,11 +81,19 @@ for f in 0007_email_and_store_policy 0008_listing_first_publishing \
   apply s2 "$(mig "$f.sql")" allow || status=1
 done
 apply s2 "$(mig 0013_reconcile_marketplace.sql)" || status=1
+apply s2 "$(mig 0014_seller_payouts.sql)" || status=1
+apply s2 "$(mig 0015_support_request_safety.sql)" || status=1
 
 # ---------------------------------------------------------------- scenario 3
 echo "SCENARIO 3  0013 replayed (must be idempotent)"
 apply s1 "$(mig 0013_reconcile_marketplace.sql)" || status=1
 apply s2 "$(mig 0013_reconcile_marketplace.sql)" || status=1
+# 0014 and 0015 are written to be re-runnable: a widen-then-add constraint and
+# two `create or replace` functions plus a `drop policy if exists`.
+apply s1 "$(mig 0014_seller_payouts.sql)" || status=1
+apply s1 "$(mig 0015_support_request_safety.sql)" || status=1
+apply s2 "$(mig 0014_seller_payouts.sql)" || status=1
+apply s2 "$(mig 0015_support_request_safety.sql)" || status=1
 
 # ------------------------------------------------------- required objects
 echo "SCENARIO 4  required objects present in both scenarios"
@@ -135,6 +145,20 @@ for db in s1 s2; do
     "select not exists(select 1 from pg_policies where schemaname='public' and tablename='admin_audit' and cmd in ('INSERT','ALL'))"
   check "$db" "order_events has no client write policy" \
     "select not exists(select 1 from pg_policies where schemaname='public' and tablename='order_events' and cmd in ('INSERT','UPDATE','DELETE','ALL'))"
+  check "$db" "payout_requests has no client write policy" \
+    "select not exists(select 1 from pg_policies where schemaname='public' and tablename='payout_requests' and cmd in ('INSERT','UPDATE','DELETE','ALL'))"
+  check "$db" "request_payout is client-callable" \
+    "select has_function_privilege('authenticated','public.request_payout(numeric,text,text,text)','execute')"
+  check "$db" "resolve_payout exists" \
+    "select exists(select 1 from pg_proc where proname='resolve_payout')"
+  check "$db" "wallet_ledger accepts payout kinds" \
+    "select pg_get_constraintdef(oid) like '%payout_hold%' from pg_constraint where conname='wallet_ledger_kind_check'"
+  check "$db" "notifications accepts payout kinds" \
+    "select pg_get_constraintdef(oid) like '%payout_paid%' from pg_constraint where conname='notifications_kind_check'"
+  check "$db" "self-reports are refused by policy" \
+    "select pg_get_expr(polqual, polrelid) is null and pg_get_expr(polwithcheck, polrelid) like '%reported_user_id%' from pg_policy where polname='file report'"
+  check "$db" "resolve_report will not pause the reporter" \
+    "select position('v_r.reported_user_id <> v_r.reporter_id' in pg_get_functiondef('public.resolve_report(uuid,text,text)'::regprocedure)) > 0"
 done
 
 echo

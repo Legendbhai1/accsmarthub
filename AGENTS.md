@@ -55,6 +55,17 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   requires, and is safe to re-run.
 - `src/convex/**` is dead code (no runtime imports). `tsconfig.app.json`
   excludes it; ESLint still lints it.
+- Widening a `check (kind in (...))` constraint means naming the *current* live
+  list, not the one in the migration that first created the table. `0013`
+  re-declared `notifications` with `create table if not exists`, which is a
+  no-op on an existing table, so `0009`'s kind list stayed authoritative. A
+  later migration that copies the wrong list silently breaks inserts. `0014`
+  adds `payout_*` kinds on top of `0009`'s list for exactly this reason.
+- A support request is not a report against anyone. `off_platform_reports`
+  rows filed from BuyerSupport leave `reported_user_id` null: `resolve_report()`
+  pauses every active listing owned by `reported_user_id`, so filing a ticket
+  against yourself used to suspend your own listings on resolution. `0015`
+  enforces this in the insert policy and guards the pause as well.
 - The seeded "demo" helpers in `src/lib/db.ts` (`getSeller`, `api.*`,
   `DEMO_SELLER_ID`) throw on purpose. Do not reintroduce fabricated data.
 - `ThemeProvider` must stay mounted in `src/main.tsx`. `SiteHeader`, `TopMenu`

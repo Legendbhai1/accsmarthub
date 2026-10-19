@@ -37,7 +37,7 @@ const FAQS = [
   },
   {
     q: "How do payouts work for sellers?",
-    a: "When an order's escrow is released, your earnings (90% of the sale price) are credited to your seller balance, shown in your dashboard from the live ledger. Withdrawal requests are not enabled yet — they will be switched on once a payout provider is connected.",
+    a: "When an order completes, your earnings (90% of the sale price) are credited to your seller balance. You can request a withdrawal from the Earnings page; the amount is held from the moment you ask, and our team settles it by bank transfer, USDT or Payoneer. Payouts are sent manually, so allow some time for review. If a request is declined, the amount returns to your balance.",
   },
 ];
 

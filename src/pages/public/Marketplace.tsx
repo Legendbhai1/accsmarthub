@@ -4,6 +4,7 @@ import { Bell, Heart, LayoutGrid, Search, X } from "lucide-react";
 import { BrandMark } from "@/components/site/BrandMark";
 import { MobileTabBar } from "@/components/site/MobileTabBar";
 import { TopMenu } from "@/components/site/TopMenu";
+import { Pagination } from "@/components/common/Pagination";
 import { formatPrice } from "@/lib/format";
 import { categories } from "@/lib/db";
 import { usePublicListings, type PublicListing } from "@/lib/supabaseQueries";
@@ -121,6 +122,9 @@ export default function Marketplace() {
 
   const category = params.get("category");
   const search = (params.get("q") ?? "").trim();
+  const sort = params.get("sort") ?? "newest";
+  const minPrice = params.get("min") ?? "";
+  const maxPrice = params.get("max") ?? "";
 
   const active = useMemo(
     () => (listings ?? []).filter((l) => l.stock > 0),
@@ -129,8 +133,16 @@ export default function Marketplace() {
 
   const items = useMemo(() => {
     const needle = search.toLowerCase();
-    return active.filter((l) => {
+    const lo = minPrice.trim() === "" ? null : Number(minPrice);
+    const hi = maxPrice.trim() === "" ? null : Number(maxPrice);
+
+    const matched = active.filter((l) => {
       if (category && (l.serviceCategory ?? l.brand) !== category) return false;
+      // Availability is part of the filter set, not just the default view: a
+      // shopper who opens "all" should still not see a sold-out listing.
+      if (l.stock <= 0) return false;
+      if (lo !== null && Number.isFinite(lo) && l.priceUsd < lo) return false;
+      if (hi !== null && Number.isFinite(hi) && l.priceUsd > hi) return false;
       if (!needle) return true;
       return (
         l.title.toLowerCase().includes(needle) ||
@@ -138,7 +150,36 @@ export default function Marketplace() {
         l.brand.toLowerCase().includes(needle)
       );
     });
-  }, [active, category, search]);
+
+    // Sort on the fields the listing actually exposes. `newest` keeps the
+    // server's created_at ordering, so no client-side sort is applied.
+    const sorted = [...matched];
+    if (sort === "price_asc") sorted.sort((a, b) => a.priceUsd - b.priceUsd);
+    else if (sort === "price_desc") sorted.sort((a, b) => b.priceUsd - a.priceUsd);
+    else if (sort === "discount")
+      sorted.sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0));
+    return sorted;
+  }, [active, category, search, sort, minPrice, maxPrice]);
+
+  const PAGE_SIZE = 12;
+  const [page, setPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  // A filter change can leave the current page past the end of the new result
+  // set, so clamp rather than showing an empty grid.
+  const safePage = Math.min(page, pageCount);
+  const paged = useMemo(
+    () => items.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
+    [items, safePage],
+  );
+
+  const updateParam = (key: string, value: string) => {
+    const next = new URLSearchParams(location.search);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    const qs = next.toString();
+    setPage(1);
+    navigate(qs ? `/marketplace?${qs}` : "/marketplace", { replace: true });
+  };
 
   // Previously a count of seeded demo orders. The catalogue is live now; the
   // cart badge only reflects rows this browser has actually started.
@@ -323,6 +364,68 @@ export default function Marketplace() {
             </span>
           </div>
 
+          {/* Filters live in the URL so a filtered view is shareable and the
+              back button behaves. */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <label className="sr-only" htmlFor="sort">
+              Sort listings
+            </label>
+            <select
+              id="sort"
+              value={sort}
+              onChange={(e) => updateParam("sort", e.target.value === "newest" ? "" : e.target.value)}
+              className="inset-well h-9 rounded-full px-3 text-xs outline-none focus:ring-2 focus:ring-ring/60"
+            >
+              <option value="newest">Newest first</option>
+              <option value="price_asc">Price: low to high</option>
+              <option value="price_desc">Price: high to low</option>
+              <option value="discount">Biggest discount</option>
+            </select>
+            <label className="sr-only" htmlFor="min-price">
+              Minimum price
+            </label>
+            <input
+              id="min-price"
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={minPrice}
+              onChange={(e) => updateParam("min", e.target.value)}
+              placeholder="Min $"
+              className="inset-well h-9 w-24 rounded-full px-3 text-xs outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/60"
+            />
+            <label className="sr-only" htmlFor="max-price">
+              Maximum price
+            </label>
+            <input
+              id="max-price"
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={maxPrice}
+              onChange={(e) => updateParam("max", e.target.value)}
+              placeholder="Max $"
+              className="inset-well h-9 w-24 rounded-full px-3 text-xs outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/60"
+            />
+            {(minPrice || maxPrice || sort !== "newest") && (
+              <button
+                type="button"
+                onClick={() => {
+                  const next = new URLSearchParams(location.search);
+                  next.delete("min");
+                  next.delete("max");
+                  next.delete("sort");
+                  const qs = next.toString();
+                  setPage(1);
+                  navigate(qs ? `/marketplace?${qs}` : "/marketplace", { replace: true });
+                }}
+                className="rounded-full border border-border/70 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+
           {error ? (
             <div className="mt-10 rounded-2xl border border-destructive/20 bg-destructive/5 px-6 py-12 text-center">
               <p className="text-sm font-semibold text-destructive">
@@ -335,15 +438,16 @@ export default function Marketplace() {
               <p className="text-sm text-muted-foreground">
                 {loading
                   ? "Loading accounts…"
-                  : search || category
+                  : search || category || minPrice || maxPrice
                     ? "No accounts match this search yet."
                     : "No accounts are listed right now. Check back soon."}
               </p>
-              {(search || category) && (
+              {(search || category || minPrice || maxPrice) && (
                 <button
                   type="button"
                   onClick={() => {
                     setQuery("");
+                    setPage(1);
                     navigate("/marketplace", { replace: true });
                   }}
                   className="mt-4 rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground"
@@ -353,18 +457,21 @@ export default function Marketplace() {
               )}
             </div>
           ) : (
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {items.map((listing) => (
-                <AccountCard
-                  key={listing.id}
-                  listing={listing}
-                  liked={saved.includes(listing.id)}
-                  onToggleLike={(id) =>
-                    setSaved((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
-                  }
-                />
-              ))}
-            </div>
+            <>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {paged.map((listing) => (
+                  <AccountCard
+                    key={listing.id}
+                    listing={listing}
+                    liked={saved.includes(listing.id)}
+                    onToggleLike={(id) =>
+                      setSaved((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+                    }
+                  />
+                ))}
+              </div>
+              <Pagination page={safePage} pageCount={pageCount} onChange={setPage} />
+            </>
           )}
 
           {/* Sell CTA */}

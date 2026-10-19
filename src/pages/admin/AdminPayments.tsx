@@ -6,11 +6,23 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
-import { EmptyState } from "@/components/common/Primitives";
+import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
+import { usePayoutQueue } from "@/lib/supabaseQueries";
+import { resolvePayout } from "@/lib/supabaseMutations";
+import { toast } from "sonner";
 
 type PaymentRow = {
   order_no: string;
@@ -26,6 +38,7 @@ const TABS = [
   { key: "completed", label: "Completed" },
   { key: "in_escrow", label: "In escrow" },
   { key: "disputed", label: "Disputed" },
+  { key: "payouts", label: "Payouts" },
 ] as const;
 
 export default function AdminPayments() {
@@ -35,6 +48,16 @@ export default function AdminPayments() {
   const [rows, setRows] = useState<PaymentRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const payoutsQuery = usePayoutQueue();
+  const [decision, setDecision] = useState<{
+    id: string;
+    kind: "paid" | "rejected";
+    amount: number;
+  } | null>(null);
+  const [note, setNote] = useState("");
+  const [reference, setReference] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setIsLoading(true);
@@ -75,6 +98,56 @@ export default function AdminPayments() {
           r.order_no.toLowerCase().includes(q.trim().toLowerCase())
         )
       : rows;
+
+  const openPayouts = (payoutsQuery.data ?? []).filter(
+    (p) => p.status === "requested" || p.status === "approved",
+  );
+
+  /** Saves the currently filtered order set as a CSV the admin can open. */
+  const exportCsv = () => {
+    const header = "order_no,seller_id,gross_amount,commission_amount,seller_net_amount,status,created_at";
+    const body = filtered
+      .map((r) =>
+        [r.order_no, r.seller_id, r.gross_amount, r.commission_amount,
+         r.seller_net_amount, r.status, r.created_at].join(","),
+      )
+      .join("\n");
+    const blob = new Blob([`${header}\n${body}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `accsmarthub-${tab}-payments.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const settle = async () => {
+    if (!decision) return;
+    if (note.trim().length < 3) {
+      toast.error("A reason is required for the decision.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await resolvePayout({
+        payoutId: decision.id,
+        decision: decision.kind,
+        note: note.trim(),
+        paidReference: decision.kind === "paid" ? reference.trim() : undefined,
+      });
+      setDecision(null);
+      setNote("");
+      setReference("");
+      payoutsQuery.refresh();
+      toast.success(decision.kind === "paid" ? "Payout marked paid" : "Payout rejected");
+    } catch (err) {
+      toast.error("Could not settle the payout", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const totals = rows.reduce(
     (s, r) => ({
@@ -124,7 +197,7 @@ export default function AdminPayments() {
             <Wallet className="size-4 mr-2" />
             Refresh
           </Button>
-          <Button variant="outline" className="rounded-xl">
+          <Button variant="outline" className="rounded-xl" onClick={exportCsv} disabled={filtered.length === 0}>
             <Download className="size-4 mr-2" />
             Export
           </Button>
@@ -136,7 +209,76 @@ export default function AdminPayments() {
           </div>
         )}
 
-        {isLoading ? (
+        {tab === "payouts" ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {openPayouts.length === 0
+                ? "No withdrawals are waiting for review."
+                : `${openPayouts.length} withdrawal${openPayouts.length === 1 ? "" : "s"} waiting for review. The funds are already held.`}
+            </p>
+            {payoutsQuery.loading ? (
+              <EmptyState title="Loading withdrawals…" description="Fetching the payout queue." />
+            ) : (payoutsQuery.data ?? []).length === 0 ? (
+              <EmptyState
+                title="No withdrawal requests"
+                description="Seller withdrawal requests will appear here for review."
+              />
+            ) : (
+              <div className="glass overflow-hidden">
+                <ul className="divide-y divide-border/60">
+                  {(payoutsQuery.data ?? []).map((p) => (
+                    <li key={p.id} className="px-6 py-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium">
+                            {formatPrice(p.amountUsd)} · {p.method}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {p.destination} · requested{" "}
+                            {new Date(p.requestedAt).toLocaleDateString()}
+                          </span>
+                          {p.reviewNote && (
+                            <span className="mt-1 block text-xs text-muted-foreground">
+                              Note: {p.reviewNote}
+                            </span>
+                          )}
+                        </div>
+                        <StatusBadge status={p.status} />
+                        {(p.status === "requested" || p.status === "approved") && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="rounded-xl"
+                              onClick={() => {
+                                setDecision({ id: p.id, kind: "paid", amount: p.amountUsd });
+                                setNote("");
+                                setReference("");
+                              }}
+                            >
+                              Mark paid
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl"
+                              onClick={() => {
+                                setDecision({ id: p.id, kind: "rejected", amount: p.amountUsd });
+                                setNote("");
+                                setReference("");
+                              }}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : isLoading ? (
           <EmptyState
             title="Loading payments…"
             description={`Fetching the ${tab} queue.`}
@@ -231,6 +373,57 @@ export default function AdminPayments() {
           </>
         )}
       </div>
+
+      <Dialog open={Boolean(decision)} onOpenChange={(o) => !o && setDecision(null)}>
+        <DialogContent className="card border-border/70 sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {decision?.kind === "paid" ? "Mark payout paid" : "Reject payout"}
+            </DialogTitle>
+            <DialogDescription>
+              {decision?.kind === "paid"
+                ? `Confirm you have sent ${formatPrice(decision?.amount ?? 0)} to the seller. This releases the hold.`
+                : `Return ${formatPrice(decision?.amount ?? 0)} to the seller's balance.`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="payout-note">Reason (recorded in the audit log)</Label>
+              <Input
+                id="payout-note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="e.g. sent via TRC-20"
+                className="inset-well rounded-xl border-border/60"
+              />
+            </div>
+            {decision?.kind === "paid" && (
+              <div className="grid gap-2">
+                <Label htmlFor="payout-ref">Transaction reference (optional)</Label>
+                <Input
+                  id="payout-ref"
+                  value={reference}
+                  onChange={(e) => setReference(e.target.value)}
+                  placeholder="Bank or chain reference"
+                  className="inset-well rounded-xl border-border/60"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" className="rounded-xl" onClick={() => setDecision(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="rounded-xl"
+              onClick={settle}
+              disabled={saving || note.trim().length < 3}
+            >
+              {saving ? "Saving…" : decision?.kind === "paid" ? "Confirm paid" : "Confirm rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashLayout>
   );
 }

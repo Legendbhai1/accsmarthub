@@ -67,7 +67,7 @@ export default function BuyerSupport() {
                     ? "Escrow refusal reported"
                     : r.reason === "impersonation"
                       ? "Impersonation reported"
-                      : "Support report filed",
+                      : "Support request",
             status:
               r.status === "resolved"
                 ? "answered"
@@ -91,10 +91,12 @@ export default function BuyerSupport() {
   const create = async () => {
     if (!user || !subject.trim()) return;
     try {
+      // A support request is not a report against anyone, so no
+      // `reportedUserId` is sent. Passing the reporter's own id here used to
+      // make resolve_report() pause their own listings.
       await fileReport({
         reason: "other",
         detail: `${subject.trim()}\n\n${detail.trim()}`,
-        reportedUserId: user.id,
       } as FileReportInput);
       setSubject("");
       setDetail("");
@@ -115,7 +117,7 @@ export default function BuyerSupport() {
       <div className="space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
-            Our team replies within a few hours, 24/7.
+            Our team reviews every request. Replies appear here.
           </p>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>

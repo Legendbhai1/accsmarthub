@@ -1049,6 +1049,210 @@ begin
 end
 $$;
 
+-- ============================================ 17. SELLER PAYOUT REQUESTS
+-- A seller can only withdraw genuinely available balance, the funds are held
+-- while the request is open, and only an administrator can settle it.
+do $$
+declare v_avail numeric;
+begin
+  v_avail := public.test_balance('22222222-2222-2222-2222-222222222222');
+  perform public.test_check('17a the seller has released earnings to withdraw',
+    v_avail >= 10, 'available=' || v_avail);
+
+  perform public.test_snap_balance('22222222-2222-2222-2222-222222222222');
+  perform public.test_snap_escrow('22222222-2222-2222-2222-222222222222');
+
+  -- The seller requests a withdrawal.
+  perform set_config('request.jwt.claims',
+    '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect_ok('17b a seller can request a payout',
+    $q$select public.request_payout(10, 'USDT (TRC-20)', 'TXk9Qp7Qf3mZ2rVw1sNc8bY4hLd6jKa0', 'payout-key-1')$q$);
+  reset role;
+
+  perform public.test_check('17c the request holds the funds, balance down 10',
+    public.test_balance_delta('22222222-2222-2222-2222-222222222222') = -10,
+    'delta=' || public.test_balance_delta('22222222-2222-2222-2222-222222222222'));
+  perform public.test_check('17d the held amount moved into locked',
+    public.test_escrow_delta('22222222-2222-2222-2222-222222222222') = 10,
+    'delta=' || public.test_escrow_delta('22222222-2222-2222-2222-222222222222'));
+  perform public.test_check('17e the request is queued as requested',
+    (select count(*) from public.payout_requests
+      where seller_id = '22222222-2222-2222-2222-222222222222'
+        and status = 'requested' and amount_usd = 10) = 1, '');
+  perform public.test_check('17f the ledger recorded a payout hold',
+    (select count(*) from public.wallet_ledger
+      where user_id = '22222222-2222-2222-2222-222222222222'
+        and kind = 'payout_hold' and locked_delta = 10) = 1, '');
+end
+$$;
+
+-- Guard rails: no overdraw, no self-approval, no client writes.
+do $$
+begin
+  perform set_config('request.jwt.claims',
+    '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', false);
+  set local role authenticated;
+
+  perform public.test_expect('17g a payout beyond the available balance is refused',
+    $q$select public.request_payout(100000, 'Bank transfer', 'GB33BUKB20201555555555', 'payout-key-2')$q$,
+    true);
+  perform public.test_expect('17h a seller cannot settle their own payout',
+    format($q$select public.resolve_payout(%L, 'paid', 'paying myself')$q$,
+           (select id from public.payout_requests
+             where seller_id = '22222222-2222-2222-2222-222222222222'
+               and status = 'requested' limit 1)),
+    true);
+  perform public.test_expect('17i a client cannot insert a payout row directly',
+    $q$insert into public.payout_requests (seller_id, amount_usd, method, destination)
+       values ('22222222-2222-2222-2222-222222222222', 999, 'Bank transfer', 'self-serve')$q$,
+    true);
+  -- RLS with no update policy filters every row out rather than raising, so
+  -- this asserts the update matched nothing instead of expecting an error.
+  perform public.test_expect_ok('17j a client update of a payout is filtered out',
+    $q$update public.payout_requests set status = 'paid'$q$);
+  reset role;
+
+  perform public.test_check('17k the refused payout reserved nothing extra',
+    public.test_balance_delta('22222222-2222-2222-2222-222222222222') = -10
+      and public.test_escrow_delta('22222222-2222-2222-2222-222222222222') = 10,
+    'balance=' || public.test_balance_delta('22222222-2222-2222-2222-222222222222')
+      || ' locked=' || public.test_escrow_delta('22222222-2222-2222-2222-222222222222'));
+  perform public.test_check('17k2 the payout is still awaiting review',
+    (select count(*) from public.payout_requests
+      where seller_id = '22222222-2222-2222-2222-222222222222'
+        and status = 'requested') = 1, '');
+end
+$$;
+
+-- An administrator settles it.
+do $$
+declare v_p uuid := (select id from public.payout_requests
+                      where seller_id = '22222222-2222-2222-2222-222222222222'
+                        and status = 'requested' limit 1);
+begin
+  perform set_config('request.jwt.claims',
+    '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect_ok('17l an admin can mark a payout paid',
+    format($q$select public.resolve_payout(%L, 'paid', 'sent via TRC-20', 'TXref123')$q$, v_p));
+  perform public.test_expect('17m a settled payout cannot be settled again',
+    format($q$select public.resolve_payout(%L, 'paid', 'sending twice')$q$, v_p), true);
+  reset role;
+
+  perform public.test_check('17n paying released the hold, balance untouched',
+    public.test_balance_delta('22222222-2222-2222-2222-222222222222') = -10
+      and public.test_escrow_delta('22222222-2222-2222-2222-222222222222') = 0,
+    'balance=' || public.test_balance_delta('22222222-2222-2222-2222-222222222222')
+      || ' locked=' || public.test_escrow_delta('22222222-2222-2222-2222-222222222222'));
+  perform public.test_check('17o the payout is recorded as paid',
+    (select status from public.payout_requests where id = v_p) = 'paid', '');
+  perform public.test_check('17p an audit row was written for the decision',
+    (select count(*) from public.admin_audit
+      where action = 'payout.paid' and resource_id = v_p) >= 1, '');
+end
+$$;
+
+-- A rejection returns the money to the seller's balance.
+do $$
+declare v_p uuid;
+begin
+  perform public.test_snap_balance('22222222-2222-2222-2222-222222222222');
+  perform public.test_snap_escrow('22222222-2222-2222-2222-222222222222');
+
+  perform set_config('request.jwt.claims',
+    '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect_ok('17q a second payout can be requested',
+    $q$select public.request_payout(10, 'Bank transfer', 'GB33BUKB20201555555555', 'payout-key-3')$q$);
+  reset role;
+
+  v_p := (select id from public.payout_requests
+           where seller_id = '22222222-2222-2222-2222-222222222222'
+             and status = 'requested' limit 1);
+
+  -- Idempotency: the same key must not reserve the money a second time.
+  perform set_config('request.jwt.claims',
+    '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect_ok('17r replaying the same request key is a no-op',
+    $q$select public.request_payout(10, 'Bank transfer', 'GB33BUKB20201555555555', 'payout-key-3')$q$);
+  reset role;
+
+  perform public.test_check('17s the replayed request did not reserve twice',
+    public.test_balance_delta('22222222-2222-2222-2222-222222222222') = -10
+      and public.test_escrow_delta('22222222-2222-2222-2222-222222222222') = 10,
+    'balance=' || public.test_balance_delta('22222222-2222-2222-2222-222222222222')
+      || ' locked=' || public.test_escrow_delta('22222222-2222-2222-2222-222222222222'));
+
+  perform set_config('request.jwt.claims',
+    '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect_ok('17t an admin can reject a payout with a reason',
+    format($q$select public.resolve_payout(%L, 'rejected', 'the account details did not match')$q$, v_p));
+  reset role;
+
+  perform public.test_check('17u rejecting returned the money to the balance',
+    public.test_balance_delta('22222222-2222-2222-2222-222222222222') = 0
+      and public.test_escrow_delta('22222222-2222-2222-2222-222222222222') = 0,
+    'balance=' || public.test_balance_delta('22222222-2222-2222-2222-222222222222')
+      || ' locked=' || public.test_escrow_delta('22222222-2222-2222-2222-222222222222'));
+  perform public.test_expect('17v a decision without a reason is refused',
+    format($q$select public.resolve_payout(%L, 'paid', '')$q$, v_p), true);
+  perform public.test_check('17w rejecting kept the payout out of the paid state',
+    (select status from public.payout_requests where id = v_p) = 'rejected', '');
+end
+$$;
+
+-- ============================================ 18. SUPPORT REQUESTS ARE NOT SELF-REPORTS
+-- A support ticket used to be filed as a report against the reporter, so
+-- resolving it paused the reporter's own listings. The insert policy now
+-- rejects a self-report and resolve_report() refuses to pause the reporter.
+do $$
+declare v_report uuid; v_seller uuid := '22222222-2222-2222-2222-222222222222';
+begin
+  -- Give the seller a live listing so a wrongful pause would be visible.
+  perform set_config('app.trusted_write', 'on', false);
+  update public.listings set status = 'active' where id = 'bbbbbbbb-0000-0000-0000-000000000002';
+  perform set_config('app.trusted_write', 'off', false);
+
+  -- A self-report is refused at the policy.
+  perform set_config('request.jwt.claims',
+    '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect('18a a user cannot report themselves',
+    $q$insert into public.off_platform_reports
+         (reporter_id, reported_user_id, reason, detail)
+       values ('22222222-2222-2222-2222-222222222222',
+               '22222222-2222-2222-2222-222222222222', 'other', 'me')$q$,
+    true);
+
+  -- A support request with no subject is accepted.
+  perform public.test_expect_ok('18b a support request with no subject is accepted',
+    $q$insert into public.off_platform_reports (reporter_id, reason, detail)
+       values ('22222222-2222-2222-2222-222222222222', 'other', 'please help')$q$);
+  reset role;
+
+  v_report := (select id from public.off_platform_reports
+                where reporter_id = v_seller and reason = 'other'
+                order by created_at desc limit 1);
+  perform public.test_check('18c the support request has no reported user',
+    (select reported_user_id is null from public.off_platform_reports where id = v_report), '');
+
+  -- Resolving it must not pause the reporter's own listings.
+  perform set_config('request.jwt.claims',
+    '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect_ok('18d an admin can resolve the support request',
+    format($q$select public.resolve_report(%L, 'resolved', null)$q$, v_report));
+  reset role;
+
+  perform public.test_check('18e resolving it did not pause the reporter''s listings',
+    (select status from public.listings
+      where id = 'bbbbbbbb-0000-0000-0000-000000000002') = 'active', '');
+end
+$$;
+
 -- ============================================ SUMMARY
 do $$
 declare v_total integer; v_passed integer;

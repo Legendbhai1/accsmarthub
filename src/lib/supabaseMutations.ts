@@ -809,3 +809,44 @@ export async function markNotificationsRead(): Promise<number> {
   if (error) throw new Error(friendlyError(error));
   return Number(data ?? 0);
 }
+
+/**
+ * Seller requests a withdrawal. The server derives the seller from the session,
+ * re-reads the balance under a row lock, and holds the funds — so an amount
+ * tampered with in the browser can only ever fail, never overdraw.
+ */
+export type RequestPayoutInput = {
+  amount: number;
+  method: string;
+  destination: string;
+};
+export async function requestPayout(input: RequestPayoutInput): Promise<string> {
+  const { data, error } = await supabase.rpc("request_payout", {
+    p_amount: input.amount,
+    p_method: input.method,
+    p_destination: input.destination,
+    p_idempotency_key: crypto.randomUUID(),
+  });
+  if (error) throw new Error(friendlyError(error));
+  return data as string;
+}
+
+/**
+ * Admin settles a payout request. `decision` is 'paid' or 'rejected'; a reason
+ * is mandatory and is written to the audit trail.
+ */
+export type ResolvePayoutInput = {
+  payoutId: string;
+  decision: "paid" | "rejected";
+  note: string;
+  paidReference?: string;
+};
+export async function resolvePayout(input: ResolvePayoutInput): Promise<void> {
+  const { error } = await supabase.rpc("resolve_payout", {
+    p_payout_id: input.payoutId,
+    p_decision: input.decision,
+    p_note: input.note,
+    p_paid_reference: input.paidReference ?? null,
+  });
+  if (error) throw new Error(friendlyError(error));
+}

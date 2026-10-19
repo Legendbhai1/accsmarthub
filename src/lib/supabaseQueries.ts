@@ -127,6 +127,67 @@ export function useEarningsSummary() {
   return useSBQuery(fetchEarningsSummary, []);
 }
 
+export type PayoutRequest = {
+  id: string;
+  amountUsd: number;
+  method: string;
+  destination: string;
+  status: "requested" | "approved" | "paid" | "rejected" | "cancelled";
+  requestedAt: string;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+  paidReference: string | null;
+  /** Only populated for admins, who can see whose request this is. */
+  sellerId?: string;
+};
+
+function mapPayout(r: Record<string, unknown>): PayoutRequest {
+  return {
+    id: String(r.id),
+    amountUsd: Number(r.amount_usd ?? 0),
+    method: String(r.method ?? ""),
+    destination: String(r.destination ?? ""),
+    status: String(r.status ?? "requested") as PayoutRequest["status"],
+    requestedAt: String(r.requested_at ?? ""),
+    reviewedAt: r.reviewed_at ? String(r.reviewed_at) : null,
+    reviewNote: r.review_note ? String(r.review_note) : null,
+    paidReference: r.paid_reference ? String(r.paid_reference) : null,
+    sellerId: r.seller_id ? String(r.seller_id) : undefined,
+  };
+}
+
+async function fetchMyPayouts(): Promise<PayoutRequest[]> {
+  const session = await supabase.auth.getSession();
+  if (!session.data.session?.user.id) return [];
+  const { data, error } = await supabase
+    .from("payout_requests")
+    .select("*")
+    .order("requested_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map(mapPayout);
+}
+
+export function useMyPayouts() {
+  return useSBQuery(fetchMyPayouts, []);
+}
+
+/**
+ * The admin queue. RLS already returns every seller's rows to an admin, so the
+ * same table read serves both views; the seller filter is what separates them.
+ */
+async function fetchPayoutQueue(): Promise<PayoutRequest[]> {
+  const { data, error } = await supabase
+    .from("payout_requests")
+    .select("*")
+    .order("requested_at", { ascending: true });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map(mapPayout);
+}
+
+export function usePayoutQueue() {
+  return useSBQuery(fetchPayoutQueue, []);
+}
+
 export type PlatformStats = {
   grossVolumeUsd: number;
   commissionUsd: number;

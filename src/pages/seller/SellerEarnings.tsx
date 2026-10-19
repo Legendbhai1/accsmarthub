@@ -20,41 +20,72 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SellerLayout } from "@/components/dash/SellerLayout";
-import { StatCard, StatusBadge } from "@/components/common/Primitives";
+import { EmptyState, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { useEarningsSummary } from "@/lib/supabaseQueries";
+import { useSession } from "@/lib/session";
+import { useEarningsSummary, useMyPayouts } from "@/lib/supabaseQueries";
+import { requestPayout } from "@/lib/supabaseMutations";
 import { toast } from "sonner";
 
 /** Earnings — payouts and available balance for the seller. */
 export default function SellerEarnings() {
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("Bank transfer");
+  const [destination, setDestination] = useState("");
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
+  const { user } = useSession();
   const summaryQuery = useEarningsSummary();
+  const payoutsQuery = useMyPayouts();
   const loading = summaryQuery.loading;
 
   const completed = summaryQuery.data?.grossUsd ?? 0;
   const commission = summaryQuery.data?.commissionUsd ?? 0;
   const escrow = summaryQuery.data?.escrowUsd ?? 0;
-  const available = summaryQuery.data?.netUsd ?? 0;
 
-  const request = () => {
+  // The wallet balance is what the server actually checks, and it already
+  // excludes escrow still in flight and anything an open payout has reserved.
+  // Deriving "available" from order history instead would count escrow twice.
+  const available = user?.balance ?? 0;
+  const pendingPayouts = (payoutsQuery.data ?? [])
+    .filter((p) => p.status === "requested" || p.status === "approved")
+    .reduce((s, p) => s + p.amountUsd, 0);
+  const withdrawable = Math.max(0, available - pendingPayouts);
+
+  const request = async () => {
     const value = Number(amount);
     if (!value || value <= 0) {
       toast.error("Enter a valid amount.");
       return;
     }
-    if (value > available) {
-      toast.error("Amount exceeds your available balance.");
+    if (value > withdrawable) {
+      toast.error("Amount exceeds your available balance.", {
+        description: `${formatPrice(withdrawable)} is available after any pending withdrawals.`,
+      });
       return;
     }
-    toast.info("Payouts are not wired up yet", {
-      description:
-        "Your completed sales and commission are shown above from the live ledger. Withdrawal requests will be enabled once the payout provider is connected.",
-    });
-    setAmount("");
-    setOpen(false);
+    if (destination.trim().length < 3) {
+      toast.error("Enter where the payout should be sent.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await requestPayout({ amount: value, method, destination: destination.trim() });
+      setAmount("");
+      setDestination("");
+      setOpen(false);
+      await Promise.all([payoutsQuery.refresh(), summaryQuery.refresh()]);
+      toast.success("Withdrawal requested", {
+        description: "The amount is held while our team reviews it.",
+      });
+    } catch (err) {
+      toast.error("Could not request the withdrawal", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -82,9 +113,9 @@ export default function SellerEarnings() {
           />
           <StatCard
             label="Available to withdraw"
-            value={loading ? "—" : formatPrice(available)}
+            value={loading ? "—" : formatPrice(withdrawable)}
             icon={Wallet}
-            hint="After the 10% fee"
+            hint={pendingPayouts > 0 ? `${formatPrice(pendingPayouts)} held for review` : "After the 10% fee"}
           />
           <StatCard
             label="In escrow"
@@ -125,18 +156,21 @@ export default function SellerEarnings() {
             <div>
               <h3 className="font-semibold">Withdraw funds</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Withdrawals are processed once the payout provider is connected.
+                Request a withdrawal and our team settles it. The amount is held
+                from the moment you request it.
               </p>
             </div>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button className="rounded-xl">Request withdrawal</Button>
+                <Button className="rounded-xl" disabled={withdrawable <= 0}>
+                  Request withdrawal
+                </Button>
               </DialogTrigger>
               <DialogContent className="card border-border/70 sm:max-w-sm">
                 <DialogHeader>
                   <DialogTitle>Request withdrawal</DialogTitle>
                   <DialogDescription>
-                    Available balance: {formatPrice(available)}
+                    Available to withdraw: {formatPrice(withdrawable)}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4">
@@ -165,13 +199,30 @@ export default function SellerEarnings() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="withdraw-destination">
+                      {method === "USDT (TRC-20)" ? "Wallet address" : "Account details"}
+                    </Label>
+                    <Input
+                      id="withdraw-destination"
+                      value={destination}
+                      onChange={(e) => setDestination(e.target.value)}
+                      className="inset-well rounded-xl border-border/60"
+                      placeholder={
+                        method === "USDT (TRC-20)" ? "TRC-20 address" : "Account or email"
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Only our review team sees this.
+                    </p>
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button variant="ghost" className="rounded-xl" onClick={() => setOpen(false)}>
                     Cancel
                   </Button>
-                  <Button className="rounded-xl" onClick={request}>
-                    Request {amount ? formatPrice(Number(amount)) : ""}
+                  <Button className="rounded-xl" onClick={request} disabled={submitting}>
+                    {submitting ? "Requesting…" : `Request ${amount ? formatPrice(Number(amount)) : ""}`}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -186,20 +237,39 @@ export default function SellerEarnings() {
             <span className="text-right">Status</span>
           </div>
           <ul className="divide-y divide-border/60">
-            <li className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
-              <span className="seller-order-cell min-w-0 flex-1">
-                <span className="seller-order-title block text-sm font-medium">
-                  Withdrawals not wired yet
-                </span>
-                <span className="seller-order-meta text-xs text-muted-foreground">
-                  Pending payout provider setup
-                </span>
-              </span>
-              <span className="w-20 text-sm font-semibold tabular-nums">—</span>
-              <span className="ml-auto">
-                <StatusBadge status="pending" />
-              </span>
-            </li>
+            {payoutsQuery.loading ? (
+              <li className="px-5 py-6 text-sm text-muted-foreground">Loading your withdrawals…</li>
+            ) : (payoutsQuery.data ?? []).length === 0 ? (
+              <li className="px-5 py-6">
+                <EmptyState
+                  title="No withdrawals yet"
+                  description="Request a withdrawal above and it will appear here while it is reviewed."
+                />
+              </li>
+            ) : (
+              (payoutsQuery.data ?? []).map((p) => (
+                <li
+                  key={p.id}
+                  className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6"
+                >
+                  <span className="seller-order-cell min-w-0 flex-1">
+                    <span className="seller-order-title block text-sm font-medium">
+                      {p.method} · {p.destination}
+                    </span>
+                    <span className="seller-order-meta text-xs text-muted-foreground">
+                      Requested {new Date(p.requestedAt).toLocaleDateString()}
+                      {p.reviewNote ? ` — ${p.reviewNote}` : ""}
+                    </span>
+                  </span>
+                  <span className="w-20 text-sm font-semibold tabular-nums">
+                    {formatPrice(p.amountUsd)}
+                  </span>
+                  <span className="ml-auto">
+                    <StatusBadge status={p.status} />
+                  </span>
+                </li>
+              ))
+            )}
           </ul>
         </div>
       </div>

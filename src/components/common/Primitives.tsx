@@ -32,6 +32,10 @@ export function StatusBadge({ status }: { status: string }) {
     closed: "bg-muted text-muted-foreground",
     paused: "bg-muted text-muted-foreground",
     sold: "bg-muted text-muted-foreground",
+    requested: "bg-amber-500/10 text-amber-600",
+    approved: "bg-sky-500/10 text-sky-600",
+    rejected: "bg-red-500/10 text-red-600",
+    cancelled: "bg-muted text-muted-foreground",
   };
   return (
     <span
