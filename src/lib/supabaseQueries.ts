@@ -214,6 +214,8 @@ export type OrderRow = {
   seller_net_amount: number;
   status: string;
   created_at: string;
+  /** Set on the order when it enters escrow; the server's dispute deadline. */
+  inspection_deadline: string | null;
 };
 
 async function fetchMyOrders(
@@ -247,6 +249,7 @@ async function fetchMyOrders(
     seller_net_amount: Number(r.seller_net_amount ?? 0),
     status: r.status,
     created_at: r.created_at,
+    inspection_deadline: r.inspection_deadline ?? null,
   }));
 }
 
@@ -283,6 +286,7 @@ export async function fetchOrder(orderNo: string): Promise<OrderRow | null> {
     seller_net_amount: Number(data.seller_net_amount ?? 0),
     status: data.status,
     created_at: data.created_at,
+    inspection_deadline: data.inspection_deadline ?? null,
   };
 }
 

@@ -14,33 +14,33 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 const PILLARS = [
   {
     icon: UserCheck,
-    title: "Seller verification",
-    body: "Every seller completes government-ID verification (KYC) and submits proof of ownership for each account before it can be listed.",
+    title: "Store and listing review",
+    body: "Every store application is reviewed by an admin before its listings can go live, and each listing is moderated before it appears in the marketplace.",
   },
   {
     icon: Lock,
-    title: "Escrow-held funds",
-    body: "Buyers' payments are held by the platform and released to the seller only after the buyer confirms the transfer is complete.",
+    title: "Funds held in-platform",
+    body: "Buyers' payments are held in AccsMartHub's internal ledger and released to the seller only after the buyer confirms the transfer, or the inspection window closes.",
   },
   {
     icon: FileCheck,
-    title: "Documented ownership",
-    body: "Listings include ownership documentation and transfer records, so provenance can be checked before you commit.",
+    title: "Listed details on the order",
+    body: "Each order stores the price, fee and commission that applied when it was placed, so the split is auditable after the fact.",
   },
   {
     icon: Gavel,
-    title: "Independent dispute review",
-    body: "When something goes wrong, our trust team reviews evidence from both sides and refunds eligible orders from escrow.",
+    title: "Admin dispute review",
+    body: "When something goes wrong, our admin team reviews evidence from both sides and refunds eligible orders from the order's held funds.",
   },
   {
     icon: ShieldCheck,
-    title: "Transfer supervision",
-    body: "Credential handovers follow a guided process with a 30-day window for raising issues after purchase.",
+    title: "A disclosed inspection window",
+    body: "Every order carries a 14-day window from purchase for raising an issue, and the deadline is stored on the order so it cannot be moved afterwards.",
   },
   {
     icon: BadgeCheck,
-    title: "Public track records",
-    body: "Seller ratings, sales and dispute history are visible on every listing, so decisions are informed ones.",
+    title: "No invented track records",
+    body: "We do not show seller ratings, sales totals or verification badges, because that data is not recorded yet. A listing is only visible here once it has passed moderation.",
   },
 ];
 
@@ -65,10 +65,10 @@ const NO_OFF_PLATFORM = [
 ];
 
 const ENFORCEMENT = [
-  "Every listing and store profile is scanned for contact details and external links.",
   "Buyers can report off-platform contact from any order in one click.",
-  "Confirmed reports pause the seller's listings and hold their pending payout.",
-  "Buyers who pay off-platform receive a full refund from the order's escrow.",
+  "Reports go to an admin queue with the order, listing and participant attached.",
+  "When an admin resolves a report against a seller, that seller's active listings are paused.",
+  "Confirmed off-platform payments are not covered by the order's held funds, so never pay outside AccsMartHub.",
 ];
 
 export default function Trust() {
@@ -101,8 +101,9 @@ export default function Trust() {
         <div className="glass mt-10 p-8">
           <h2 className="text-xl font-bold tracking-tight">Strictly prohibited</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Only authorized transfers backed by proof of ownership are
-            permitted. The following are banned and removed on sight:
+            Account transfers are restricted by most platforms, so listings
+            that break these rules are removed when reported or found. The
+            following are banned:
           </p>
           <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
             {PROHIBITED.map((item) => (
@@ -146,7 +147,7 @@ export default function Trust() {
 
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <Button className="rounded-xl" asChild>
-            <Link to="/marketplace">Browse verified listings</Link>
+            <Link to="/marketplace">Browse the marketplace</Link>
           </Button>
           <Button variant="outline" className="rounded-xl" asChild>
             <Link to="/account/support">Contact support</Link>

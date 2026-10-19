@@ -42,9 +42,9 @@ export function SiteFooter() {
           <div>
             <Logo />
             <p className="mt-4 max-w-72 text-sm leading-relaxed text-muted-foreground">
-              A professional marketplace for buying and selling social media
-              accounts — verified sellers, escrow-protected transfers and
-              responsive support on every order.
+              A marketplace for buying and selling social media accounts —
+              every listing moderated before it goes live, with payments held
+              in-platform until the buyer confirms.
             </p>
             <div className="mt-5 flex items-center gap-2">
               {[
@@ -85,10 +85,10 @@ export function SiteFooter() {
 
         <div className="mt-12 border-t border-border/70 pt-6 text-xs text-muted-foreground">
           <p>
-            © {new Date().getFullYear()} AccsMartHub. Orders, balances,
-            listings and payouts are real and escrow-protected. Every listing
-            in the marketplace was reviewed and approved by an admin before it
-            went live.
+            © {new Date().getFullYear()} AccsMartHub. Orders, balances and
+            listings are real, and payments are held in-platform until the
+            buyer confirms. Every listing in the marketplace was reviewed and
+            approved by an admin before it went live.
           </p>
         </div>
       </div>

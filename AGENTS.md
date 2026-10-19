@@ -44,12 +44,15 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
 ## Known hazards
 
 - `supabase/migrations/0007`–`0012` were never applied to the linked project
-  (`fbalfkvimlfmcpsfzrvn`) as of the last audit, and applying them *in order*
-  leaves the database inconsistent: `0007` and `0012` create `admin_audit` with
-  different columns, and `0009` replaces `resolve_dispute` with a different
-  outcome vocabulary than `0012`'s wrapper expects.
-  `0013_reconcile_marketplace.sql` is the single, idempotent, order-independent
-  migration that brings any environment to the state the code requires.
+  (`fbalfkvimlfmcpsfzrvn`) as of the last audit. Their SQL syntax and shape
+  errors (broken `position()`, `new.`/`old.` in a WITH CHECK, a mismatched
+  `admin_audit.note`/`detail`, two conflicting `admin_audit` shapes, and a
+  divergent dispute vocabulary) were repaired in place in commit `b055240`, so
+  a fresh database now applies `0001`–`0013` in order cleanly — verified
+  against PostgreSQL 17 by `tests/verify-migrations.sh`.
+  `0013_reconcile_marketplace.sql` remains the single, idempotent,
+  order-independent migration that brings any environment to the state the code
+  requires, and is safe to re-run.
 - `src/convex/**` is dead code (no runtime imports). `tsconfig.app.json`
   excludes it; ESLint still lints it.
 - The seeded "demo" helpers in `src/lib/db.ts` (`getSeller`, `api.*`,

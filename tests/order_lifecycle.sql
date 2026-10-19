@@ -1010,6 +1010,45 @@ begin
 end
 $$;
 
+-- ============================================ 16. DISPUTE WINDOW ENFORCEMENT
+-- The order carries the deadline (`inspection_deadline`), not the listing, so
+-- editing a listing afterwards cannot move an existing order's window. The
+-- buyer UI mirrors this same field; this pins the server side of it.
+do $$
+begin
+  perform public.test_restock('unit-16');
+  perform set_config('request.jwt.claims',
+    '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect_ok('16a a fresh order to age past its window',
+    $q$select public.test_checkout('bbbbbbbb-0000-0000-0000-000000000001', null, 1, 'test-key-8000')$q$);
+  reset role;
+
+  -- Age the order's own deadline into the past. Trusted-write is the
+  -- documented bootstrap path used throughout this file.
+  perform set_config('app.trusted_write', 'on', false);
+  update public.orders set inspection_deadline = now() - interval '1 day'
+   where order_no = public.test_get('order');
+  perform set_config('app.trusted_write', 'off', false);
+
+  perform set_config('request.jwt.claims',
+    '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', false);
+  set local role authenticated;
+  perform public.test_expect('16b a dispute past the deadline is refused',
+    format($q$select public.test_open_dispute(%L, 'too late to raise this now')$q$,
+           'not_as_described'),
+    true);
+  reset role;
+
+  perform public.test_check('16c the refused dispute did not freeze the order',
+    public.test_order_status(public.test_get('order')) = 'in_escrow',
+    'status=' || public.test_order_status(public.test_get('order')));
+  perform public.test_check('16d the refused dispute created no row',
+    not exists (select 1 from public.disputes
+                 where order_no = public.test_get('order')), '');
+end
+$$;
+
 -- ============================================ SUMMARY
 do $$
 declare v_total integer; v_passed integer;

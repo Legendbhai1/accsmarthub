@@ -74,7 +74,7 @@ export default function BuyerDashboard() {
             <div className="mt-4">
               <EmptyState
                 title="No orders yet"
-                description="Browse the marketplace and complete your first escrow-protected purchase."
+                description="Browse the marketplace and make your first purchase with funds held in-platform."
                 action={
                   <Button className="rounded-xl" asChild>
                     <Link to="/marketplace">Browse marketplace</Link>

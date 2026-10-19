@@ -5,31 +5,32 @@
 -- code requires, no matter which of 0007-0012 were applied.
 --
 -- WHY THIS EXISTS
---   0007-0012 were never applied to the linked project, and applying them in
---   order does not work: three of them contain SQL that PostgreSQL rejects
---   outright, and two of them define the same objects with different shapes.
---   The concrete failures, all reproduced against PostgreSQL 17:
+--   0007-0012 were never applied to the linked project. Their syntax and
+--   shape errors were repaired in-place in commit b055240 (the same change
+--   that added this file), so a fresh database applies 0001-0013 in order
+--   cleanly — verified against PostgreSQL 17 via tests/verify-migrations.sh.
+--   The original defects, kept here for the record, were:
 --
---     1. 0007 `handle_new_user()` uses `position('.', v_domain)`, which is a
---        syntax error. Correct form is `position('.' in v_domain)`. The whole
---        migration aborts, so 0007's store-requeue fix and admin_audit table
---        never land.
---     2. 0009 `create policy "review owner may edit body"` references `new.`
+--     1. 0007 `handle_new_user()` used `position('.', v_domain)`, a syntax
+--        error. Correct form is `position('.' in v_domain)`. The whole
+--        migration aborted, so 0007's store-requeue fix and admin_audit table
+--        never landed.
+--     2. 0009 `create policy "review owner may edit body"` referenced `new.`
 --        and `old.` inside a WITH CHECK. RLS expressions have no such record
---        variables; that is trigger syntax. Migration aborts.
---     3. 0012 creates `public.v_admin_disputes` selecting `admin_audit.note`,
---        but 0007 created that table with `detail` instead. Migration aborts.
+--        variables; that is trigger syntax. Migration aborted.
+--     3. 0012 created `public.v_admin_disputes` selecting `admin_audit.note`,
+--        but 0007 created that table with `detail` instead. Migration aborted.
 --     4. 0007 and 0012 both `create table if not exists public.admin_audit`
---        with completely different columns, so whichever runs second silently
---        keeps the other's shape and its own inserts then fail at runtime.
---     5. 0009 and 0003/0012 disagree on the dispute outcome vocabulary
+--        with completely different columns, so whichever ran second silently
+--        kept the other's shape and its own inserts then fail at runtime.
+--     5. 0009 and 0003/0012 disagreed on the dispute outcome vocabulary
 --        ('refund_buyer' vs 'resolved_buyer') and on `disputes.status`
 --        ('resolved' vs 'resolved_buyer'), so an admin resolution written by
---        one is rejected by the other.
+--        one was rejected by the other.
 --
---   Rather than editing published migration files (which would break
---   environments that already applied them), 0013 reconciles forward. Every
---   statement is idempotent and order-independent.
+--   Rather than editing published migration files in a way that would break
+--   environments that already applied them, 0013 reconciles forward. Every
+--   statement is idempotent and order-independent, so it is safe to re-run.
 --
 -- WHAT IT ESTABLISHES
 --   * The canonical dispute vocabulary and a single `resolve_dispute`.

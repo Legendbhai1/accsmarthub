@@ -111,25 +111,17 @@ export default function BuyerOrderDetail() {
 
   const dispute = disputeQuery.data;
 
-  // Warranty window: the seller set a warranty_hours on the listing. Buyers can
-  // only open a dispute while that window is still open from the order's creation
-  // time. `OrderRow` does not carry `warranty_hours`, so we derive eligibility
-  // from the listing's warranty through fetchOrder only when needed in the UI —
-  // for now we gate on the order's own window comment (the server stores the
-  // listing warranty with the order where the project's order read includes it).
-  //
-  // When the order row does not include warranty_hours, we fall back to the
-  // existing 30-day window behavior so the UI stays honest rather than blocking
-  // disputes it cannot justify.
-  const warrantyHours = (order as OrderRow & { warranty_hours?: number }).warranty_hours;
-  const orderCreated = new Date(order.created_at).getTime();
-  const warrantyExpiryMs = warrantyHours != null
-    ? orderCreated + warrantyHours * 60 * 60 * 1000
+  // Dispute window: the server stores the deadline on the order itself
+  // (`inspection_deadline`, set when the order enters escrow) and open_dispute()
+  // rejects anything past it. Mirror that single source of truth here rather
+  // than gating on a listing field the order does not carry.
+  const inspectionDeadlineMs = order.inspection_deadline
+    ? new Date(order.inspection_deadline).getTime()
     : null;
-  const warrantyOpen = warrantyExpiryMs != null && now < warrantyExpiryMs;
-  const warrantyExpired = warrantyExpiryMs != null && now >= warrantyExpiryMs;
-  const warrantyFromNow = warrantyExpiryMs != null
-    ? new Date(warrantyExpiryMs).toLocaleString("en-US", {
+  const disputeWindowOpen = inspectionDeadlineMs == null || now < inspectionDeadlineMs;
+  const disputeWindowClosed = !disputeWindowOpen;
+  const disputeDeadlineLabel = inspectionDeadlineMs != null
+    ? new Date(inspectionDeadlineMs).toLocaleString("en-US", {
         month: "short",
         day: "numeric",
         hour: "2-digit",
@@ -141,9 +133,9 @@ export default function BuyerOrderDetail() {
     order.status === "completed" ? 2 : order.status === "confirm" ? 1 : 0;
   const canConfirm = order.status === "in_escrow";
 
-  // A dispute can only be opened while the order is in escrow and there is not
-  // already a dispute, and only while the seller's warranty window is still open.
-  const canDispute = order.status === "in_escrow" && !dispute && warrantyOpen;
+  // A dispute can only be opened while the order is in escrow, there is not
+  // already a dispute, and the server's inspection window is still open.
+  const canDispute = order.status === "in_escrow" && !dispute && disputeWindowOpen;
 
   const confirmTransfer = async () => {
     setAdvancing(true);
@@ -289,7 +281,7 @@ export default function BuyerOrderDetail() {
               <div>
                 <p className="text-sm font-medium">AccsMartHub seller</p>
                 <p className="text-xs text-muted-foreground">
-                  Verified by AccsMartHub escrow
+                  Payment held in-platform until you confirm
                 </p>
               </div>
             </div>
@@ -297,23 +289,23 @@ export default function BuyerOrderDetail() {
         </div>
 
         {/* Warranty window */}
-        {warrantyHours != null && (
+        {disputeDeadlineLabel && (
           <div className="glass border-amber-500/30 p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="font-semibold">Warranty window</h3>
+                <h3 className="font-semibold">Dispute window</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  This seller set a {warrantyHours}-hour warranty on this listing.
+                  Every order carries a 14-day inspection window from purchase.
                 </p>
-                {warrantyOpen ? (
+                {disputeWindowOpen ? (
                   <p className="mt-1 text-sm text-amber-700">
-                    You can open a dispute until {warrantyFromNow}.
+                    You can open a dispute until {disputeDeadlineLabel}.
                   </p>
-                ) : warrantyExpired ? (
+                ) : (
                   <p className="mt-1 text-sm text-muted-foreground">
-                    This listing&apos;s warranty window closed at {warrantyFromNow}. Disputes are no longer available.
+                    The dispute window closed at {disputeDeadlineLabel}. Disputes are no longer available.
                   </p>
-                ) : null}
+                )}
               </div>
               <CalendarClock className="mt-0.5 size-5 shrink-0 text-amber-600" />
             </div>
@@ -329,7 +321,7 @@ export default function BuyerOrderDetail() {
               <p className="mt-1 max-w-md text-xs text-muted-foreground">
                 Sellers must never share a phone number, personal email or chat
                 handle, and must never ask you to pay outside escrow. Deals moved
-                off-platform lose escrow protection and are fully refundable.
+                off-platform are not covered by the order&apos;s held funds.
               </p>
             </div>
             <Button
@@ -403,9 +395,9 @@ export default function BuyerOrderDetail() {
               </Dialog>
             )}
 
-            {!canDispute && warrantyExpired && order.status === "in_escrow" && !dispute && (
+            {!canDispute && disputeWindowClosed && order.status === "in_escrow" && !dispute && (
               <p className="text-sm text-muted-foreground">
-                This listing&apos;s warranty window has closed. You can still confirm the transfer once you have access, but you can no longer open a dispute.
+                The dispute window has closed. You can still confirm the transfer once you have access, but you can no longer open a dispute.
               </p>
             )}
           </div>

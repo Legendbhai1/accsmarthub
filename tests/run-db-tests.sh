@@ -26,9 +26,10 @@ stage_file() {
   echo "$stage/$label"
 }
 
-# Migrations that abort part-way on a real PostgreSQL server. Each one is
-# documented in 0013_reconcile_marketplace.sql; 0013 re-establishes the state
-# they were meant to leave behind.
+# Migrations known to abort part-way on a real PostgreSQL server, and therefore
+# tolerated here because 0013 re-establishes what they were meant to leave
+# behind. Empty since commit b055240 repaired 0007/0009/0012 in place: every
+# migration must now apply cleanly, or this script aborts.
 KNOWN_BROKEN=""
 
 "${PSQL[@]}" -c "drop database if exists $DB;" >/dev/null 2>&1
@@ -57,7 +58,7 @@ if [ -z "$test_file" ]; then
   exit 2
 fi
 
-out="$(sudo -u postgres psql -d "$DB" -f "$(stage_file "$test_file")" 2>&1)"
+out="$(sudo -u postgres env PGOPTIONS="${ACCSMART_PGOPTIONS:-}" psql -d "$DB" -f "$(stage_file "$test_file")" 2>&1)"
 
 echo "$out" | grep -vE '^\s*$' | sed 's/^/  /'
 

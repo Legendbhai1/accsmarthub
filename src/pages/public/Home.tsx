@@ -86,8 +86,8 @@ export default function Home() {
             variants={cardVariants}
             className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg"
           >
-            Verified sellers, documented ownership, and escrow that releases
-            only when the deal is done.
+            Every listing is reviewed by an admin before it goes live, and your
+            payment is held in-platform until you confirm the transfer.
           </motion.p>
 
           <motion.form
@@ -228,8 +228,8 @@ export default function Home() {
             Ready to make your first transfer?
           </h2>
           <p className="relative mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/70">
-            Create an account to buy with escrow — or list an account and keep
-            90% of the sale price.
+            Create an account to buy with in-platform escrow — or list an
+            account and keep 90% of the sale price.
           </p>
           <div className="relative mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button

@@ -12,20 +12,20 @@ import { cn } from "@/lib/utils";
 const SLIDES = [
   {
     chip: "Sale",
-    title: "Verified Accounts",
-    subtitle: "Escrow on every transfer / 30-day dispute cover",
+    title: "Browse the Marketplace",
+    subtitle: "Every listing moderated before it goes live",
     brand: "instagram",
   },
   {
     chip: "Hot",
     title: "Trending Niches",
-    subtitle: "Fitness, finance & lifestyle pages with real engagement",
+    subtitle: "Fitness, finance & lifestyle pages",
     brand: "tiktok",
   },
   {
     chip: "New",
     title: "Monetized Channels",
-    subtitle: "Revenue-ready YouTube & Twitch inventory",
+    subtitle: "YouTube & Twitch inventory from live listings",
     brand: "youtube",
   },
 ];

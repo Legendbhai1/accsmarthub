@@ -9,23 +9,23 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 const FAQS = [
   {
     q: "How does escrow protect my purchase?",
-    a: "Your payment is held by AccsMartHub and only released to the seller after you confirm the account transfer is complete. If the listing doesn't match its description, the transaction is covered by our dispute process and eligible orders are refunded in full.",
+    a: "Your payment is held in AccsMartHub's internal ledger and only released to the seller after you confirm the account transfer is complete, or after the 14-day inspection window closes. If the listing doesn't match its description, the transaction is covered by our dispute process and eligible orders are refunded in full.",
   },
   {
-    q: "How are sellers verified?",
-    a: "Sellers complete government-ID verification (KYC) and submit proof of ownership for every account they list. Verified sellers carry a badge, and their dispute history is visible on their profile.",
+    q: "How are sellers checked?",
+    a: "Every store application is reviewed by an admin before its listings can go live, and each listing is moderated before it appears in the marketplace. We do not currently run government-ID (KYC) verification, and we do not display verification badges or seller ratings, because that data is not recorded yet.",
   },
   {
     q: "How long does a transfer take?",
-    a: "Most transfers complete within 24 hours. The seller hands over credentials and ownership documents, you verify access, and escrow releases once you confirm everything matches the listing.",
+    a: "Timing depends on the seller. You have 14 days from purchase to inspect the account and raise a dispute; the seller hands over credentials through the order page, you verify access, and escrow releases once you confirm everything matches the listing.",
   },
   {
     q: "What fees does AccsMartHub charge?",
-    a: "Buyers pay a 3% escrow and protection fee at checkout. Sellers keep 92% of the sale price; the 8% platform fee is deducted when earnings are credited after a completed transfer.",
+    a: "Buyers pay a 3% escrow and protection fee at checkout. Sellers keep 90% of the sale price; the 10% platform commission is deducted when the order's escrow is released.",
   },
   {
     q: "What happens if something goes wrong?",
-    a: "Open a dispute from your order page within 30 days. Our trust team reviews the evidence from both sides and refunds eligible orders from escrow. Support is available around the clock.",
+    a: "Open a dispute from your order page within the 14-day inspection window. Our admin team reviews the evidence from both sides and refunds eligible orders from the order's held funds.",
   },
   {
     q: "Is buying or selling accounts allowed by the platforms?",
@@ -33,11 +33,11 @@ const FAQS = [
   },
   {
     q: "What is never allowed on AccsMartHub?",
-    a: "Stolen accounts, hacked or compromised credentials, phishing material and malware are strictly prohibited. Every listing must be backed by proof of ownership, and violating listings are removed on sight.",
+    a: "Stolen accounts, hacked or compromised credentials, phishing material and malware are strictly prohibited. Violating listings are removed when reported or found.",
   },
   {
     q: "How do payouts work for sellers?",
-    a: "When a sale clears escrow, your earnings (92% of the sale price) are credited to your seller balance. Request a withdrawal at any time — payouts process within one business day.",
+    a: "When an order's escrow is released, your earnings (90% of the sale price) are credited to your seller balance, shown in your dashboard from the live ledger. Withdrawal requests are not enabled yet — they will be switched on once a payout provider is connected.",
   },
 ];
 

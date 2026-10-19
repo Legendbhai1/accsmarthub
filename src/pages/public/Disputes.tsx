@@ -43,9 +43,14 @@ const GROUNDS = [
 ];
 
 const WINDOWS = [
-  { label: "Report an off-platform contact attempt", value: "Within 30 days of the order" },
-  { label: "Report that the account is not as described", value: "Within 14 days of the order" },
-  { label: "Report that access was never delivered", value: "Within 7 days of the order" },
+  {
+    label: "Open a dispute on an order",
+    value: "Within the order's 14-day inspection window",
+  },
+  {
+    label: "Report an off-platform contact attempt",
+    value: "Any time before the order is confirmed",
+  },
 ];
 
 export default function Disputes() {
