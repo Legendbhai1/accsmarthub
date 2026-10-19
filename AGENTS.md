@@ -156,3 +156,35 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   and "payment protection" for that reason. Do not reintroduce "escrow" as a
   guarantee, and do not claim KYC, ratings or sales history that is not
   recorded.
+- **A green build says nothing about the database.** Production drifted from
+  this repository by ten migrations: it was originally set up as "0001–0006,
+  then 0013+", so `0007`–`0012` were silently skipped. `0013` reconciles the
+  objects it knows about but not the `listings` insert policy that `0008`
+  rewrites, so production kept enforcing `0001`'s "your store must be approved"
+  clause and *every* attempt to create a listing failed with
+  `42501 row-level security policy for table "listings"` — surfaced to the
+  seller as the generic "You do not have access to that information." Nothing
+  in `tsc`, `eslint`, `vitest` or `vite build` can see a missing migration; only
+  the database can. Run `npm run check:schema` against the project before
+  shipping anything that depends on a new migration. It is read-only and prints
+  which files are missing. `tests/listing_creation.sql` pins the *text* of the
+  policy (that it does not mention `approved`), not merely that the policy
+  exists, because "exists but is the old one" was the entire bug.
+- **Migrations must be applied in order, and the drift checker proves they
+  are.** When adding a migration, add a sentinel for it to
+  `scripts/check-schema.mjs`: a *query* that is false without that specific
+  migration, not a `to_regclass` that a later migration also satisfies. A
+  sentinel that is true on the broken database is worse than none — `0015`
+  redefines `resolve_report`, which `0001` also defines, so presence alone
+  proved nothing; the sentinel now checks for `0015`'s specific self-report
+  guard.
+- **`wallet_ledger.kind` decides where a credit belongs.** `purchase`,
+  `escrow_hold` and `escrow_release` are trade money; `deposit` and
+  `adjustment` are top-ups; `refund` can be either. Because every kind shares
+  one `balance_usd` column, the balance a buyer tops up and the balance a
+  seller earns into are the *same number*. Do not add a "spendable balance"
+  derived by subtracting trade credits — that subtraction is ambiguous, since a
+  buyer's `escrow_release` refund would be wrongly deducted. Separating them
+  needs a schema change to `apply_wallet()` (a `purpose` column), which is a
+  financial migration and belongs behind explicit approval.
+
