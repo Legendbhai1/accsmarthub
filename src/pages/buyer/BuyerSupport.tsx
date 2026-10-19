@@ -126,7 +126,7 @@ export default function BuyerSupport() {
                 New ticket
               </Button>
             </DialogTrigger>
-            <DialogContent className="glass border-border/70 sm:max-w-md">
+            <DialogContent className="surface border-border/70 sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Open a support ticket</DialogTitle>
                 <DialogDescription>
@@ -182,7 +182,7 @@ export default function BuyerSupport() {
         ) : (
           <ul className="space-y-3">
             {tickets.map((t) => (
-              <li key={t.id} className="glass p-5">
+              <li key={t.id} className="surface p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-medium">{t.subject}</p>
                   <StatusBadge status={t.status} />

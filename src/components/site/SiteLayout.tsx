@@ -1,29 +1,29 @@
 import { useEffect, type ReactNode } from "react";
-import { Outlet, useLocation } from "react-router";
+import { useLocation } from "react-router";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { MobileTabBar } from "@/components/site/MobileTabBar";
 
+/**
+ * Public shell for pages that render their own body rather than a routed child
+ * (`Faq` and `Trust` wrap their markup in this). Route-driven public pages use
+ * `PublicLayout`, which puts the same chrome around `<Outlet/>`.
+ *
+ * Both exist so the bottom bar has one definition and is mounted from public
+ * pages only — never from a dashboard.
+ */
 export function SiteLayout({ children }: { children?: ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    // `instant` matters: index.css sets `scroll-behavior: smooth` on <html>,
-    // which would otherwise animate a long glide to the top on every route
-    // change and read as laggy.
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main className="flex-1 pb-28 md:pb-0">
-        {children ?? <Outlet />}
-      </main>
+      <main className="flex-1 pb-24 md:pb-0">{children}</main>
       <SiteFooter />
-
-      {/* Mobile bottom navigation — the same bar the marketplace and the
-          dashboards render, so the buttons never change under you. */}
       <MobileTabBar />
     </div>
   );

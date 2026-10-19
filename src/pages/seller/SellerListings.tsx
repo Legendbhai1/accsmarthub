@@ -333,7 +333,7 @@ export default function SellerListings() {
           </p>
         )}
 
-        <p className="flex items-start gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-xs text-emerald-700">
+        <p className="flex items-start gap-2 rounded-xl bg-success/10 px-4 py-3 text-xs text-success">
           <ShieldAlert className="mt-px size-3.5 shrink-0" />
           Keep every buyer on AccsMartHub: never put a phone number, email or chat
           handle in a listing. Off-platform deals void escrow and are reported to our
@@ -427,8 +427,8 @@ export default function SellerListings() {
                         <KeyRound
                           className={
                             creds?.attached
-                              ? "size-3.5 text-emerald-600"
-                              : "size-3.5 text-amber-600"
+                              ? "size-3.5 text-success"
+                              : "size-3.5 text-warning"
                           }
                         />
                       </Button>
@@ -482,9 +482,9 @@ export default function SellerListings() {
           <div className="grid gap-4">
             {/* Guidelines — the same rules the screenshots call out, kept in
                 the project's own visual language rather than copied. */}
-            <div className="rounded-xl border border-sky-500/25 bg-sky-500/[0.06] px-4 py-3.5 text-xs">
-              <p className="font-semibold text-sky-900">Before you submit</p>
-              <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-sky-900/80">
+            <div className="rounded-xl border border-info/30 bg-info/5 px-4 py-3.5 text-xs">
+              <p className="font-semibold text-info">Before you submit</p>
+              <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-info/90">
                 <li>
                   <strong>No contact info.</strong> Phone numbers, emails and chat
                   handles in a listing get your account suspended.
@@ -780,7 +780,7 @@ export default function SellerListings() {
                     key={f.unitKey}
                     className="inset-well flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
                   >
-                    <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" />
+                    <CheckCircle2 className="size-3.5 shrink-0 text-success" />
                     <span className="min-w-0 flex-1 truncate">{f.fileName}</span>
                     <button
                       type="button"

@@ -219,7 +219,7 @@ export default function AdminUsers() {
             }
           />
         ) : (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <div className="hidden grid-cols-[1fr_1fr_1fr_8rem_9rem_6rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
               <span>Account</span>
               <span>Name</span>
@@ -239,7 +239,7 @@ export default function AdminUsers() {
                     className="px-6 py-4 transition-colors hover:bg-accent/30"
                   >
                     <div className="flex items-start gap-3">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-600 text-sm font-bold text-amber-950">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
                         {(u.name ?? email).charAt(0).toUpperCase()}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -267,7 +267,7 @@ export default function AdminUsers() {
                       </span>
                       <div className="flex items-center justify-center sm:flex-col gap-1.5">
                         {isActive ? (
-                          <span className="flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                          <span className="flex items-center gap-1 text-xs font-medium text-success dark:text-success">
                             <CheckCheck className="size-3.5" /> Active
                           </span>
                         ) : (

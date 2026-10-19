@@ -140,7 +140,7 @@ export default function SellerEarnings() {
             </div>
             <div className="inset-well rounded-xl px-4 py-3">
               <dt className="text-xs text-muted-foreground">You receive</dt>
-              <dd className="text-lg font-bold tabular-nums text-emerald-600">
+              <dd className="text-lg font-bold tabular-nums text-success">
                 {formatPrice(available)}
               </dd>
             </div>

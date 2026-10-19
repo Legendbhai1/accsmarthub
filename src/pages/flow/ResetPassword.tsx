@@ -82,7 +82,7 @@ export default function ResetPassword() {
       </div>
 
       <main className="flex flex-1 items-start justify-center px-4 pb-16">
-        <div className="glass w-full max-w-md p-8">
+        <div className="surface w-full max-w-md p-8">
           {ready === "checking" && (
             <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />

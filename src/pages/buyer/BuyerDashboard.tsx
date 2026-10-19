@@ -57,7 +57,7 @@ export default function BuyerDashboard() {
           />
         </div>
 
-        <section className="glass p-6">
+        <section className="surface p-6">
           <SectionHeading
             title="Recent orders"
             action={

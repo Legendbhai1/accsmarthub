@@ -48,7 +48,7 @@ function VerifyEmailGate({
 
   return (
     <main className="flex min-h-screen items-start justify-center px-4 py-16">
-      <div className="glass w-full max-w-md p-8 text-center">
+      <div className="surface w-full max-w-md p-8 text-center">
         <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10">
           <MailCheck className="size-5 text-primary" />
         </span>

@@ -119,10 +119,10 @@ export default function OrderConfirmed() {
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="glass w-full p-10"
+        className="surface w-full p-10"
       >
-        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500/10">
-          <PackageCheck className="size-7 text-emerald-600" />
+        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-success/10">
+          <PackageCheck className="size-7 text-success" />
         </div>
         <h1 className="mt-6 text-2xl font-bold tracking-tight">
           {order ? `Order ${order.order_no} confirmed` : "Order confirmed"}
@@ -178,7 +178,7 @@ export default function OrderConfirmed() {
             Escrow confirmation sent to your email
           </li>
           <li className="inset-well flex items-center gap-3 rounded-xl px-4 py-3">
-            <ShieldCheck className="size-4.5 shrink-0 text-emerald-600" />
+            <ShieldCheck className="size-4.5 shrink-0 text-success" />
             Funds stay protected until you confirm the transfer
           </li>
         </ul>

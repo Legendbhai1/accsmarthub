@@ -14,27 +14,27 @@ import { Inbox, Minus, Plus } from "lucide-react";
 
 export function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    active: "bg-emerald-500/10 text-emerald-600",
-    completed: "bg-emerald-500/10 text-emerald-600",
-    paid: "bg-emerald-500/10 text-emerald-600",
-    released: "bg-emerald-500/10 text-emerald-600",
-    resolved: "bg-emerald-500/10 text-emerald-600",
-    answered: "bg-emerald-500/10 text-emerald-600",
+    active: "bg-success/10 text-success",
+    completed: "bg-success/10 text-success",
+    paid: "bg-success/10 text-success",
+    released: "bg-success/10 text-success",
+    resolved: "bg-success/10 text-success",
+    answered: "bg-success/10 text-success",
     in_escrow: "bg-muted text-foreground",
-    transferring: "bg-amber-500/10 text-amber-600",
-    pending: "bg-amber-500/10 text-amber-600",
-    under_review: "bg-amber-500/10 text-amber-600",
-    held: "bg-amber-500/10 text-amber-600",
-    open: "bg-red-500/10 text-red-600",
-    disputed: "bg-red-500/10 text-red-600",
-    suspended: "bg-red-500/10 text-red-600",
-    refunded: "bg-slate-500/10 text-slate-600",
+    transferring: "bg-warning/10 text-warning",
+    pending: "bg-warning/10 text-warning",
+    under_review: "bg-warning/10 text-warning",
+    held: "bg-warning/10 text-warning",
+    open: "bg-destructive/10 text-destructive",
+    disputed: "bg-destructive/10 text-destructive",
+    suspended: "bg-destructive/10 text-destructive",
+    refunded: "bg-muted text-muted-foreground",
     closed: "bg-muted text-muted-foreground",
     paused: "bg-muted text-muted-foreground",
     sold: "bg-muted text-muted-foreground",
-    requested: "bg-amber-500/10 text-amber-600",
-    approved: "bg-sky-500/10 text-sky-600",
-    rejected: "bg-red-500/10 text-red-600",
+    requested: "bg-warning/10 text-warning",
+    approved: "bg-info/10 text-info",
+    rejected: "bg-destructive/10 text-destructive",
     cancelled: "bg-muted text-muted-foreground",
   };
   return (
@@ -69,7 +69,7 @@ export function StockBadge({
         stock === 0
           ? "bg-muted text-muted-foreground"
           : stock <= 3
-            ? "bg-amber-500/10 text-amber-700"
+            ? "bg-warning/10 text-warning"
             : "bg-muted text-foreground",
         className,
       )}
@@ -132,11 +132,11 @@ export function StatCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="glass p-5">
+    <div className="surface p-5">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{label}</p>
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600">
-          <Icon className="size-4 text-amber-950" />
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary">
+          <Icon className="size-4 text-primary-foreground" />
         </span>
       </div>
       <p className="mt-4 text-2xl font-bold tabular-nums tracking-tight">{value}</p>
@@ -175,9 +175,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="glass flex flex-col items-center px-6 py-16 text-center">
-      <span className="flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400/25 to-violet-400/10">
-        <Inbox className="size-5 text-amber-700 dark:text-amber-300" />
+    <div className="surface flex flex-col items-center px-6 py-16 text-center">
+      <span className="flex size-14 items-center justify-center rounded-full bg-primary/10">
+        <Inbox className="size-5 text-warning" />
       </span>
       <h3 className="mt-4 font-semibold">{title}</h3>
       {description && (

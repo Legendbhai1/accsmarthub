@@ -7,7 +7,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: "Marketplace",
     links: [
       { label: "Browse listings", to: "/marketplace" },
-      { label: "All categories", to: "/categories" },
+      { label: "All categories", to: "/marketplace/categories" },
       { label: "Instagram accounts", to: "/marketplace?category=instagram" },
       { label: "YouTube channels", to: "/marketplace?category=youtube" },
       { label: "TikTok accounts", to: "/marketplace?category=tiktok" },
@@ -26,7 +26,7 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
     title: "Company",
     links: [
       { label: "Trust & safety", to: "/trust" },
-      { label: "Disputes & escrow", to: "/disputes" },
+      { label: "Disputes & payment protection", to: "/disputes" },
       { label: "FAQ", to: "/faq" },
       { label: "Support", to: "/account/support" },
       { label: "Terms & privacy", to: "/faq" },
@@ -56,7 +56,7 @@ export function SiteFooter() {
                   key={brand}
                   href="#"
                   aria-label={label}
-                  className="flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/60 text-muted-foreground backdrop-blur-xl transition-colors hover:border-amber-500/40 hover:bg-amber-400/10 hover:text-foreground"
+                  className="flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/60 text-muted-foreground backdrop-blur-xl transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
                 >
                   <BrandMark brand={brand} className="size-4" />
                 </a>

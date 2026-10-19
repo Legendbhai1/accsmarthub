@@ -26,6 +26,11 @@
   --color-accent-foreground: hsl(var(--accent-foreground));
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
+  /* Status colours are separate from the accent so a badge never has to borrow
+     the brand colour in order to mean "ok" or "needs attention". */
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-info: hsl(var(--info));
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -41,54 +46,69 @@
 }
 
 @layer base {
+  /*
+   * Charcoal + violet.
+   *
+   * The accent is one restrained violet used for the active state and the
+   * primary action only. Everything else is a neutral surface, a hairline
+   * border or text. The previous palette led with a saturated amber gradient on
+   * every button, badge, avatar and stat icon, which left the accent meaning
+   * nothing and made "pending" indistinguishable from the brand.
+   */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 220 20% 10%;
+    --background: 240 20% 99%;
+    --foreground: 240 10% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 240 10% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
-    --primary: 38 92% 50%;
+    --popover-foreground: 240 10% 12%;
+    --primary: 258 85% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 10% 96%;
-    --secondary-foreground: 220 20% 10%;
-    --muted: 220 10% 96%;
-    --muted-foreground: 220 10% 45%;
-    --accent: 220 10% 96%;
-    --accent-foreground: 220 20% 10%;
-    --destructive: 0 84% 60%;
+    --secondary: 240 10% 96%;
+    --secondary-foreground: 240 10% 22%;
+    --muted: 240 10% 96%;
+    --muted-foreground: 240 5% 44%;
+    --accent: 258 60% 96%;
+    --accent-foreground: 258 55% 32%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 10% 90%;
-    --input: 220 10% 90%;
-    --ring: 38 92% 50%;
+    --success: 152 58% 34%;
+    --warning: 32 88% 42%;
+    --info: 217 80% 50%;
+    --border: 240 10% 90%;
+    --input: 240 10% 89%;
+    --ring: 258 85% 58%;
     --radius: 0.625rem;
-    --chart-1: 38 92% 50%;
-    --chart-2: 220 10% 45%;
-    --chart-3: 160 80% 45%;
-    --chart-4: 30 80% 50%;
-    --chart-5: 280 80% 50%;
+    --chart-1: 258 85% 58%;
+    --chart-2: 240 5% 44%;
+    --chart-3: 152 58% 40%;
+    --chart-4: 32 88% 50%;
+    --chart-5: 217 80% 55%;
   }
 
   .dark {
-    --background: 220 20% 6%;
-    --foreground: 220 20% 94%;
-    --card: 220 20% 7%;
-    --card-foreground: 220 20% 94%;
-    --popover: 220 20% 7%;
-    --popover-foreground: 220 20% 94%;
-    --primary: 38 92% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 10% 14%;
-    --secondary-foreground: 220 20% 94%;
-    --muted: 220 10% 14%;
-    --muted-foreground: 220 10% 55%;
-    --accent: 220 10% 14%;
-    --accent-foreground: 220 20% 94%;
-    --destructive: 0 60% 50%;
+    --background: 240 6% 7%;
+    --foreground: 240 12% 96%;
+    --card: 240 5% 10%;
+    --card-foreground: 240 12% 96%;
+    --popover: 240 5% 11%;
+    --popover-foreground: 240 12% 96%;
+    --primary: 258 90% 68%;
+    --primary-foreground: 258 40% 11%;
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 240 12% 92%;
+    --muted: 240 5% 14%;
+    --muted-foreground: 240 6% 62%;
+    --accent: 258 28% 20%;
+    --accent-foreground: 258 60% 88%;
+    --destructive: 0 62% 54%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 10% 18%;
-    --input: 220 10% 18%;
-    --ring: 38 92% 60%;
+    --success: 152 48% 48%;
+    --warning: 32 82% 56%;
+    --info: 217 78% 64%;
+    --border: 240 5% 17%;
+    --input: 240 5% 19%;
+    --ring: 258 90% 68%;
   }
 
   * {
@@ -98,6 +118,25 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    /* Slightly tighter than the browser default: this density reads better at
+       the sizes the marketplace uses. */
+    line-height: 1.55;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold tracking-tight;
+    text-wrap: balance;
+  }
+
+  /* Long listing titles and order references should not leave ragged gaps. */
+  p {
+    text-wrap: pretty;
   }
 
   ::selection {
@@ -109,8 +148,25 @@
     outline-offset: 2px;
   }
 
+  /* Native scrollbars, form controls and spinners follow the theme the user
+     picked. `light dark` would flip them the moment the OS is dark even when
+     the user selected light mode. */
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
   html {
     scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 }
 
@@ -148,13 +204,63 @@
     }
   }
 
-  .glass {
-    @apply bg-white/70 dark:bg-black/30 backdrop-blur-xl border border-border/70;
+  /* Accent text. Used by the wordmark, the hero headline and the 404 page,
+     which previously referenced a class that did not exist — those three
+     accents silently rendered as plain text. A gradient rather than a flat
+     colour so it stays legible at display sizes in both themes. */
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent;
+  }
+
+  /* ---------------------------------------------------------------------
+   * Surfaces
+   *
+   * One opaque card and one inset well. The old shell put a translucent
+   * `.glass` on nearly every block, which on a phone is a full-screen
+   * compositing pass per card and reads muddy over the ambient wash. Surfaces
+   * are opaque now; blur is reserved for the sticky bars where content really
+   * does scroll underneath.
+   * ------------------------------------------------------------------- */
+
+  .surface {
+    @apply rounded-xl border border-border bg-card;
   }
 
   .inset-well {
-    @apply bg-muted/30;
+    @apply rounded-lg border border-border/60 bg-muted/40;
   }
+
+  /* ---------------------------------------------------------------------
+   * Page scaffolding shared by the dashboard shell and the pages inside it,
+   * so the three workspaces line up on one rhythm instead of each inventing
+   * its own.
+   * ------------------------------------------------------------------- */
+
+  .page-head {
+    @apply flex flex-wrap items-start justify-between gap-4;
+  }
+
+  .page-title {
+    @apply text-lg font-semibold tracking-tight sm:text-xl;
+  }
+
+  .page-sub {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .stat-grid {
+    @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  /* ---------------------------------------------------------------------
+   * Seller Studio page primitives.
+   *
+   * These predate the shared shell and are still used by the seven studio
+   * pages, so they are kept under their existing names — renaming them would
+   * churn those pages for no behavioural gain. Values are aligned with the
+   * generic scaffolding above so the studio matches the buyer and admin
+   * workspaces: same radii, same spacing, same muted palette.
+   * ------------------------------------------------------------------- */
 
   .seller-page {
     @apply text-foreground;
@@ -169,23 +275,11 @@
   }
 
   .seller-stat-grid {
-    @apply grid gap-4;
-  }
-
-  @media (min-width: 640px) {
-    .seller-stat-grid {
-      @apply sm:grid-cols-2;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .seller-stat-grid {
-      @apply lg:grid-cols-4;
-    }
+    @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
   }
 
   .seller-table-head {
-    @apply border-b-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground;
+    @apply border-b border-border px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
   }
 
   .seller-order-row {
@@ -217,39 +311,6 @@
   }
 
   .seller-editor {
-    @apply rounded-2xl border-border/70 bg-card p-6 text-card-foreground;
-  }
-
-  .seller-brand-mark {
-    @apply flex size-9 items-center justify-center bg-gradient-to-br from-amber-400 to-amber-600 shadow-sm;
-  }
-
-  .seller-nav-item {
-    @apply flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-amber-400/10 hover:text-foreground;
-  }
-
-  .seller-nav-item-active {
-    @apply bg-amber-400/15 text-amber-800 hover:bg-amber-400/15 hover:text-amber-800 dark:text-amber-300;
-  }
-
-  .seller-sidebar {
-    @apply fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border/50 backdrop-blur-2xl lg:flex;
-  }
-
-  .seller-studio {
-    @apply relative min-h-screen bg-background;
-  }
-}
-
-@layer base {
-  html {
-    color-scheme: light dark;
-  }
-}
-
-@layer base {
-  body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    @apply rounded-xl border border-border bg-card p-6 text-card-foreground;
   }
 }

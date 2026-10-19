@@ -70,7 +70,7 @@ export default function SellerApply() {
   return (
     <SellerLayout title="Apply to sell">
       <div className="mx-auto max-w-2xl space-y-6">
-        <div className="glass p-6">
+        <div className="surface p-6">
           <h2 className="text-lg font-semibold">Store profile</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             This is how buyers will see your store. You can revise it later.

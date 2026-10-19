@@ -109,7 +109,7 @@ export default function AdminSellers() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <EmptyState
               title={q.trim() ? "No stores found" : `No ${tab} stores`}
               description={
@@ -120,7 +120,7 @@ export default function AdminSellers() {
             />
           </div>
         ) : (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <div className="border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Store
             </div>
@@ -128,7 +128,7 @@ export default function AdminSellers() {
               {filtered.map((r) => (
                 <li key={r.id} className="px-5 py-4 transition-colors hover:bg-accent/30">
                   <div className="flex flex-wrap items-start gap-3">
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-300 to-amber-600 text-sm font-bold text-amber-950">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
                       {r.store_name.charAt(0).toUpperCase()}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -155,10 +155,10 @@ export default function AdminSellers() {
                         variant="outline"
                         className={`rounded-full border-border/70 text-xs font-medium uppercase tracking-wide ${
                           tab === "approved"
-                            ? "border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                            ? "border-success/30 text-success dark:text-success"
                             : tab === "rejected"
                               ? "border-destructive/30 text-destructive"
-                              : "border-amber-500/30 text-amber-700 dark:text-amber-400"
+                              : "border-warning/30 text-warning"
                         }`}
                       >
                         {tab}

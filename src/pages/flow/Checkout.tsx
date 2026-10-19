@@ -111,7 +111,7 @@ export default function Checkout() {
         {/* Left column */}
         <div className="min-w-0 space-y-6">
           {/* Order item */}
-          <section className="glass p-6" aria-label="Order item">
+          <section className="surface p-6" aria-label="Order item">
             <h2 className="font-semibold">Your order</h2>
             <div className="mt-4 flex items-center gap-4">
               <span className="flex size-14 items-center justify-center rounded-xl border border-border/70 bg-muted/40">
@@ -145,7 +145,7 @@ export default function Checkout() {
               </div>
             )}
             {!user && (
-              <p className="mt-4 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
+              <p className="mt-4 rounded-xl bg-warning/10 px-4 py-3 text-xs text-warning">
                 You need an account to complete this purchase.{" "}
                 <Link to={`/auth?returnTo=/checkout?listing=${listingId}%26qty=${qty}`} className="font-medium underline">
                   Sign in
@@ -155,7 +155,7 @@ export default function Checkout() {
           </section>
 
           {/* Payment */}
-          <section className="glass p-6" aria-label="Payment method">
+          <section className="surface p-6" aria-label="Payment method">
             <h2 className="font-semibold">Payment method</h2>
             <div className="mt-4 flex flex-col gap-1.5 rounded-xl border border-primary/60 bg-primary/10 p-4">
               <span className="flex items-center gap-2">
@@ -170,14 +170,14 @@ export default function Checkout() {
                   : "Sign in required"}
               </span>
             </div>
-            <p className="mt-4 flex items-start gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-xs text-emerald-700">
+            <p className="mt-4 flex items-start gap-2 rounded-xl bg-success/10 px-4 py-3 text-xs text-success">
               <Lock className="mt-px size-3.5 shrink-0" />
               No card details are ever collected. Top up the wallet with crypto
               and pay from it — funds move from your balance into escrow on the
               server in a single transaction the moment you confirm.
             </p>
             {walletShort && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700">
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-warning/10 px-4 py-3 text-xs text-warning">
                 <span className="flex-1">
                   Your wallet is {formatPrice((user?.balance ?? 0) - total)} short. Top
                   up with crypto to complete this purchase.
@@ -193,7 +193,7 @@ export default function Checkout() {
 
         {/* Summary */}
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <div className="glass p-6">
+          <div className="surface p-6">
             <h2 className="font-semibold">Order summary</h2>
             <dl className="mt-4 space-y-2.5 text-sm">
               <div className="flex justify-between">
@@ -220,7 +220,7 @@ export default function Checkout() {
               transfers and disputes.
             </p>
             {live.error ? (
-              <p className="mt-3 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+              <p className="mt-3 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">
                 Could not load live stock and pricing. Refresh and try again.
               </p>
             ) : live.loading ? (
@@ -265,7 +265,7 @@ export default function Checkout() {
               )}
             </Button>
 
-            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-emerald-600">
+            <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-success">
               <ShieldCheck className="size-3.5" />
               Funds held until you approve the transfer
             </p>

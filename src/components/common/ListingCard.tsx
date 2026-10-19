@@ -9,7 +9,7 @@ interface ListingCardProps {
 
 export function ListingCard({ listing, className }: ListingCardProps) {
   return (
-    <article className={cn("group rounded-2xl border border-border/70 bg-card/80 p-4 transition-all hover:-translate-y-0.5 hover:border-amber-500/40", className)}>
+    <article className={cn("group rounded-2xl border border-border/70 bg-card/80 p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex size-12 items-center justify-center rounded-xl border border-border/70 bg-muted/40 overflow-hidden">
           <BrandMark brand={listing.brand} colored className="size-6" />

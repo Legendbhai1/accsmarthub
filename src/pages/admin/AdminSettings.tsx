@@ -173,7 +173,7 @@ export default function AdminSettings() {
             description="Fetching current platform configuration."
           />
         ) : SETTINGS.length === 0 ? (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <EmptyState
               title="No settings available"
               description="There are no editable settings in the current schema."
@@ -244,7 +244,7 @@ export default function AdminSettings() {
 
         <div className="rounded-2xl border-border/70 bg-card p-5 text-card-foreground shadow-sm">
           <div className="flex items-start gap-3">
-            <Shield className="mt-0.5 size-5 text-amber-700 dark:text-amber-400" />
+            <Shield className="mt-0.5 size-5 text-warning" />
             <div>
               <h3 className="text-sm font-medium">Trust & safety note</h3>
               <p className="mt-1 text-sm text-muted-foreground">

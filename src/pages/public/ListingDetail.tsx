@@ -155,7 +155,7 @@ export default function ListingDetail() {
         {/* ------------------------------ Left ------------------------------ */}
         <div className="min-w-0">
           {/* Preview area */}
-          <div className="glass flex h-72 flex-col items-center justify-center gap-4 sm:h-96">
+          <div className="surface flex h-72 flex-col items-center justify-center gap-4 sm:h-96">
             <div className="flex size-24 items-center justify-center rounded-3xl border border-border/70 bg-muted/40">
               <BrandMark brand={listing.brand} colored className="size-12" />
             </div>
@@ -246,7 +246,7 @@ export default function ListingDetail() {
               ) : (
                 <ul className="max-w-2xl space-y-3">
                   {reviews.map((r) => (
-                    <li key={r.id} className="glass p-5">
+                    <li key={r.id} className="surface p-5">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <span className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
@@ -270,7 +270,7 @@ export default function ListingDetail() {
               )}
             </TabsContent>
           </Tabs>            {/* Seller profile */}
-          <div className="glass mt-8 p-6">
+          <div className="surface mt-8 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Sold by
             </h2>
@@ -297,7 +297,7 @@ export default function ListingDetail() {
 
         {/* ----------------------------- Buy box ----------------------------- */}
         <aside className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-          <div className="glass p-6">
+          <div className="surface p-6">
             <p className="flex items-baseline gap-2.5">
               <span className="text-3xl font-bold tracking-tight">
                 {formatPrice(listing.priceUsd)}
@@ -308,7 +308,7 @@ export default function ListingDetail() {
               <StockBadge stock={listing.stock} />
               {available && (
                 <span className="text-xs text-muted-foreground">
-                  Escrow-protected listing
+                  Reviewed listing
                 </span>
               )}
             </div>
@@ -371,7 +371,7 @@ export default function ListingDetail() {
                     Report listing
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="glass border-border/70 sm:max-w-md">
+                <DialogContent className="surface border-border/70 sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Report this listing</DialogTitle>
                     <DialogDescription>
@@ -431,9 +431,9 @@ export default function ListingDetail() {
             {/* Refund / dispute info */}
             <div className="space-y-3 text-sm">
               <div className="flex gap-3">
-                <ShieldCheck className="mt-0.5 size-4.5 shrink-0 text-emerald-600" />
+                <ShieldCheck className="mt-0.5 size-4.5 shrink-0 text-success" />
                 <div>
-                  <p className="font-medium">Escrow-protected payment</p>
+                  <p className="font-medium">Payment held in-platform</p>
                   <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                     Funds are held securely and released to the seller only
                     after you confirm the transfer.

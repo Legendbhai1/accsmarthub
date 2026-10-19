@@ -106,7 +106,7 @@ export default function AdminReports() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <EmptyState
               title={q.trim() ? "No reports found" : `No ${tab.replace("_", " ")} reports`}
               description={
@@ -117,7 +117,7 @@ export default function AdminReports() {
             />
           </div>
         ) : (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <div className="border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Report
             </div>
@@ -150,10 +150,10 @@ export default function AdminReports() {
                         variant="outline"
                         className={`rounded-full border-border/70 text-xs font-medium uppercase tracking-wide ${
                           r.status === "open"
-                            ? "border-amber-500/30 text-amber-700 dark:text-amber-400"
+                            ? "border-warning/30 text-warning"
                             : r.status === "reviewing"
                               ? "border-primary/50 text-primary"
-                              : "border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                              : "border-success/30 text-success dark:text-success"
                         }`}
                       >
                         {r.status}
@@ -207,7 +207,7 @@ export default function AdminReports() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 text-amber-700 dark:text-amber-400">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/10 px-3 py-1.5 text-warning">
                     <AlertTriangle className="size-3.5" />
                     This calls resolve_report against the database. Make sure the
                     report status and any penalty are set on the real row.

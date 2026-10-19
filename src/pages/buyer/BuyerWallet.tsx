@@ -173,7 +173,7 @@ export default function BuyerWallet() {
           />
         </div>
 
-        <div className="glass p-6">
+        <div className="surface p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-semibold">Top up with crypto</h3>
@@ -193,7 +193,7 @@ export default function BuyerWallet() {
               Deposit funds
             </Button>
           </div>
-          <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-xs text-emerald-700">
+          <div className="mt-4 flex items-center gap-2 rounded-xl bg-success/10 px-4 py-3 text-xs text-success">
             <BadgeCheck className="size-3.5 shrink-0" />
             Funds appear in your wallet as soon as OxaPay confirms the
             payment — the balance is spendable immediately at checkout.
@@ -201,7 +201,7 @@ export default function BuyerWallet() {
           {depositNotice && (
             <p
               role="alert"
-              className="mt-3 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-700"
+              className="mt-3 rounded-xl bg-warning/10 px-4 py-3 text-xs text-warning"
             >
               {depositNotice === "unreachable" ? (
                 <>
@@ -232,7 +232,7 @@ export default function BuyerWallet() {
         </div>
 
         {/* Live deposit status — the webhook flips these in real time. */}
-        <div className="glass p-6">
+        <div className="surface p-6">
           <h3 className="font-semibold">Deposits</h3>
           <p className="mt-1 text-xs text-muted-foreground">
             Every top-up is confirmed by OxaPay and credited to your wallet
@@ -260,8 +260,8 @@ export default function BuyerWallet() {
                   <span
                     className={
                       d.status === "paid"
-                        ? "rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-medium text-emerald-700"
-                        : "rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-700"
+                        ? "rounded-full bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success"
+                        : "rounded-full bg-warning/10 px-2.5 py-1 text-[11px] font-medium text-warning"
                     }
                   >
                     {d.status === "paid" ? "Credited" : "Awaiting payment"}
@@ -272,7 +272,7 @@ export default function BuyerWallet() {
           )}
         </div>
 
-        <div className="glass p-6">
+        <div className="surface p-6">
           <h3 className="font-semibold">Transaction history</h3>
           {loadingLedger ? (
             <p className="mt-4 py-6 text-center text-sm text-muted-foreground">
@@ -298,7 +298,7 @@ export default function BuyerWallet() {
                   <div className="text-right">
                     <p
                       className={`font-semibold tabular-nums ${
-                        Number(row.balance_delta) >= 0 ? "text-emerald-600" : ""
+                        Number(row.balance_delta) >= 0 ? "text-success" : ""
                       }`}
                     >
                       {Number(row.balance_delta) >= 0 ? "+" : "−"}
@@ -317,7 +317,7 @@ export default function BuyerWallet() {
 
       {/* Deposit dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!busy) setDialogOpen(open); }}>
-        <DialogContent className="glass border-border/70 sm:max-w-md">
+        <DialogContent className="surface border-border/70 sm:max-w-md">
           {depositState.phase === "awaiting" ? (
             <>
               <DialogHeader>

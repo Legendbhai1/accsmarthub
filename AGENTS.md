@@ -112,3 +112,47 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   asserted in tests without a DOM — `createBrowserRouter` touches `document`
   at import time and the test environment has no jsdom. `src/App.tsx` only
   wraps `routes` in the pathless root that carries the error boundary.
+- **An internal link is not type-checked.** `to="/categories"` compiles
+  whether or not a route exists, so a typo becomes a 404 that only surfaces
+  when someone clicks it. This is not hypothetical: `/categories` was linked
+  from the header, the footer and the mobile tab bar; `/forgot-password` from
+  two places; and `/reset-password` was passed as Supabase's recovery
+  `redirectTo`, so the link in a real password-reset email pointed at a route
+  that did not exist. `tests/navigation.test.ts` now walks every `to="…"`,
+  `to: "…"`, `navigate(…)` and `redirect(…)` string in `src` and fails on any
+  that does not resolve to a declared route. When you add a route, add it to
+  `src/routes.tsx`; when you link to one, the test will tell you if you
+  mistyped it.
+- **One shell per audience, and the public bottom bar belongs to the public
+  shell only.** `MobileTabBar` is mounted by `PublicLayout` and `SiteLayout`
+  and nothing else. It used to be rendered from four places — including both
+  dashboard layouts — which is how the public Home / Marketplace / Categories /
+  Account tabs appeared inside Seller Studio on top of the studio's own nav.
+  Buyer, seller and admin all render `DashShell` (`src/components/dash/`),
+  which uses a desktop rail plus a mobile drawer and has no bottom bar at all.
+  `tests/navigation.test.ts` asserts the dashboards never reference the bar.
+- **A `fixed` bottom bar needs its scroll container to reserve room.** The
+  public shell sets `pb-24 md:pb-0` on `<main>`; without it the bar covers the
+  last row of content and the footer. If you add a fixed element, reserve the
+  space where the scrolling content lives rather than padding the element.
+- **Tailwind v4 renamed `bg-gradient-to-*` to `bg-linear-to-*`.** The old
+  names still work, but a class referenced in TSX with *no* definition at all
+  fails silently: `text-gradient` was used by the wordmark, the hero headline
+  and the 404 page for a long time while never existing in `src/index.css`, so
+  all three accents rendered as plain text. If a class looks like it should do
+  something and does not, grep the built CSS for it before assuming a
+  specificity problem.
+- **Colour belongs to a token, not to a literal.** The palette is charcoal plus
+  a single violet accent, with status kept separate (`--success`, `--warning`,
+  `--info`, `--destructive`). Hardcoded `amber`/`emerald`/`sky`/hex values had
+  spread across ~50 files, which is how a saturated amber ended up meaning
+  "brand", "pending" and "warning" at the same time. Use `bg-primary`,
+  `text-warning`, `border-success/30` and so on; a star rating is the one
+  deliberate exception (`fill-amber-400`), because a star is yellow.
+- **Do not label the held-funds model "escrow".** The backend holds money in an
+  internal `wallet_ledger` and has no licensed escrow provider, and there is no
+  payout provider either (`0014_seller_payouts.sql` reserves a withdrawal and
+  leaves settlement to an admin). The user-facing copy says "held in-platform"
+  and "payment protection" for that reason. Do not reintroduce "escrow" as a
+  guarantee, and do not claim KYC, ratings or sales history that is not
+  recorded.

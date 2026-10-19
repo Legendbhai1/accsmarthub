@@ -108,7 +108,7 @@ export default function AdminDashboard() {
             ))}
           </div>
         ) : (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <EmptyState
               title="No metrics yet"
               description="Platform figures appear here once orders, users, and stores are in the system."
@@ -128,7 +128,7 @@ export default function AdminDashboard() {
         </div>
 
         {disputes.length === 0 ? (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <EmptyState
               title="Nothing pending"
               description="No disputes are waiting for attention right now."
@@ -140,7 +140,7 @@ export default function AdminDashboard() {
             />
           </div>
         ) : (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <div className="border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Description
             </div>

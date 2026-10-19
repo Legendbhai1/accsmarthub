@@ -33,7 +33,7 @@ export default function SellerProfile() {
         )}
 
         {error && (
-          <div className="glass p-4 text-sm text-destructive">{error}</div>
+          <div className="surface p-4 text-sm text-destructive">{error}</div>
         )}
 
         {!loading && !error && store === null && (
@@ -44,7 +44,7 @@ export default function SellerProfile() {
         )}
 
         {store && (
-          <div className="glass p-6 space-y-4">
+          <div className="surface p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-lg font-semibold">{store.store_name}</p>

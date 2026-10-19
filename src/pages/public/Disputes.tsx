@@ -39,7 +39,7 @@ const GROUNDS = [
   "The account is banned, restricted, or in a state that makes it unsellable.",
   "Access was never delivered, or the credentials given do not work.",
   "The seller refused to complete the transfer inside their stated delivery window.",
-  "The seller tried to move the deal off-platform, or asked for payment outside escrow.",
+  "The seller tried to move the deal off-platform, or asked for payment outside the platform.",
 ];
 
 const WINDOWS = [
@@ -58,7 +58,7 @@ export default function Disputes() {
     <div className="overflow-x-clip">
       <section className="mx-auto w-full max-w-4xl px-4 pb-12 pt-16 sm:px-6 sm:pt-20">
         <SectionHeading
-          title="Disputes & escrow protection"
+          title="Disputes & payment protection"
           subtitle="What to do when an order goes wrong, who decides, and what happens to your money while the case is open."
         />
 
@@ -82,7 +82,7 @@ export default function Disputes() {
         <SectionHeading title="How a dispute is handled" />
         <ol className="mt-6 space-y-3">
           {STEPS.map(({ icon: Icon, title, body }) => (
-            <li key={title} className="glass flex gap-4 p-5">
+            <li key={title} className="surface flex gap-4 p-5">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary">
                 <Icon className="size-4 text-primary-foreground" />
               </span>
@@ -132,7 +132,7 @@ export default function Disputes() {
       </section>
 
       <section className="mx-auto w-full max-w-4xl px-4 pb-20 sm:px-6">
-        <div className="glass flex flex-wrap items-center justify-between gap-4 px-6 py-7">
+        <div className="surface flex flex-wrap items-center justify-between gap-4 px-6 py-7">
           <div>
             <h2 className="text-lg font-bold tracking-tight">
               Something went wrong with an order?

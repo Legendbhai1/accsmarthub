@@ -25,7 +25,7 @@ export default function BuyerPurchased() {
           }
         />
       ) : (
-        <div className="glass overflow-hidden">
+        <div className="surface overflow-hidden">
           <div className="hidden grid-cols-[1fr_7rem_7rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
             <span>Listing</span>
             <span className="text-right">Paid</span>

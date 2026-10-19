@@ -113,7 +113,7 @@ export default function AdminCategories() {
             }
           />
         ) : (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <div className="hidden grid-cols-[1fr_1fr_6rem_6rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
               <span>Category</span>
               <span>Slug</span>

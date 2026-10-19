@@ -62,7 +62,7 @@ export default function ForgotPassword() {
       </div>
 
       <main className="flex flex-1 items-start justify-center px-4 pb-16">
-        <div className="glass w-full max-w-md p-8">
+        <div className="surface w-full max-w-md p-8">
           {sent ? (
             <>
               <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10">

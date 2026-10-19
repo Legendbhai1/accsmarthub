@@ -184,7 +184,7 @@ export default function BuyerOrderDetail() {
         </Link>
 
         {/* Header card */}
-        <div className="glass p-6">
+        <div className="surface p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <span className="flex size-12 items-center justify-center rounded-xl border border-border/70 bg-muted/40">
@@ -205,10 +205,10 @@ export default function BuyerOrderDetail() {
         </div>
 
         {/* Timeline */}
-        <div className="glass p-6">
+        <div className="surface p-6">
           <h3 className="font-semibold">Transfer progress</h3>
           {order.status === "disputed" || order.status === "refunded" ? (
-            <p className="mt-3 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-600">
+            <p className="mt-3 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
               This order is {order.status}. See the dispute section below for
               details and next steps.
             </p>
@@ -220,7 +220,7 @@ export default function BuyerOrderDetail() {
                 return (
                   <li key={step.key} className="flex items-start gap-2.5">
                     {done ? (
-                      <CheckCircle2 className="mt-0.5 size-4.5 shrink-0 text-emerald-600" />
+                      <CheckCircle2 className="mt-0.5 size-4.5 shrink-0 text-success" />
                     ) : (
                       <Circle className="mt-0.5 size-4.5 shrink-0 text-muted-foreground/40" />
                     )}
@@ -254,7 +254,7 @@ export default function BuyerOrderDetail() {
 
         {/* Details grid */}
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="glass p-6">
+          <div className="surface p-6">
             <h3 className="font-semibold">Payment summary</h3>
             <dl className="mt-4 space-y-2.5 text-sm">
               <div className="flex justify-between">
@@ -272,7 +272,7 @@ export default function BuyerOrderDetail() {
             </dl>
           </div>
 
-          <div className="glass p-6">
+          <div className="surface p-6">
             <h3 className="font-semibold">Seller</h3>
             <div className="mt-4 flex items-center gap-3">
               <span className="flex size-10 items-center justify-center rounded-xl bg-primary/15 text-sm font-bold text-primary">
@@ -290,7 +290,7 @@ export default function BuyerOrderDetail() {
 
         {/* Warranty window */}
         {disputeDeadlineLabel && (
-          <div className="glass border-amber-500/30 p-6">
+          <div className="surface border-warning/30 p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 className="font-semibold">Dispute window</h3>
@@ -298,7 +298,7 @@ export default function BuyerOrderDetail() {
                   Every order carries a 14-day inspection window from purchase.
                 </p>
                 {disputeWindowOpen ? (
-                  <p className="mt-1 text-sm text-amber-700">
+                  <p className="mt-1 text-sm text-warning">
                     You can open a dispute until {disputeDeadlineLabel}.
                   </p>
                 ) : (
@@ -307,14 +307,14 @@ export default function BuyerOrderDetail() {
                   </p>
                 )}
               </div>
-              <CalendarClock className="mt-0.5 size-5 shrink-0 text-amber-600" />
+              <CalendarClock className="mt-0.5 size-5 shrink-0 text-warning" />
             </div>
           </div>
         )}
 
         {/* Off-platform contact is prohibited on AccsMartHub. Reporting it triggers a
    trust-team review and can pause the seller's listings. */}
-        <div className="glass border-amber-500/30 p-6">
+        <div className="surface border-warning/30 p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h3 className="font-semibold">Policy: stay on AccsMartHub</h3>
@@ -337,7 +337,7 @@ export default function BuyerOrderDetail() {
         </div>
 
         {/* Dispute section */}
-        <div className="glass p-6">
+        <div className="surface p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-semibold">Disputes</h3>
             {canDispute && !dispute && (
@@ -348,7 +348,7 @@ export default function BuyerOrderDetail() {
                     Open a dispute
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="glass border-border/70 sm:max-w-md">
+                <DialogContent className="surface border-border/70 sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Open a dispute</DialogTitle>
                     <DialogDescription>
@@ -436,7 +436,7 @@ export default function BuyerOrderDetail() {
 
         {/* Off-platform contact report */}
         <Dialog open={reportOpen} onOpenChange={setReportOpen}>
-          <DialogContent className="glass border-border/70 sm:max-w-md">
+          <DialogContent className="surface border-border/70 sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Report off-platform contact</DialogTitle>
               <DialogDescription>

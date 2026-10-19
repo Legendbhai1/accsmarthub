@@ -86,7 +86,7 @@ export default function Trust() {
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {PILLARS.map(({ icon: Icon, title, body }) => (
-            <div key={title} className="glass p-6">
+            <div key={title} className="surface p-6">
               <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
                 <Icon className="size-5 text-primary" />
               </span>
@@ -98,7 +98,7 @@ export default function Trust() {
           ))}
         </div>
 
-        <div className="glass mt-10 p-8">
+        <div className="surface mt-10 p-8">
           <h2 className="text-xl font-bold tracking-tight">Strictly prohibited</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Account transfers are restricted by most platforms, so listings
@@ -115,9 +115,9 @@ export default function Trust() {
           </ul>
         </div>
 
-        <div className="glass mt-10 border-amber-500/30 p-8">
+        <div className="surface mt-10 border-warning/30 p-8">
           <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight">
-            <ShieldAlert className="size-5 text-amber-600" />
+            <ShieldAlert className="size-5 text-warning" />
             Off-platform contact is absolutely prohibited
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -128,7 +128,7 @@ export default function Trust() {
           <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
             {NO_OFF_PLATFORM.map((item) => (
               <li key={item} className="flex items-start gap-2.5 text-sm">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-amber-500" />
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning" />
                 {item}
               </li>
             ))}

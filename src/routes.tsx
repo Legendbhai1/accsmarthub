@@ -1,5 +1,6 @@
 import { Outlet, redirect, type RouteObject } from "react-router";
 import { RequireRole } from "@/components/site/guards";
+import { PublicLayout } from "@/components/site/PublicLayout";
 import { motion } from "framer-motion";
 
 // Buyer
@@ -103,60 +104,66 @@ export const routes: RouteObject[] = [
     // absolute because this route contributes no path segment of its own.
     errorElement: <ErrorPage />,
     children: [
+      // --------------------------------------------------------------------
+      // Public marketplace. Everything under here renders `PublicLayout`,
+      // which owns the header, the footer and the mobile bottom tab bar. The
+      // dashboards below deliberately do not, so the public Home /
+      // Marketplace / Categories / Account bar cannot appear inside a
+      // workspace.
+      // --------------------------------------------------------------------
       {
-        path: "/",
-        element: <Home />,
+        element: <PublicLayout />,
+        children: [
+          { path: "/", element: <Home /> },
+          { path: "/marketplace", element: <Marketplace /> },
+          // Canonical category directory. `/categories` was linked from the
+          // header, the footer and the mobile tab bar while only this path was
+          // declared, so all three links 404'd. Both spellings work now;
+          // `/marketplace/categories` stays canonical and the short one
+          // redirects to it.
+          { path: "/marketplace/categories", element: <Categories /> },
+          {
+            path: "/categories",
+            loader: () => redirect("/marketplace/categories"),
+          },
+          { path: "/marketplace/:id", element: <ListingDetail /> },
+          // Older links and bookmarks used /listing/:id. Keep them working by
+          // redirecting to the canonical route.
+          {
+            path: "/listing/:id",
+            loader: ({ params }) => redirect(`/marketplace/${params.id}`),
+          },
+          { path: "/faq", element: <Faq /> },
+          { path: "/trust", element: <Trust /> },
+          { path: "/disputes", element: <Disputes /> },
+        ],
+      },
+
+      // --------------------------------------------------------------------
+      // Transactional pages. These keep the public header for orientation but
+      // not the bottom bar: checkout and the auth screens are focused tasks,
+      // and a persistent tab bar there invites abandoning the flow mid-payment.
+      // --------------------------------------------------------------------
+      { path: "/checkout", element: <Checkout /> },
+      { path: "/order/:orderId/confirmed", element: <OrderConfirmed /> },
+      { path: "/auth", element: <SupabaseAuth /> },
+      { path: "/auth/forgot", element: <ForgotPassword /> },
+      { path: "/auth/reset", element: <ResetPassword /> },
+      // Both of these were linked or generated but never declared, so they
+      // landed on the 404 page. `/reset-password` is the more serious of the
+      // two: ForgotPassword passes it as Supabase's `redirectTo`, so the link
+      // in a real recovery email pointed at a route that did not exist.
+      // Declaring them as redirects keeps existing links and any redirect
+      // allowlist entry in the Supabase dashboard working unchanged.
+      {
+        path: "/forgot-password",
+        loader: () => redirect("/auth/forgot"),
       },
       {
-        path: "/marketplace",
-        element: <Marketplace />,
+        path: "/reset-password",
+        loader: () => redirect("/auth/reset"),
       },
-      {
-        path: "/marketplace/categories",
-        element: <Categories />,
-      },
-      {
-        path: "/marketplace/:id",
-        element: <ListingDetail />,
-      },
-      // Older links and bookmarks used /listing/:id. Keep them working by
-      // redirecting to the canonical route.
-      {
-        path: "/listing/:id",
-        loader: ({ params }) => redirect(`/marketplace/${params.id}`),
-      },
-      {
-        path: "/faq",
-        element: <Faq />,
-      },
-      {
-        path: "/trust",
-        element: <Trust />,
-      },
-      {
-        path: "/disputes",
-        element: <Disputes />,
-      },
-      {
-        path: "/checkout",
-        element: <Checkout />,
-      },
-      {
-        path: "/order/:orderId/confirmed",
-        element: <OrderConfirmed />,
-      },
-      {
-        path: "/auth",
-        element: <SupabaseAuth />,
-      },
-      {
-        path: "/auth/forgot",
-        element: <ForgotPassword />,
-      },
-      {
-        path: "/auth/reset",
-        element: <ResetPassword />,
-      },
+
       {
         path: "/account",
         element: <BuyerLayout />,

@@ -327,7 +327,7 @@ export default function SupabaseAuth() {
       </div>
 
       <main className="flex flex-1 items-start justify-center px-4 pb-16">
-        <div className="glass w-full max-w-md p-8">
+        <div className="surface w-full max-w-md p-8">
           {screen !== "sent" && (
             <>
               <h1 className="text-xl font-bold tracking-tight">

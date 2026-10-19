@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 const NAV_LINKS = [
   { label: "Home", to: "/" },
   { label: "Marketplace", to: "/marketplace" },
-  { label: "Categories", to: "/categories" },
+  { label: "Categories", to: "/marketplace/categories" },
   { label: "Disputes", to: "/disputes" },
   { label: "Trust & Safety", to: "/trust" },
   { label: "FAQ", to: "/faq" },
@@ -75,7 +75,7 @@ export function SiteHeader() {
                   cn(
                     "rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
                     isActive &&
-                      "bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 font-semibold text-amber-950 hover:from-amber-300 hover:to-amber-600 hover:text-amber-950",
+                      "bg-primary font-semibold text-primary-foreground   hover:text-primary-foreground",
                   )
                 }
               >
@@ -119,7 +119,7 @@ export function SiteHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="rounded-full">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-600 text-xs font-bold text-amber-950">
+                    <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                       {user.name.charAt(0)}
                     </span>
                     <span className="hidden max-w-24 truncate sm:inline">{user.name}</span>

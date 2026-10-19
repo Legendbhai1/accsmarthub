@@ -50,7 +50,7 @@ export default function BuyerSaved() {
           }
         />
       ) : (
-        <div className="glass overflow-hidden">
+        <div className="surface overflow-hidden">
           <ul className="divide-y divide-border/60">
             {saved.map((item) => (
               <li key={item.id} className="flex flex-wrap items-center gap-3 px-6 py-4">

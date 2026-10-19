@@ -46,7 +46,7 @@ export default function BuyerNotifications() {
             {notifications.map((n) => (
               <li
                 key={n.id}
-                className={`glass flex items-start gap-3 p-4 ${n.read ? "opacity-70" : ""}`}
+                className={`surface flex items-start gap-3 p-4 ${n.read ? "opacity-70" : ""}`}
               >
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                   <Bell className="size-4 text-primary" />

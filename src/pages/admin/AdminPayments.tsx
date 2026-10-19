@@ -224,7 +224,7 @@ export default function AdminPayments() {
                 description="Seller withdrawal requests will appear here for review."
               />
             ) : (
-              <div className="glass overflow-hidden">
+              <div className="surface overflow-hidden">
                 <ul className="divide-y divide-border/60">
                   {(payoutsQuery.data ?? []).map((p) => (
                     <li key={p.id} className="px-6 py-4">
@@ -330,7 +330,7 @@ export default function AdminPayments() {
               </div>
             </div>
 
-            <div className="glass overflow-hidden">
+            <div className="surface overflow-hidden">
               <div className="hidden grid-cols-[1fr_8rem_8rem_8rem_7rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
                 <span>Order</span>
                 <span className="text-right">Gross</span>

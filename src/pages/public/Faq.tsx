@@ -8,7 +8,7 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 
 const FAQS = [
   {
-    q: "How does escrow protect my purchase?",
+    q: "How does holding my payment protect me?",
     a: "Your payment is held in AccsMartHub's internal ledger and only released to the seller after you confirm the account transfer is complete, or after the 14-day inspection window closes. If the listing doesn't match its description, the transaction is covered by our dispute process and eligible orders are refunded in full.",
   },
   {
@@ -17,11 +17,11 @@ const FAQS = [
   },
   {
     q: "How long does a transfer take?",
-    a: "Timing depends on the seller. You have 14 days from purchase to inspect the account and raise a dispute; the seller hands over credentials through the order page, you verify access, and escrow releases once you confirm everything matches the listing.",
+    a: "Timing depends on the seller. You have 14 days from purchase to inspect the account and raise a dispute; the seller hands over credentials through the order page, you verify access, and the held funds are released once you confirm everything matches the listing.",
   },
   {
     q: "What fees does AccsMartHub charge?",
-    a: "Buyers pay a 3% escrow and protection fee at checkout. Sellers keep 90% of the sale price; the 10% platform commission is deducted when the order's escrow is released.",
+    a: "Buyers pay a 3% protection fee at checkout. Sellers keep 90% of the sale price; the 10% platform commission is deducted when the order's held funds are released.",
   },
   {
     q: "What happens if something goes wrong?",
@@ -51,7 +51,7 @@ export default function Faq() {
         <p className="mt-3 text-muted-foreground">
           Everything buyers and sellers ask before their first transfer.
         </p>
-        <div className="glass mt-8 px-6 py-2">
+        <div className="surface mt-8 px-6 py-2">
           <Accordion type="single" collapsible className="w-full">
             {FAQS.map((faq) => (
               <AccordionItem key={faq.q} value={faq.q}>

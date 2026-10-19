@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Bell, Heart, LayoutGrid, Search, X } from "lucide-react";
 import { BrandMark } from "@/components/site/BrandMark";
-import { MobileTabBar } from "@/components/site/MobileTabBar";
 import { TopMenu } from "@/components/site/TopMenu";
 import { Pagination } from "@/components/common/Pagination";
 import { formatPrice } from "@/lib/format";
@@ -46,7 +45,7 @@ function AccountCard({
   return (
     // Translucent, not blurred: this grid can hold dozens of cards, and a
     // backdrop-filter per card is what makes a long list stutter on a phone.
-    <article className="group rounded-3xl border border-border/70 bg-card/70 p-2 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/40 hover:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.5)]">
+    <article className="group rounded-3xl border border-border/70 bg-card/70 p-2 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.5)]">
       <div className="relative">
         <Link
           to={`/marketplace/${listing.id}`}
@@ -77,7 +76,7 @@ function AccountCard({
           }}
           className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-card text-foreground shadow-sm transition-transform active:scale-90"
         >
-          <Heart className={cn("size-3.5", liked ? "fill-[#e8384f] text-[#e8384f]" : "text-foreground")} />
+          <Heart className={cn("size-3.5", liked ? "fill-destructive text-destructive" : "text-foreground")} />
         </button>
       </div>
 
@@ -254,14 +253,14 @@ export default function Marketplace() {
       <header className="px-4 pt-5">
         <div className="mx-auto flex max-w-md items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600">
-              <svg viewBox="0 0 24 24" className="size-5 text-amber-950" fill="currentColor" aria-hidden="true">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary">
+              <svg viewBox="0 0 24 24" className="size-5 text-primary-foreground" fill="currentColor" aria-hidden="true">
                 <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H14a1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 6V5.5ZM4 12a2.5 2.5 0 0 1 2.5-2.5H18a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 12.5V12ZM4 18.5A2.5 2.5 0 0 1 6.5 16H14a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18.5Z" />
               </svg>
             </span>
             <div className="min-w-0">
               <p className="truncate text-[15px] font-bold leading-tight tracking-tight text-foreground">AccsMartHub</p>
-              <p className="truncate text-[11px] leading-tight text-muted-foreground">Escrow-protected marketplace</p>
+              <p className="truncate text-[11px] leading-tight text-muted-foreground">Reviewed marketplace</p>
             </div>
           </div>
 
@@ -270,17 +269,17 @@ export default function Marketplace() {
               type="button"
               aria-label="Search accounts"
               onClick={() => setSearchOpen((v) => !v)}
-              className="flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/70 text-foreground backdrop-blur-xl transition-colors hover:bg-amber-400/10"
+              className="flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/70 text-foreground backdrop-blur-xl transition-colors hover:bg-primary/10"
             >
               {searchOpen ? <X className="size-4" /> : <Search className="size-4" />}
             </button>
             <Link
               to="/account/notifications"
               aria-label="Notifications"
-              className="relative flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/70 text-foreground backdrop-blur-xl transition-colors hover:bg-amber-400/10"
+              className="relative flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/70 text-foreground backdrop-blur-xl transition-colors hover:bg-primary/10"
             >
               <Bell className="size-4" />
-              <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-[#e8384f]" />
+              <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-destructive" />
             </Link>
             {/* Three-line menu: become a seller / dark-light switch. */}
             <TopMenu />
@@ -312,9 +311,9 @@ export default function Marketplace() {
         <div className="mx-auto max-w-md">
           <div
             key={slide}
-            className="relative overflow-hidden rounded-3xl border border-amber-500/25 bg-gradient-to-br from-amber-400/20 via-card/60 to-violet-400/10 px-5 py-6 backdrop-blur-xl"
+            className="relative overflow-hidden rounded-3xl border border-warning/30 bg-gradient-to-br from-primary/15 via-card/60 to-primary/10 px-5 py-6 backdrop-blur-xl"
           >
-            <span className="inline-flex rounded-full bg-gradient-to-br from-amber-300 to-amber-500 px-2.5 py-1 text-[10px] font-bold text-amber-950">
+            <span className="inline-flex rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">
               {current.chip}
             </span>
             <h2 className="mt-3 text-[21px] font-bold leading-tight tracking-tight text-foreground">{current.title}</h2>
@@ -359,11 +358,11 @@ export default function Marketplace() {
                 className={cn(
                   "flex size-14 items-center justify-center rounded-full border transition-colors",
                   !category
-                    ? "border-transparent bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600"
+                    ? "border-transparent bg-primary"
                     : "border-border/70 bg-card/70",
                 )}
               >
-                <LayoutGrid className={cn("size-5", !category ? "text-amber-950" : "text-foreground")} />
+                <LayoutGrid className={cn("size-5", !category ? "text-primary-foreground" : "text-foreground")} />
               </span>
               <span className="text-[11px] text-foreground">All</span>
             </button>
@@ -380,7 +379,7 @@ export default function Marketplace() {
                     className={cn(
                       "flex size-14 items-center justify-center rounded-full border transition-colors",
                       activeCat
-                        ? "border-transparent bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600"
+                        ? "border-transparent bg-primary"
                         : "border-border/70 bg-card/70",
                     )}
                   >
@@ -532,14 +531,6 @@ export default function Marketplace() {
           </div>
         </div>
       </main>
-
-      {/* -------------------------- Floating bottom nav --------------------------
-          The shared bar. The old local copy had five controls — a shopping bag
-          pointing at /account/purchased next to a person icon pointing at
-          /account — and swapped for a completely different set once you
-          entered the account area. Now every screen shows the same four
-          buttons, with no duplicated account icon. */}
-      <MobileTabBar />
     </div>
   );
 }

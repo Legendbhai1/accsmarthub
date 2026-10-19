@@ -134,7 +134,7 @@ export default function AdminListings() {
             }
           />
         ) : (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <div className="grid grid-cols-1 gap-4 border-b border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid-cols-2 lg:grid-cols-[1fr_1fr_7rem_7rem_7rem_6rem]">
               <span>Listing</span>
               <span>Brand</span>
@@ -171,10 +171,10 @@ export default function AdminListings() {
                       variant="outline"
                       className={`w-20 text-right text-xs font-medium uppercase tracking-wide ${
                         r.status === "active"
-                          ? "border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                          ? "border-success/30 text-success dark:text-success"
                           : r.status === "paused"
                           ? "border-destructive/30 text-destructive"
-                          : "border-amber-500/30 text-amber-700 dark:text-amber-400"
+                          : "border-warning/30 text-warning"
                       }`}
                     >
                       {r.status}

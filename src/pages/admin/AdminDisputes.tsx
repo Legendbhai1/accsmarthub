@@ -91,7 +91,7 @@ export default function AdminDisputes() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <EmptyState
               title={
                 tab === "open"
@@ -110,7 +110,7 @@ export default function AdminDisputes() {
             />
           </div>
         ) : (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <div className="border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Dispute
             </div>
@@ -146,10 +146,10 @@ export default function AdminDisputes() {
                         variant="outline"
                         className={`rounded-full border-border/70 text-xs font-medium uppercase tracking-wide ${
                           d.status === "open"
-                            ? "border-amber-500/30 text-amber-700 dark:text-amber-400"
+                            ? "border-warning/30 text-warning"
                             : d.status === "under_review"
                               ? "border-primary/50 text-primary"
-                              : "border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                              : "border-success/30 text-success dark:text-success"
                         }`}
                       >
                         {d.status.replace(/_/g, " ")}
@@ -244,7 +244,7 @@ export default function AdminDisputes() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1.5 text-amber-700 dark:text-amber-400">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/10 px-3 py-1.5 text-warning">
                     <AlertTriangle className="size-3.5" />
                     This uses the database’s resolve_dispute outcome set and
                     records an audit note when the function is wired up.

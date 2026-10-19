@@ -59,7 +59,7 @@ export default function BuyerOrders() {
             }
           />
         ) : (
-          <div className="glass overflow-hidden">
+          <div className="surface overflow-hidden">
             <div className="hidden grid-cols-[1fr_8rem_8rem_7rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
               <span>Listing</span>
               <span>Status</span>

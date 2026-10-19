@@ -51,9 +51,9 @@ export default function Home() {
       <section className="relative">
         {/* Ambient floating orbs — gold and violet, so they read in both themes */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-          <div className="animate-orb-a absolute -top-24 left-[8%] size-80 rounded-full bg-amber-400/25 blur-3xl" />
-          <div className="animate-orb-b absolute -top-10 right-[4%] size-96 rounded-full bg-amber-500/20 blur-3xl" />
-          <div className="animate-orb-a absolute top-56 left-[42%] size-64 rounded-full bg-violet-400/20 blur-3xl" />
+          <div className="animate-orb-a absolute -top-24 left-[8%] size-80 rounded-full bg-primary/20 blur-3xl" />
+          <div className="animate-orb-b absolute -top-10 right-[4%] size-96 rounded-full bg-primary/20 blur-3xl" />
+          <div className="animate-orb-a absolute top-56 left-[42%] size-64 rounded-full bg-primary/20 blur-3xl" />
         </div>
 
         <motion.section
@@ -67,10 +67,10 @@ export default function Home() {
           >
             <Badge
               variant="secondary"
-              className="mb-6 gap-1.5 rounded-full border-amber-500/30 bg-amber-400/10 px-3.5 py-1.5 text-xs font-semibold text-amber-800 backdrop-blur dark:text-amber-300"
+              className="mb-6 gap-1.5 rounded-full border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary"
             >
               <ShieldCheck className="size-3.5" />
-              Escrow-protected transfers on every order
+              Reviewed listings, payment held in-platform
             </Badge>
           </motion.div>
 
@@ -138,7 +138,7 @@ export default function Home() {
             <motion.div key={category.slug} variants={cardVariants}>
               <Link
                 to={`/marketplace?category=${category.slug}`}
-                className="glass glass-hover group flex flex-col p-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                className="surface transition-colors hover:border-primary/40 group flex flex-col p-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               >
                 <BrandMark
                   brand={category.brand}
@@ -191,7 +191,7 @@ export default function Home() {
             ))}
           </div>
           {featured.length === 0 && (
-            <div className="glass mt-6 px-6 py-16 text-center">
+            <div className="surface mt-6 px-6 py-16 text-center">
               <p className="font-semibold">No live listings yet</p>
               <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
                 Every listing is reviewed by an admin before it goes live.
@@ -234,7 +234,7 @@ export default function Home() {
           <div className="relative mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button
               size="lg"
-              className="rounded-full bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 px-7 font-semibold text-amber-950 hover:from-amber-300 hover:to-amber-600"
+              className="rounded-full bg-primary px-7 font-semibold text-primary-foreground  "
               asChild
             >
               <Link to="/auth?mode=register">Get started</Link>

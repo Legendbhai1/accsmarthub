@@ -48,7 +48,7 @@ export function TopMenu({
           aria-label="Open menu"
           aria-haspopup="menu"
           className={cn(
-            "flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/70 text-foreground backdrop-blur-xl transition-colors hover:border-amber-500/40 hover:bg-amber-400/10",
+            "flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/70 text-foreground backdrop-blur-xl transition-colors hover:border-primary/40 hover:bg-primary/10",
             className,
           )}
         >

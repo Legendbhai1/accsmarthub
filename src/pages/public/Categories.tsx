@@ -36,7 +36,7 @@ export default function Categories() {
               <Link
                 key={category.slug}
                 to={`/marketplace?category=${category.slug}`}
-                className="glass glass-hover group flex flex-col p-6 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                className="surface transition-colors hover:border-primary/40 group flex flex-col p-6 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
               >
                 <div className="flex items-center gap-3">
                   <BrandMark
@@ -68,7 +68,7 @@ export default function Categories() {
       </section>
 
       <section className="mx-auto w-full max-w-7xl px-4 pb-20 sm:px-6">
-        <div className="glass flex flex-wrap items-center justify-between gap-4 px-6 py-7">
+        <div className="surface flex flex-wrap items-center justify-between gap-4 px-6 py-7">
           <div>
             <h2 className="text-lg font-bold tracking-tight">
               Not seeing your platform?

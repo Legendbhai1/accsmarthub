@@ -97,7 +97,7 @@ export default function SellerSettings() {
 
         {!loading && store && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="glass p-6 space-y-4">
+            <div className="surface p-6 space-y-4">
               <h2 className="text-lg font-semibold">Store details</h2>
 
               <div className="space-y-2">
@@ -210,7 +210,7 @@ export default function SellerSettings() {
         )}
 
         {!loading && !store && (
-          <div className="glass p-6 text-center">
+          <div className="surface p-6 text-center">
             <p className="text-sm text-muted-foreground">No store yet. Apply first to create one.</p>
           </div>
         )}
