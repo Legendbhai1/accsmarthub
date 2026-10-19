@@ -82,3 +82,33 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   path segment. The real error and stack are shown only when
   `import.meta.env.DEV`, so development stays diagnosable while production
   does not leak internal table or column names.
+
+## Styling and routing traps (learned the hard way)
+
+- **Tailwind v4 needs an explicit build hook.** `tailwindcss` v4 does not run
+  through PostCSS by default and there is no `tailwind.config.js` here. It is
+  wired up by the `@tailwindcss/vite` plugin in `vite.config.ts`, and
+  `src/index.css` must use v4 syntax: `@import "tailwindcss"`, not the v3
+  `@tailwind base/components/utilities` directives. If the plugin is missing
+  the build still *succeeds* — it just emits the raw directives and zero
+  utilities, and the entire UI silently falls back to browser defaults
+  (bullet-list nav, purple links, unstyled buttons, unconstrained images).
+  Check the built CSS size and grep for a real utility (`.flex{`) if anything
+  looks unstyled.
+- **Never `@apply` a class inside a rule that defines that same class.** The
+  old `src/index.css` had a block of no-ops like
+  `.bg-amber-400 { @apply bg-amber-400 }` added while Tailwind was not running.
+  They are circular once it does run; `@theme inline` is the correct way to
+  register design tokens.
+- **A route must not set both `element` and `children`.** The section routes
+  used `element: <SellerLayout><SellerDashboard /></SellerLayout>`, and
+  `SellerLayout` renders `{children ?? <Outlet/>}` — so the index page was
+  always the `children` and the outlet never rendered. Every sub-page
+  (`/seller/orders`, `/account/wallet`, `/admin/users`) silently rendered the
+  index dashboard while the URL said otherwise. Section routes mount the bare
+  layout; the `index` child supplies the dashboard. `tests/routes.test.ts`
+  guards this.
+- **The route tree lives in `src/routes.tsx`**, not `src/App.tsx`, so it can be
+  asserted in tests without a DOM — `createBrowserRouter` touches `document`
+  at import time and the test environment has no jsdom. `src/App.tsx` only
+  wraps `routes` in the pathless root that carries the error boundary.
