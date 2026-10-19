@@ -54,3 +54,17 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   excludes it; ESLint still lints it.
 - The seeded "demo" helpers in `src/lib/db.ts` (`getSeller`, `api.*`,
   `DEMO_SELLER_ID`) throw on purpose. Do not reintroduce fabricated data.
+- `ThemeProvider` must stay mounted in `src/main.tsx`. `SiteHeader`, `TopMenu`
+  and the Toaster all call `useTheme()` from `@/lib/theme`, and that hook throws
+  when no provider is above it — every page using the site header renders blank
+  otherwise. The provider belongs in the root, not inside a route.
+- `Toaster` (from `@/components/ui/sonner`) must stay mounted in
+  `src/main.tsx`. Eighteen files call `toast.*`; without the mounted toaster
+  those calls resolve to nothing and the user sees no feedback at all.
+  Note it uses the app's own `useTheme`, not `next-themes` (which is installed
+  but never mounted, so its `useTheme` would always report "system").
+- Route errors are caught by the pathless root route's `errorElement`
+  (`src/pages/ErrorPage.tsx`). Keep child paths absolute — the root adds no
+  path segment. The real error and stack are shown only when
+  `import.meta.env.DEV`, so development stays diagnosable while production
+  does not leak internal table or column names.

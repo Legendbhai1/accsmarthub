@@ -5,11 +5,14 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/lib/theme"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  // Follows the app's own theme provider rather than next-themes, so toasts
+  // match the rest of the interface. `next-themes` is not mounted in this app,
+  // and its `useTheme` would always report "system".
+  const { theme } = useTheme()
 
   return (
     <Sonner

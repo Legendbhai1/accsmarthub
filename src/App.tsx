@@ -54,6 +54,7 @@ import ForgotPassword from "@/pages/flow/ForgotPassword";
 import ResetPassword from "@/pages/flow/ResetPassword";
 
 import NotFound from "@/pages/NotFound";
+import ErrorPage from "@/pages/ErrorPage";
 
 const PageWrapper = ({ children }: { children: React.ReactNode }) => (
   <motion.div
@@ -89,107 +90,116 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <Home />,
-  },
-  {
-    path: "/marketplace",
-    element: <Marketplace />,
-  },
-  {
-    path: "/marketplace/categories",
-    element: <Categories />,
-  },
-  {
-    path: "/marketplace/:id",
-    element: <ListingDetail />,
-  },
-  // Older links and bookmarks used /listing/:id. Keep them working by
-  // redirecting to the canonical route.
-  {
-    path: "/listing/:id",
-    loader: ({ params }) => redirect(`/marketplace/${params.id}`),
-  },
-  {
-    path: "/faq",
-    element: <Faq />,
-  },
-  {
-    path: "/trust",
-    element: <Trust />,
-  },
-  {
-    path: "/disputes",
-    element: <Disputes />,
-  },
-  {
-    path: "/checkout",
-    element: <Checkout />,
-  },
-  {
-    path: "/order/:orderId/confirmed",
-    element: <OrderConfirmed />,
-  },
-  {
-    path: "/auth",
-    element: <SupabaseAuth />,
-  },
-  {
-    path: "/auth/forgot",
-    element: <ForgotPassword />,
-  },
-  {
-    path: "/auth/reset",
-    element: <ResetPassword />,
-  },
-  {
-    path: "/account",
-    element: <BuyerLayout><BuyerDashboard /></BuyerLayout>,
+    // Pathless root. It exists only to host the error boundary, so an error
+    // thrown by any route below renders the friendly error page instead of
+    // React Router's built-in screen with a raw stack trace. Child paths stay
+    // absolute because this route contributes no path segment of its own.
+    errorElement: <ErrorPage />,
     children: [
-      { index: true, element: <BuyerDashboard /> },
-      { path: "orders", element: <BuyerOrders /> },
-      { path: "orders/:orderId", element: <BuyerOrderDetail /> },
-      { path: "purchased", element: <BuyerPurchased /> },
-      { path: "notifications", element: <BuyerNotifications /> },
-      { path: "support", element: <BuyerSupport /> },
-      { path: "wallet", element: <BuyerWallet /> },
-      { path: "profile", element: <BuyerProfile /> },
+      {
+        path: "/",
+        element: <Home />,
+      },
+      {
+        path: "/marketplace",
+        element: <Marketplace />,
+      },
+      {
+        path: "/marketplace/categories",
+        element: <Categories />,
+      },
+      {
+        path: "/marketplace/:id",
+        element: <ListingDetail />,
+      },
+      // Older links and bookmarks used /listing/:id. Keep them working by
+      // redirecting to the canonical route.
+      {
+        path: "/listing/:id",
+        loader: ({ params }) => redirect(`/marketplace/${params.id}`),
+      },
+      {
+        path: "/faq",
+        element: <Faq />,
+      },
+      {
+        path: "/trust",
+        element: <Trust />,
+      },
+      {
+        path: "/disputes",
+        element: <Disputes />,
+      },
+      {
+        path: "/checkout",
+        element: <Checkout />,
+      },
+      {
+        path: "/order/:orderId/confirmed",
+        element: <OrderConfirmed />,
+      },
+      {
+        path: "/auth",
+        element: <SupabaseAuth />,
+      },
+      {
+        path: "/auth/forgot",
+        element: <ForgotPassword />,
+      },
+      {
+        path: "/auth/reset",
+        element: <ResetPassword />,
+      },
+      {
+        path: "/account",
+        element: <BuyerLayout><BuyerDashboard /></BuyerLayout>,
+        children: [
+          { index: true, element: <BuyerDashboard /> },
+          { path: "orders", element: <BuyerOrders /> },
+          { path: "orders/:orderId", element: <BuyerOrderDetail /> },
+          { path: "purchased", element: <BuyerPurchased /> },
+          { path: "notifications", element: <BuyerNotifications /> },
+          { path: "support", element: <BuyerSupport /> },
+          { path: "wallet", element: <BuyerWallet /> },
+          { path: "profile", element: <BuyerProfile /> },
+        ],
+      },
+      {
+        path: "/seller",
+        element: <SellerLayout><SellerDashboard /></SellerLayout>,
+        children: [
+          { index: true, element: <SellerDashboard /> },
+          { path: "listings", element: <SellerListings /> },
+          { path: "orders", element: <SellerOrders /> },
+          { path: "disputes", element: <SellerDisputes /> },
+          { path: "earnings", element: <SellerEarnings /> },
+          { path: "settings", element: <SellerSettings /> },
+          { path: "apply", element: <SellerApply /> },
+          { path: "profile", element: <SellerProfile /> },
+          { path: "analytics", element: <SellerAnalytics /> },
+          { path: "transactions", element: <SellerTransactions /> },
+        ],
+      },
+      {
+        path: "/admin",
+        element: <AdminLayout><AdminDashboard /></AdminLayout>,
+        children: [
+          { index: true, element: <AdminDashboard /> },
+          { path: "users", element: <AdminUsers /> },
+          { path: "sellers", element: <AdminSellers /> },
+          { path: "listings", element: <AdminListings /> },
+          { path: "orders", element: <AdminOrders /> },
+          { path: "payments", element: <AdminPayments /> },
+          { path: "disputes", element: <AdminDisputes /> },
+          { path: "categories", element: <AdminCategories /> },
+          { path: "reports", element: <AdminReports /> },
+          { path: "audit", element: <AdminAudit /> },
+          { path: "settings", element: <AdminSettings /> },
+        ],
+      },
+      { path: "*", element: <NotFound /> },
     ],
   },
-  {
-    path: "/seller",
-    element: <SellerLayout><SellerDashboard /></SellerLayout>,
-    children: [
-      { index: true, element: <SellerDashboard /> },
-      { path: "listings", element: <SellerListings /> },
-      { path: "orders", element: <SellerOrders /> },
-      { path: "disputes", element: <SellerDisputes /> },
-      { path: "earnings", element: <SellerEarnings /> },
-      { path: "settings", element: <SellerSettings /> },
-      { path: "apply", element: <SellerApply /> },
-      { path: "profile", element: <SellerProfile /> },
-      { path: "analytics", element: <SellerAnalytics /> },
-      { path: "transactions", element: <SellerTransactions /> },
-    ],
-  },
-  {
-    path: "/admin",
-    element: <AdminLayout><AdminDashboard /></AdminLayout>,
-    children: [
-      { index: true, element: <AdminDashboard /> },
-      { path: "users", element: <AdminUsers /> },
-      { path: "sellers", element: <AdminSellers /> },
-      { path: "listings", element: <AdminListings /> },
-      { path: "orders", element: <AdminOrders /> },
-      { path: "payments", element: <AdminPayments /> },
-      { path: "disputes", element: <AdminDisputes /> },
-      { path: "categories", element: <AdminCategories /> },
-      { path: "reports", element: <AdminReports /> },
-      { path: "audit", element: <AdminAudit /> },
-      { path: "settings", element: <AdminSettings /> },
-    ],
-  },
-  { path: "*", element: <NotFound /> },
 ]);
 
 export default router;
