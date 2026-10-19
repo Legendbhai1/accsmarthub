@@ -145,6 +145,17 @@ export function friendlyError(error: unknown): string {
     return "Only the buyer can confirm this order.";
   if (/approved/i.test(raw) && /seller/i.test(raw))
     return "Your store is not approved yet, so you cannot publish listings.";
+  // 42501 on `listings` means the insert policy refused the row, not that the
+  // account is broken. On a database where the policy still carries the
+  // legacy "approved store required" clause this is the ONLY signal the
+  // seller ever sees, so it must name the real cause and the next step
+  // instead of the generic access message below.
+  if (
+    /row-level security/i.test(raw) &&
+    /listings/i.test(raw)
+  ) {
+    return "The server rejected the new listing. If you have not set up a store yet, submit your seller application first, then try again — otherwise contact support with this message.";
+  }
   if (/row-level security|permission denied/i.test(raw))
     return "You do not have access to that information.";
   if (/Failed to fetch/i.test(raw))

@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
-import { ExternalLink, LogOut, Menu } from "lucide-react";
+import { ExternalLink, LogOut, Menu, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatPrice } from "@/lib/format";
+import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/site/Logo";
 import { TopMenu } from "@/components/site/TopMenu";
 import {
@@ -11,6 +13,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  workspaceForPath,
   workspaceLinks,
   type NavItem,
   type NavSection,
@@ -137,6 +140,50 @@ function RailFooter({ onSignOut }: { onSignOut: () => void }) {
 }
 
 /**
+ * The spendable-balance strip, shown only in the buyer workspace.
+ *
+ * The buyer's wallet is the money they can spend, so it belongs where they
+ * buy — not buried one tap deep in `/account/wallet`. It is deliberately
+ * absent from the seller studio and the admin console: those workspaces show
+ * their own figures (earnings, payouts, the ledger), and repeating the buyer
+ * balance there invited sellers to read it as withdrawable earnings.
+ */
+function BuyerBalanceBar() {
+  const { user } = useSession();
+  if (!user) return null;
+
+  const held = user.lockedBalance;
+
+  return (
+    <div className="border-b border-border bg-card/60">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:px-6">
+        <span className="text-xs text-muted-foreground">Balance</span>
+        <span className="text-sm font-semibold tabular-nums">
+          {formatPrice(user.balance)}
+        </span>
+        {held > 0 && (
+          <span className="text-xs text-muted-foreground">
+            · {formatPrice(held)} held
+          </span>
+        )}
+        <Button
+          asChild
+          size="sm"
+          variant="outline"
+          className="ml-auto h-7 rounded-lg px-2.5 text-xs"
+        >
+          <Link to="/account/wallet">
+            <Plus className="size-3.5" />
+            Add funds
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+
+/**
  * The one dashboard shell.
  *
  * Buyer, seller and admin all render this, differing only in the nav sections
@@ -174,7 +221,10 @@ export function DashShell({
   // rail link calls — an effect watching the path would duplicate that and
   // re-render on every route change.
 
-  const secondary = workspaceLinks(user?.role ?? "buyer");
+  // The switcher omits the workspace the user is standing in, so it is derived
+  // from the live pathname rather than the role alone.
+  const here = workspaceForPath(location.pathname);
+  const secondary = workspaceLinks(user?.role ?? "buyer", location.pathname);
 
   return (
     <div className="min-h-screen bg-background">
@@ -243,6 +293,7 @@ export function DashShell({
               <TopMenu />
             </div>
           </div>
+          {here === "buyer" && <BuyerBalanceBar />}
         </header>
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">

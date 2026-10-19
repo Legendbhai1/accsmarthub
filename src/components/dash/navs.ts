@@ -153,17 +153,53 @@ export function flatNav(sections: NavSection[]): NavItem[] {
 }
 
 /**
- * The workspace switcher. Only links the signed-in role can actually open are
- * offered, so a buyer is never sent to a page the guard will bounce them off.
+ * Where a workspace lives, so the switcher can tell "the workspace you are
+ * standing in" from "the one you would switch to".
  */
-export function workspaceLinks(role: "buyer" | "seller" | "admin"): Workspace[] {
-  const links: Workspace[] = [
-    { label: "Seller studio", to: "/seller", icon: Store },
-    { label: "Buyer account", to: "/account", icon: ShoppingBag },
-    { label: "Support chat", to: "/account/support", icon: MessageSquare },
-  ];
-  if (role === "admin") {
-    return [{ label: "Admin console", to: "/admin", icon: Shield }, ...links];
-  }
+const WORKSPACES = {
+  buyer: { label: "Buyer account", to: "/account", icon: ShoppingBag },
+  seller: { label: "Seller studio", to: "/seller", icon: Store },
+  admin: { label: "Admin console", to: "/admin", icon: Shield },
+} as const;
+
+export type WorkspaceKey = keyof typeof WORKSPACES;
+
+/** Which workspace a pathname belongs to, or null when it is a public page. */
+export function workspaceForPath(pathname: string): WorkspaceKey | null {
+  if (pathname === "/account" || pathname.startsWith("/account/")) return "buyer";
+  if (pathname === "/seller" || pathname.startsWith("/seller/")) return "seller";
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) return "admin";
+  return null;
+}
+
+/**
+ * The workspace switcher.
+ *
+ * Only links the signed-in role can actually open are offered, so a buyer is
+ * never sent to a page the guard will bounce them off. The workspace the user
+ * is currently standing in is omitted: offering "Seller studio" from inside
+ * Seller Studio is a link that navigates to the page you are already on, which
+ * reads as a broken control. Callers pass the current pathname so the list
+ * adapts as the user moves between workspaces.
+ *
+ * `Support chat` is kept because it is a distinct destination rather than a
+ * workspace — it stays even when the buyer workspace is the current one.
+ */
+export function workspaceLinks(
+  role: "buyer" | "seller" | "admin",
+  currentPath = "",
+): Workspace[] {
+  const here = workspaceForPath(currentPath);
+  const links: Workspace[] = [];
+
+  if (role === "admin" && here !== "admin") links.push(WORKSPACES.admin);
+  // Every confirmed account can sell (a listing may be created before a store
+  // exists), so the studio is offered to buyers too — but not while they are
+  // already inside it.
+  if (here !== "seller") links.push(WORKSPACES.seller);
+  if (here !== "buyer") links.push(WORKSPACES.buyer);
+  links.push({ label: "Support chat", to: "/account/support", icon: MessageSquare });
+
   return links;
 }
+
