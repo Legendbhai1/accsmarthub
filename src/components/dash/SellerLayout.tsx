@@ -18,12 +18,25 @@ import {
 import { cn } from "@/lib/utils";
 import { MobileChipNav, MobileTabBar } from "@/components/site/MobileTabBar";
 import { TopMenu } from "@/components/site/TopMenu";
-import { useSession } from "@/lib/session";
+import { useSession, type SellerStatus } from "@/lib/session";
 
 export type SellerNavItem = {
   label: string;
   to: string;
   icon: React.ComponentType<{ className?: string }>;
+};
+
+/**
+ * The seller area is open to any signed-in account, so a buyer who has not
+ * applied yet still reaches it. Printing the raw role next to the raw status
+ * ("buyer · none") told the user nothing; these labels say where they actually
+ * stand and what happens next.
+ */
+export const SELLER_STATUS_LABEL: Record<SellerStatus, string> = {
+  none: "No store yet — apply to start selling",
+  pending: "Application under review",
+  approved: "Approved seller",
+  rejected: "Application not approved",
 };
 
 const STUDIO_NAV: SellerNavItem[] = [
@@ -155,9 +168,8 @@ export function SellerLayout({
               <span className="block truncate text-sm font-semibold">
                 {user?.name}
               </span>
-              <span className="block truncate text-xs capitalize text-muted-foreground">
-                {user?.role}
-                {user?.sellerStatus ? ` · ${user.sellerStatus}` : ""}
+              <span className="block truncate text-xs text-muted-foreground">
+                {SELLER_STATUS_LABEL[user?.sellerStatus ?? "none"]}
               </span>
             </span>
           </div>

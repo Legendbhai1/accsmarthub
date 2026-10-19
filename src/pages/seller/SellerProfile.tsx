@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { sellerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState } from "@/components/common/Primitives";
 import { readMyStore, friendlyError } from "@/lib/supabaseData";
 
@@ -27,7 +26,7 @@ export default function SellerProfile() {
   }, []);
 
   return (
-    <DashLayout title="Store profile" nav={sellerNav}>
+    <SellerLayout title="Store profile">
       <div className="mx-auto max-w-2xl space-y-6">
         {loading && (
           <p className="text-sm text-muted-foreground">Loading store profile…</p>
@@ -94,6 +93,6 @@ export default function SellerProfile() {
           </div>
         )}
       </div>
-    </DashLayout>
+    </SellerLayout>
   );
 }

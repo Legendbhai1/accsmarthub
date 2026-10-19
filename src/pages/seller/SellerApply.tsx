@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { sellerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
 import { StatusBadge } from "@/components/common/Primitives";
 import { SERVICE_CATEGORIES } from "@/lib/db";
 import { readMyStore, friendlyError } from "@/lib/supabaseData";
@@ -69,7 +68,7 @@ export default function SellerApply() {
   };
 
   return (
-    <DashLayout title="Apply to sell" nav={sellerNav}>
+    <SellerLayout title="Apply to sell">
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="glass p-6">
           <h2 className="text-lg font-semibold">Store profile</h2>
@@ -209,6 +208,6 @@ export default function SellerApply() {
           </form>
         </div>
       </div>
-    </DashLayout>
+    </SellerLayout>
   );
 }

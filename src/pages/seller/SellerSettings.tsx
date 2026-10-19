@@ -4,8 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { sellerNav } from "@/components/dash/navs";
+import { SellerLayout } from "@/components/dash/SellerLayout";
 import { SERVICE_CATEGORIES } from "@/lib/db";
 import { readMyStore, friendlyError } from "@/lib/supabaseData";
 import { submitStore } from "@/lib/supabaseMutations";
@@ -90,7 +89,7 @@ export default function SellerSettings() {
   };
 
   return (
-    <DashLayout title="Store settings" nav={sellerNav}>
+    <SellerLayout title="Store settings">
       <div className="mx-auto max-w-2xl space-y-6">
         {loading && (
           <p className="text-sm text-muted-foreground">Loading store settings…</p>
@@ -216,6 +215,6 @@ export default function SellerSettings() {
           </div>
         )}
       </div>
-    </DashLayout>
+    </SellerLayout>
   );
 }

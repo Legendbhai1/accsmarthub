@@ -1,8 +1,44 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Dark mode follows a class on <html> rather than the OS preference: the user
+   picks a theme and it is persisted. Kept in sync with src/lib/theme.tsx. */
+@custom-variant dark (&:is(.dark *));
+
+/* Register the design tokens with Tailwind's colour namespace so utilities
+   like `bg-card` and `text-muted-foreground` exist. `inline` keeps the var()
+   reference live, which is what lets the .dark block below swap the whole
+   palette without every token being restated here. */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
 
 @layer base {
   :root {
@@ -202,134 +238,6 @@
 
   .seller-studio {
     @apply relative min-h-screen bg-background;
-  }
-
-  .bg-amber-400 {
-    @apply bg-amber-400/10;
-  }
-
-  .text-amber-800 {
-    @apply text-amber-800;
-  }
-
-  .dark .text-amber-800 {
-    @apply text-amber-300;
-  }
-
-  .bg-amber-400\/15 {
-    @apply bg-amber-400/15;
-  }
-
-  .border-amber-400\/10 {
-    @apply border-amber-400/10;
-  }
-
-  .text-amber-800 {
-    @apply text-amber-800;
-  }
-
-  .text-amber-700 {
-    @apply text-amber-700;
-  }
-
-  .dark .text-amber-700 {
-    @apply text-amber-400;
-  }
-
-  .text-amber-600 {
-    @apply text-amber-600;
-  }
-
-  .dark .text-amber-600 {
-    @apply text-amber-400;
-  }
-
-  .bg-amber-500\/10 {
-    @apply bg-amber-500/10;
-  }
-
-  .text-amber-700 {
-    @apply text-amber-700;
-  }
-
-  .bg-destructive {
-    @apply bg-destructive;
-  }
-
-  .text-destructive {
-    @apply text-destructive;
-  }
-
-  .bg-emerald-500\/10 {
-    @apply bg-emerald-500/10;
-  }
-
-  .text-emerald-700 {
-    @apply text-emerald-700;
-  }
-
-  .dark .text-emerald-700 {
-    @apply text-emerald-400;
-  }
-
-  .text-emerald-600 {
-    @apply text-emerald-600;
-  }
-
-  .dark .text-emerald-600 {
-    @apply text-emerald-400;
-  }
-
-  .bg-emerald-500\/15 {
-    @apply bg-emerald-500/15;
-  }
-
-  .text-emerald-700 {
-    @apply text-emerald-700;
-  }
-
-  .bg-primary\/10 {
-    @apply bg-primary/10;
-  }
-
-  .bg-primary\/15 {
-    @apply bg-primary/15;
-  }
-
-  .border-primary\/50 {
-    @apply border-primary/50;
-  }
-
-  .border-primary\/60 {
-    @apply border-primary/60;
-  }
-
-  .bg-muted\/40 {
-    @apply bg-muted/40;
-  }
-
-  .bg-muted\/60 {
-    @apply bg-muted/60;
-  }
-
-  .bg-muted\/20 {
-    @apply bg-muted/20;
-  }
-
-  .bg-red-500\/10 {
-    @apply bg-red-500/10;
-  }
-
-  .text-red-600 {
-    @apply text-red-600;
-  }
-
-  .border-red-500\/30 {
-    @apply border-red-500/30;
-  }
-
-  .border-amber-500\/30 {
-    @apply border-amber-500/30;
   }
 }
 
