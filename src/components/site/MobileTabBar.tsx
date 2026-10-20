@@ -38,9 +38,12 @@ export function MobileTabBar() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
+      // A floating, rounded bar rather than a full-width slab: it sits above
+      // the safe area instead of through it, so the home indicator never
+      // overlaps a tab. `md:hidden` keeps it to phones and small tablets.
+      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden"
     >
-      <div className="mx-auto grid w-full max-w-lg grid-cols-4 px-2 pt-1.5">
+      <div className="mx-auto flex w-full max-w-md items-center justify-around gap-1 rounded-2xl border border-border bg-background/95 p-1.5 shadow-lg shadow-foreground/5 backdrop-blur-md">
         {MOBILE_TABS.map(({ label, to, icon: Icon }) => {
           const active = isTabActive(to, pathname);
           return (
@@ -50,11 +53,12 @@ export function MobileTabBar() {
               end={to === "/"}
               aria-current={active ? "page" : undefined}
               className={cn(
-                // `min-h-12` keeps every target at the 48px touch minimum.
-                "flex min-h-12 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[11px] font-medium transition-colors",
+                // `min-h-11` keeps every target at the touch minimum while
+                // the bar itself stays compact.
+                "flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-medium transition-colors",
                 active
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground",
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
               <Icon className="size-5" />

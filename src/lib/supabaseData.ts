@@ -58,14 +58,40 @@ export type Store = {
   logo_path: string | null;
   banner_path: string | null;
   platforms: string[];
+  /** Store-level service categories, distinct from `platforms`. */
+  categories: string[];
   delivery_speed: string | null;
   access_format: string | null;
   replacement_policy: string | null;
+  /** A refund policy is a separate promise from a replacement policy. */
+  refund_policy: string | null;
   restricted_regions: string | null;
   sourcing: string | null;
+  /** How long a buyer has to raise an issue after delivery. */
+  warranty_hours: number | null;
+  support_email: string | null;
+  support_hours: string | null;
+  support_channel: string | null;
+  /** The applicant accepted the seller agreement; the date is recorded. */
+  ownership_attested: boolean;
+  compliance_accepted_at: string | null;
+  agreement_version: string | null;
+  /** First submission. Later edits and resubmissions do not move it. */
+  submitted_at: string | null;
   contact_policy: boolean;
   status: "pending" | "approved" | "rejected";
   review_note: string | null;
+  created_at: string;
+};
+
+/** One row of the application timeline written by `log_store_application_event`. */
+export type StoreApplicationEvent = {
+  id: number;
+  store_id: string;
+  actor_id: string | null;
+  actor_role: "seller" | "admin" | "system";
+  event: string;
+  note: string | null;
   created_at: string;
 };
 

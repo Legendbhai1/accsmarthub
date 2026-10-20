@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
-import { ExternalLink, LogOut, Menu, Plus } from "lucide-react";
+import { ChevronDown, ExternalLink, LogOut, Menu, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   workspaceForPath,
   workspaceLinks,
@@ -184,6 +192,47 @@ function BuyerBalanceBar() {
 
 
 /**
+ * The workspace switcher, in the header.
+ *
+ * The rail already offers "Switch workspace", but on a phone the rail is a
+ * drawer and on desktop it is at the very bottom of a long sidebar — so the
+ * control existed without being discoverable. This is the same list, rendered
+ * where the eye already is, and it works identically at every width.
+ */
+function WorkspaceSwitcher({ links }: { links: Workspace[] }) {
+  if (links.length === 0) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 rounded-lg px-2.5 text-xs"
+          aria-label="Switch workspace"
+        >
+          <span className="hidden sm:inline">Switch</span>
+          <ChevronDown className="size-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+          Switch workspace
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {links.map(({ label, to, icon: Icon }) => (
+          <DropdownMenuItem key={to} asChild>
+            <Link to={to} className="cursor-pointer">
+              <Icon className="size-4" />
+              {label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/**
  * The one dashboard shell.
  *
  * Buyer, seller and admin all render this, differing only in the nav sections
@@ -290,6 +339,7 @@ export function DashShell({
                   {user.role}
                 </span>
               )}
+              <WorkspaceSwitcher links={secondary} />
               <TopMenu />
             </div>
           </div>

@@ -7,7 +7,7 @@ import { Pagination } from "@/components/common/Pagination";
 import { formatPrice } from "@/lib/format";
 import { categories } from "@/lib/db";
 import { usePublicListings, useSavedListingIds, type PublicListing } from "@/lib/supabaseQueries";
-import { toggleSavedListing } from "@/lib/supabaseMutations";
+import { toggleSavedListing, publicAssetUrl } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -51,11 +51,20 @@ function AccountCard({
           to={`/marketplace/${listing.id}`}
           className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl bg-muted"
         >
-          <BrandMark
-            brand={listing.brand}
-            block
-            className="size-14 transition-transform duration-200 group-hover:scale-105"
-          />
+          {listing.imagePath ? (
+            <img
+              src={publicAssetUrl("listing-assets", listing.imagePath)}
+              alt=""
+              loading="lazy"
+              className="size-full object-cover transition-transform duration-200 group-hover:scale-105"
+            />
+          ) : (
+            <BrandMark
+              brand={listing.brand}
+              block
+              className="size-14 transition-transform duration-200 group-hover:scale-105"
+            />
+          )}
           <span className="absolute bottom-2 left-2 rounded-full bg-card/85 px-2 py-0.5 text-[10px] font-bold text-foreground backdrop-blur-sm">
             {listing.serviceCategory ?? listing.brand}
           </span>

@@ -49,13 +49,6 @@ export default function Home() {
     <div className="overflow-x-clip">
       {/* ------------------------------ Hero ------------------------------ */}
       <section className="relative">
-        {/* Ambient floating orbs — gold and violet, so they read in both themes */}
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-          <div className="animate-orb-a absolute -top-24 left-[8%] size-80 rounded-full bg-primary/20 blur-3xl" />
-          <div className="animate-orb-b absolute -top-10 right-[4%] size-96 rounded-full bg-primary/20 blur-3xl" />
-          <div className="animate-orb-a absolute top-56 left-[42%] size-64 rounded-full bg-primary/20 blur-3xl" />
-        </div>
-
         <motion.section
           initial="hidden"
           animate="visible"
@@ -173,7 +166,7 @@ export default function Home() {
           <motion.div variants={cardVariants}>
             <SectionHeading
               title="Featured listings"
-              subtitle="Top-rated accounts with proven performance."
+              subtitle="The newest accounts approved by our review team."
               action={
                 <Button variant="ghost" className="hidden rounded-full sm:inline-flex" asChild>
                   <Link to="/marketplace">
@@ -214,27 +207,17 @@ export default function Home() {
         className="mx-auto mt-20 w-full max-w-7xl px-4 pb-20 sm:px-6"
       >
         <div className="ink-panel relative overflow-hidden px-6 py-12 text-center sm:py-16">
-          {/* Floating accents inside the dark panel */}
-          <div
-            aria-hidden="true"
-            className="animate-orb-a pointer-events-none absolute -left-16 -top-16 size-64 rounded-full bg-white/10 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="animate-orb-b pointer-events-none absolute -bottom-20 -right-10 size-72 rounded-full bg-white/[0.07] blur-3xl"
-          />
-
           <h2 className="relative text-2xl font-bold tracking-tight sm:text-3xl">
             Ready to make your first transfer?
           </h2>
-          <p className="relative mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/70">
-            Create an account to buy with in-platform escrow — or list an
-            account and keep 90% of the sale price.
+          <p className="relative mx-auto mt-3 max-w-md text-sm leading-relaxed opacity-70">
+            Create an account to buy with payment held in-platform until you
+            confirm — or list an account and keep 90% of the sale price.
           </p>
           <div className="relative mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button
               size="lg"
-              className="rounded-full bg-primary px-7 font-semibold text-primary-foreground  "
+              className="rounded-full px-7 font-semibold"
               asChild
             >
               <Link to="/auth?mode=register">Get started</Link>
@@ -242,10 +225,10 @@ export default function Home() {
             <Button
               size="lg"
               variant="outline"
-              className="rounded-full border-white/25 bg-transparent px-7 text-white/90 hover:bg-white/10 hover:text-white"
+              className="rounded-full border-current/25 bg-transparent px-7 hover:bg-background/10"
               asChild
             >
-              <Link to="/trust">How escrow works</Link>
+              <Link to="/trust">How payment protection works</Link>
             </Button>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { useSBQuery, friendlyError } from "@/lib/supabaseData";
+import { useSBQuery, friendlyError, type StoreApplicationEvent } from "@/lib/supabaseData";
 import { useSession } from "@/lib/session";
 
 export type LiveStockRow = {
@@ -450,16 +450,42 @@ export type StoreRow = {
   logo_path: string | null;
   banner_path: string | null;
   platforms: string[];
+  categories: string[];
   delivery_speed: string | null;
   access_format: string | null;
   replacement_policy: string | null;
+  refund_policy: string | null;
   restricted_regions: string | null;
   sourcing: string | null;
+  warranty_hours: number | null;
+  support_email: string | null;
+  support_hours: string | null;
+  support_channel: string | null;
+  ownership_attested: boolean;
+  compliance_accepted_at: string | null;
+  agreement_version: string | null;
+  submitted_at: string | null;
   contact_policy: boolean;
   status: "pending" | "approved" | "rejected";
   review_note: string | null;
+  reviewed_at: string | null;
   created_at: string;
 };
+
+/** `platforms` and `categories` arrive as text[] but older rows may hold a
+ *  JSON string; normalise both shapes to an array. */
+function asTextArray(value: unknown): string[] {
+  if (Array.isArray(value)) return value as string[];
+  if (typeof value === "string" && value) {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? (parsed as string[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 async function fetchReviewQueue(status: string): Promise<StoreRow[]> {
   const { data, error } = await supabase
@@ -475,23 +501,56 @@ async function fetchReviewQueue(status: string): Promise<StoreRow[]> {
     slug: r.slug,
     logo_path: r.logo_path,
     banner_path: r.banner_path,
-    platforms: typeof r.platforms === "string" && r.platforms
-      ? (JSON.parse(r.platforms) as string[])
-      : ([] as string[]),
+    platforms: asTextArray(r.platforms),
+    categories: asTextArray(r.categories),
     delivery_speed: r.delivery_speed,
     access_format: r.access_format,
     replacement_policy: r.replacement_policy,
+    refund_policy: r.refund_policy ?? null,
     restricted_regions: r.restricted_regions,
     sourcing: r.sourcing,
+    warranty_hours: r.warranty_hours ?? null,
+    support_email: r.support_email ?? null,
+    support_hours: r.support_hours ?? null,
+    support_channel: r.support_channel ?? null,
+    ownership_attested: Boolean(r.ownership_attested),
+    compliance_accepted_at: r.compliance_accepted_at ?? null,
+    agreement_version: r.agreement_version ?? null,
+    submitted_at: r.submitted_at ?? null,
     contact_policy: Boolean(r.contact_policy),
     status: r.status,
     review_note: r.review_note,
+    reviewed_at: r.reviewed_at ?? null,
     created_at: r.created_at,
   }));
 }
 
 export function useReviewQueue(status: "pending" | "approved" | "rejected") {
   return useSBQuery(() => fetchReviewQueue(status), [status]);
+}
+
+/**
+ * The application timeline for one store.
+ *
+ * `store_application_events` is readable by the store's owner and by admins
+ * (0017's select policy), so the same hook serves the applicant's status
+ * screen and the admin review dialog without either needing a privileged
+ * path.
+ */
+export function useStoreApplicationEvents(storeId: string | null) {
+  return useSBQuery(
+    async () => {
+      if (!storeId) return [] as StoreApplicationEvent[];
+      const { data, error } = await supabase
+        .from("store_application_events")
+        .select("*")
+        .eq("store_id", storeId)
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(friendlyError(error));
+      return (data ?? []) as StoreApplicationEvent[];
+    },
+    [storeId],
+  );
 }
 
 export type ReportRow = {
@@ -800,12 +859,14 @@ export type PublicListing = {
   stock: number;
   priceUsd: number;
   status: string;
+  /** Object path in the public `listing-assets` bucket, or null. */
+  imagePath: string | null;
 };
 
 async function fetchPublicListings(): Promise<PublicListing[]> {
   const { data, error } = await supabase
     .from("listings")
-    .select("id, title, brand, service_category, summary, discount_percent, warranty_hours, stock, price_usd, status")
+    .select("id, title, brand, service_category, summary, discount_percent, warranty_hours, stock, price_usd, status, image_path")
     .eq("status", "active")
     .eq("hidden", false)
     .order("created_at", { ascending: false });
@@ -815,6 +876,7 @@ async function fetchPublicListings(): Promise<PublicListing[]> {
     title: r.title,
     brand: r.brand,
     serviceCategory: r.service_category,
+    imagePath: r.image_path ? String(r.image_path) : null,
     summary: r.summary,
     discountPercent: r.discount_percent,
     warrantyHours: r.warranty_hours,

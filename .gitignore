@@ -12,3 +12,6 @@ dist
 # dotenvx decryption keys — never commit
 .env.keys
 .env.keys.*
+
+# Agent planning scratch — not part of the product.
+.agents_tmp/

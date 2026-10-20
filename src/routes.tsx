@@ -1,5 +1,5 @@
 import { Outlet, redirect, type RouteObject } from "react-router";
-import { RequireRole } from "@/components/site/guards";
+import { RequireRole, RequireApprovedSeller } from "@/components/site/guards";
 import { PublicLayout } from "@/components/site/PublicLayout";
 import { motion } from "framer-motion";
 
@@ -184,11 +184,24 @@ export const routes: RouteObject[] = [
         element: <SellerLayout />,
         children: [
           { index: true, element: <SellerDashboard /> },
-          { path: "listings", element: <SellerListings /> },
+          // Listing creation needs an approved store (0017 enforces it in the
+          // database), so the editor routes are behind the guard and send an
+          // unapproved seller to the application rather than a form that
+          // cannot save.
+          {
+            path: "listings",
+            element: (
+              <RequireApprovedSeller>
+                <SellerListings />
+              </RequireApprovedSeller>
+            ),
+          },
           { path: "orders", element: <SellerOrders /> },
           { path: "disputes", element: <SellerDisputes /> },
           { path: "earnings", element: <SellerEarnings /> },
           { path: "settings", element: <SellerSettings /> },
+          // The application and its status screen stay reachable by everyone:
+          // this is where the guard sends an unapproved seller.
           { path: "apply", element: <SellerApply /> },
           { path: "profile", element: <SellerProfile /> },
           { path: "analytics", element: <SellerAnalytics /> },

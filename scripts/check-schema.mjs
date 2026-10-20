@@ -88,13 +88,21 @@ const SENTINELS = [
   },
   {
     file: "0008_listing_first_publishing.sql",
-    what: "listing insert policy does not require an approved store",
-    // The actual production bug. 0001 and 0008 define this policy; only 0008
-    // removes the `stores.status = 'approved'` clause.
+    what: "listing insert policy no longer requires an approved store",
+    // 0001 and 0008 define this policy; only 0008 removes the
+    // `stores.status = 'approved'` clause, which was the actual production
+    // bug. 0017 later puts an eligibility clause back — deliberately, and
+    // with its own sentinel below — so this entry is satisfied by EITHER
+    // shape. It exists to catch a database still running 0001's version,
+    // not to forbid 0017's; on a 0017 database 0008 has nothing left to
+    // apply, and the 0017 sentinel is the one that decides.
     probe: `select position('approved' in coalesce((
               select pg_get_expr(polwithcheck, polrelid) from pg_policy
                where polname = 'insert own listing'
-                 and polrelid = 'public.listings'::regclass), '')) = 0`,
+                 and polrelid = 'public.listings'::regclass), '')) = 0
+            or exists (select 1 from information_schema.columns
+                        where table_schema = 'public' and table_name = 'stores'
+                          and column_name = 'categories')`,
   },
   {
     file: "0009_buying_to_delivery_lifecycle.sql",
@@ -169,6 +177,26 @@ const SENTINELS = [
     file: "0016_saved_listings.sql",
     what: "saved_listings",
     probe: `select to_regclass('public.saved_listings') is not null`,
+  },
+  {
+    file: "0017_store_applications.sql",
+    what: "store application fields + history + the restored listing gate",
+    // Three independent facts, because each has been absent on some
+    // database: the new columns, the events table, and the eligible-store
+    // clause in the listing insert policy that 0008 removed and 0017 put
+    // back. A `to_regclass` alone would pass on a database that has the
+    // table but never ran the policy rewrite.
+    probe: `select exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'stores'
+                and column_name = 'categories')
+              and exists (select 1 from information_schema.columns
+                where table_schema = 'public' and table_name = 'stores'
+                  and column_name = 'ownership_attested')
+              and to_regclass('public.store_application_events') is not null
+              and position('approved' in coalesce(
+                    (select pg_get_expr(polwithcheck, polrelid) from pg_policy
+                      where polname = 'insert own listing'
+                        and polrelid = 'public.listings'::regclass), '')) > 0`,
   },
 ];
 

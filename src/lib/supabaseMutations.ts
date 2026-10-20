@@ -230,6 +230,15 @@ export type SubmitStoreInput = {
   contactPolicyAccepted: boolean;
   logoPath?: string | null;
   bannerPath?: string | null;
+  /** Added in 0017; optional so existing callers keep compiling. */
+  categories?: string[];
+  refundPolicy?: string;
+  warrantyHours?: string | number | null;
+  supportEmail?: string;
+  supportHours?: string;
+  supportChannel?: string;
+  ownershipAttested?: boolean;
+  agreementVersion?: string;
 };
 
 /** Slugify a store name for the unique `stores.slug` column. */
@@ -302,11 +311,23 @@ export async function submitStore(input: SubmitStoreInput) {
     logo_path: input.logoPath ?? null,
     banner_path: input.bannerPath ?? null,
     platforms: input.platforms,
+    categories: input.categories ?? [],
     delivery_speed: input.deliverySpeed || null,
     access_format: input.accessFormat || null,
     replacement_policy: input.replacementPolicy || null,
+    refund_policy: input.refundPolicy || null,
+    warranty_hours:
+      input.warrantyHours == null || input.warrantyHours === ""
+        ? null
+        : Number(input.warrantyHours),
     restricted_regions: input.restrictedRegions || null,
     sourcing: input.sourcing || null,
+    support_email: input.supportEmail || null,
+    support_hours: input.supportHours || null,
+    support_channel: input.supportChannel || null,
+    ownership_attested: Boolean(input.ownershipAttested),
+    compliance_accepted_at: input.ownershipAttested ? new Date().toISOString() : null,
+    agreement_version: input.agreementVersion ?? null,
     contact_policy: true,
   };
 
@@ -379,11 +400,22 @@ export async function updateStore(storeId: string, input: SubmitStoreInput) {
     .update({
       store_name: input.storeName,
       platforms: input.platforms,
+      categories: input.categories ?? [],
       delivery_speed: input.deliverySpeed || null,
       access_format: input.accessFormat || null,
       replacement_policy: input.replacementPolicy || null,
+      refund_policy: input.refundPolicy || null,
+      warranty_hours:
+        input.warrantyHours == null || input.warrantyHours === ""
+          ? null
+          : Number(input.warrantyHours),
       restricted_regions: input.restrictedRegions || null,
       sourcing: input.sourcing || null,
+      support_email: input.supportEmail || null,
+      support_hours: input.supportHours || null,
+      support_channel: input.supportChannel || null,
+      ownership_attested: Boolean(input.ownershipAttested),
+      agreement_version: input.agreementVersion ?? null,
       contact_policy: input.contactPolicyAccepted,
     })
     .eq("id", storeId)

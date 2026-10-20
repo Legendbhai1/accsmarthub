@@ -226,6 +226,30 @@
     @apply rounded-xl border border-border bg-card;
   }
 
+  /* Second elevation, for a panel that sits on top of a `.surface` — a
+     summary block inside a card, or a nested list container. Slightly darker
+     than the card in light mode and lighter in dark, so the two stay
+     distinguishable in both themes without a shadow. */
+  .surface-2 {
+    @apply rounded-xl border border-border/70 bg-muted/40;
+  }
+
+  /* The dark statement panel (homepage CTA, marketplace sell prompt). It was
+     referenced as `ink-panel` for a long time without ever being defined, so
+     those two blocks rendered as plain unlabelled text on the page
+     background. Defined once here, token-driven, so it tracks the theme. */
+  .ink-panel {
+    @apply rounded-2xl border border-border bg-foreground text-background;
+  }
+
+  /* `.card` was used by eight pages and defined nowhere — the panels rendered
+     with no border, no radius and no background at all. It is now an alias of
+     `.surface` rather than a second, subtly different card, so the two names
+     cannot drift apart. */
+  .card {
+    @apply rounded-xl border border-border bg-card;
+  }
+
   .inset-well {
     @apply rounded-lg border border-border/60 bg-muted/40;
   }

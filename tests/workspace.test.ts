@@ -144,3 +144,22 @@ describe("friendlyError explains a rejected listing", () => {
     ).toBe("You do not have access to that information.");
   });
 });
+
+describe("the switcher is reachable from the dashboard header", () => {
+  const shell = read("src/components/dash/DashShell.tsx");
+
+  it("mounts a switcher in the header, not only in the rail", () => {
+    // The rail is a drawer on phones and sits at the bottom of a long
+    // sidebar on desktop, so a rail-only control was undiscoverable.
+    expect(shell).toMatch(/<WorkspaceSwitcher\s+links=\{secondary\}\s*\/>/);
+  });
+
+  it("drives the header switcher from the same list as the rail", () => {
+    // Two switchers rendering two different lists is how they drift apart.
+    expect(shell).toMatch(/const secondary = workspaceLinks\(/);
+  });
+
+  it("renders the switcher links as navigable anchors", () => {
+    expect(shell).toMatch(/<Link to=\{to\} className="cursor-pointer">/);
+  });
+});

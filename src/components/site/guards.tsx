@@ -140,3 +140,43 @@ export function RequireRole({ roles, children }: { roles: Role[]; children: Reac
 
   return children;
 }
+
+/**
+ * Holds an unapproved seller out of the studio pages that need an approved
+ * store, sending them to the application instead of a page whose every action
+ * would fail.
+ *
+ * This is a *routing* convenience, not the security boundary. Migration 0017
+ * enforces eligibility in the listing insert policy and in `place_order()`, so
+ * even a caller that reached the page would be refused by the database. What
+ * this prevents is the dead end: a seller with no store used to land on a
+ * listing editor whose save button produced
+ * `42501 row-level security policy for table "listings"`, surfaced as
+ * "You do not have access to that information."
+ */
+export function RequireApprovedSeller({ children }: { children: ReactNode }) {
+  const { user, isLoading } = useSession();
+  const location = useLocation();
+
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </main>
+    );
+  }
+
+  // An administrator can see every studio page: they moderate the listings
+  // and orders inside it.
+  if (user?.role === "admin" || user?.sellerStatus === "approved") {
+    return children;
+  }
+
+  return (
+    <Navigate
+      to="/seller/apply"
+      replace
+      state={{ from: location.pathname, needsApproval: true }}
+    />
+  );
+}
