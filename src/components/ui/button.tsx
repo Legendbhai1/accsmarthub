@@ -9,7 +9,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Flat mocha, with the darker pressed shade the palette defines.
+        // Flat violet, with the darker pressed shade the palette defines.
         // `brand-gradient` is deliberately not used here: a primary button is
         // the one place a gradient would read as glossy, and the brief asks
         // for flat surfaces and clear hover/pressed states instead.
@@ -24,7 +24,7 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring/40",
         // Kept as an alias of the primary fill so the legacy call sites do not
-        // churn; it is the same mocha, not a second treatment.
+        // churn; it is the same violet, not a second treatment.
         clay:
           "bg-primary text-primary-foreground shadow-xs hover:bg-primary-hover active:brightness-95 focus-visible:ring-ring/40",
         link: "text-primary underline-offset-4 hover:underline",

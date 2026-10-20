@@ -49,9 +49,9 @@ export default function Home() {
     <div className="overflow-x-clip">
       {/* ------------------------------ Hero ------------------------------ */}
       <section className="relative">
-        {/* The warm wash. Two low-opacity warm tints behind the hero — enough
-            to give the page a colour identity without putting saturated paint
-            behind the copy. */}
+        {/* The brand wash. The brand ramp at low opacity behind the hero —
+            enough to give the page a colour identity without putting saturated
+            paint behind the copy. */}
         <div
           aria-hidden="true"
           className="brand-wash pointer-events-none absolute inset-0"
@@ -79,7 +79,7 @@ export default function Home() {
             className="font-display text-4xl leading-[1.08] sm:text-6xl"
           >
             Buy &amp; sell social media accounts,{" "}
-            <span className="brand-text">without the risk</span>
+            <span className="text-gradient">without the risk</span>
           </motion.h1>
 
           <motion.p

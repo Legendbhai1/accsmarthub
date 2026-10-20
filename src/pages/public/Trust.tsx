@@ -14,31 +14,37 @@ import { SiteLayout } from "@/components/site/SiteLayout";
 const PILLARS = [
   {
     icon: UserCheck,
+    tint: "var(--primary)",
     title: "Store and listing review",
     body: "Every store application is reviewed by an admin before its listings can go live, and each listing is moderated before it appears in the marketplace.",
   },
   {
     icon: Lock,
+    tint: "var(--brand-2)",
     title: "Funds held in-platform",
     body: "Buyers' payments are held in AccsMartHub's internal ledger and released to the seller only after the buyer confirms the transfer, or the inspection window closes.",
   },
   {
     icon: FileCheck,
+    tint: "var(--info)",
     title: "Listed details on the order",
     body: "Each order stores the price, fee and commission that applied when it was placed, so the split is auditable after the fact.",
   },
   {
     icon: Gavel,
+    tint: "var(--bronze)",
     title: "Admin dispute review",
     body: "When something goes wrong, our admin team reviews evidence from both sides and refunds eligible orders from the order's held funds.",
   },
   {
     icon: ShieldCheck,
+    tint: "var(--success)",
     title: "A disclosed inspection window",
     body: "Every order carries a 14-day window from purchase for raising an issue, and the deadline is stored on the order so it cannot be moved afterwards.",
   },
   {
     icon: BadgeCheck,
+    tint: "var(--primary)",
     title: "No invented track records",
     body: "We do not show seller ratings, sales totals or verification badges, because that data is not recorded yet. A listing is only visible here once it has passed moderation.",
   },
@@ -85,10 +91,13 @@ export default function Trust() {
         </p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PILLARS.map(({ icon: Icon, title, body }) => (
+          {PILLARS.map(({ icon: Icon, tint, title, body }) => (
             <div key={title} className="surface p-6">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
-                <Icon className="size-5 text-primary" />
+              <span
+                className="icon-tile size-10"
+                style={{ ["--tile" as string]: tint }}
+              >
+                <Icon className="size-5" />
               </span>
               <h2 className="mt-4 font-semibold tracking-tight">{title}</h2>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">

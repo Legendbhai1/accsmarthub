@@ -44,9 +44,9 @@
      draw on instead of fading the primary toward transparent. */
   --color-brand-2: hsl(var(--brand-2));
   --color-brand-3: hsl(var(--brand-3));
-  /* Warm-system tokens: the pressed/hover shade of the mocha action, the
-     secondary beige surface, and the restrained bronze accent. Registered
-     here so `bg-primary-hover`, `bg-surface-2` and `text-bronze` exist. */
+  /* Brand-system tokens: the pressed/hover shade of the primary action, the
+     second elevation surface, and the amber detail accent. Registered here so
+     `bg-primary-hover`, `bg-surface-2` and `text-bronze` exist. */
   --color-primary-hover: hsl(var(--primary-hover));
   --color-surface-2: hsl(var(--surface-2));
   --color-bronze: hsl(var(--bronze));
@@ -60,95 +60,95 @@
 
 @layer base {
   /*
-   * Mocha and cream: one warm ramp, disciplined.
+   * Vibrant commerce: a saturated brand ramp on clean, neutral surfaces.
    *
-   * The palette is a boutique-financial warm neutral set. Cream (#F5EFE5) is
-   * the canvas, off-white (#FFFCF7) the card, mocha (#6F4E37) the single
-   * action colour, espresso (#35251D) the text, and bronze (#A47C52) a
-   * restrained detail accent — hairlines, active indicators, one icon tile.
-   * There is no blue anywhere in the brand, and no metallic gradient: bronze
-   * is used flat and sparingly.
+   * The palette is a professional marketplace set. Near-white canvas
+   * (#F7F8FC), pure-white cards, deep ink (#12172B) for text, and a single
+   * vivid violet (#7C3AED) as the action colour, with magenta and amber as the
+   * two supporting brand hues for gradients and detail accents. Status keeps
+   * its own green / amber / red / sky so a badge means what it says and never
+   * borrows the brand hue.
    *
-   * The rule the palette is built on: a colour only appears when it carries
-   * meaning (this is the action, this is live, this needs attention, this is
-   * the brand). A surface that is merely "a card" is neutral. That is also why
-   * status colours are their own tokens — a badge never borrows the brand hue
-   * to mean "ok", so "approved" and "primary action" cannot be confused.
+   * The rule the palette is built on is unchanged from before: surfaces stay
+   * neutral and light, and colour carries meaning — this is the action, this is
+   * live, this needs attention, this is the brand. What changed is that the
+   * colour is now saturated rather than a warm neutral, so the site reads as a
+   * modern e-commerce storefront rather than a boutique finance page.
    */
   :root {
-    /* Canvas and text. Cream page, espresso ink. */
-    --background: 37 44% 93%;        /* #F5EFE5 */
-    --foreground: 20 29% 16%;        /* #35251D */
-    --card: 38 100% 98%;             /* #FFFCF7 */
-    --card-foreground: 20 29% 16%;
-    --popover: 38 100% 98%;
-    --popover-foreground: 20 29% 16%;
-    /* The one action colour: mocha, with its pressed shade beside it. */
-    --primary: 25 34% 33%;           /* #6F4E37 */
-    --primary-foreground: 38 100% 98%;
-    --primary-hover: 22 35% 26%;     /* #593C2B */
-    /* Beige secondary surfaces. */
-    --secondary: 35 43% 89%;         /* #EFE5D7 */
-    --secondary-foreground: 20 29% 16%;
-    --muted: 33 44% 89%;             /* #F0E5D8 */
-    --muted-foreground: 27 14% 40%;  /* #746457 */
-    --accent: 35 39% 85%;            /* #E8DCCB */
-    --accent-foreground: 22 35% 26%;
-    --surface-2: 35 39% 85%;         /* #E8DCCB */
+    /* Canvas and text. Near-white page, deep ink. */
+    --background: 228 45% 98%;       /* #F7F8FC */
+    --foreground: 228 41% 12%;       /* #12172B */
+    --card: 0 0% 100%;               /* #FFFFFF */
+    --card-foreground: 228 41% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 228 41% 12%;
+    /* The action colour: a vivid violet, with its pressed shade beside it. */
+    --primary: 262 83% 58%;          /* #7C3AED */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 263 70% 50%;    /* #6D28D9 */
+    /* Tinted secondary surfaces — a soft lavender wash. */
+    --secondary: 251 91% 95%;        /* #EDE9FE */
+    --secondary-foreground: 262 60% 30%;
+    --muted: 210 40% 96%;            /* #F1F5F9 */
+    --muted-foreground: 215 16% 47%; /* #64748B */
+    --accent: 269 100% 95%;          /* #F3E8FF */
+    --accent-foreground: 262 60% 30%;
+    --surface-2: 248 100% 98%;       /* #F8F7FF */
     /* Status. Kept off the brand hue so a badge means what it says. */
-    --destructive: 3 46% 48%;        /* #B44943 */
+    --destructive: 347 77% 50%;      /* #E11D48 */
     --destructive-foreground: 0 0% 100%;
-    --success: 153 40% 33%;          /* #327657 */
-    --warning: 32 64% 40%;           /* #A66A24 */
-    --info: 208 24% 43%;             /* #536F87 */
-    --border: 33 32% 80%;            /* #DCCDBB */
-    --input: 33 32% 80%;
-    --ring: 25 34% 33%;              /* mocha focus ring */
-    --bronze: 31 33% 48%;            /* #A47C52 */
+    --success: 142 76% 36%;          /* #16A34A */
+    --warning: 26 90% 37%;           /* #B45309 */
+    --info: 200 98% 39%;             /* #0284C7 */
+    --border: 220 13% 91%;           /* #E5E7EB */
+    --input: 220 13% 91%;
+    --ring: 262 83% 58%;             /* violet focus ring */
+    --bronze: 38 92% 50%;            /* #F59E0B — amber detail accent */
     /* 12px base. Tailwind's `rounded-lg`/`xl`/`2xl` land on 8/12/16px, which
        is the whole radius system — nothing here is a pill. */
     --radius: 0.75rem;
-    /* Warm ramp for the rare gradient: mocha -> bronze -> tan. Deliberately
-       not a metallic shine; these are flat tones a hair apart. */
-    --brand-2: 31 33% 48%;           /* bronze */
-    --brand-3: 33 30% 64%;           /* soft tan */
-    --chart-1: 25 34% 33%;           /* mocha */
-    --chart-2: 31 33% 48%;           /* bronze */
-    --chart-3: 153 40% 33%;          /* success */
-    --chart-4: 32 64% 40%;           /* warning */
-    --chart-5: 208 24% 43%;          /* info */
+    /* The brand ramp: violet -> magenta -> amber. Used flat as a single hue, or
+       swept as a gradient for the wordmark, the hero wash and the CTA panel. */
+    --brand-2: 333 71% 51%;          /* #DB2777 magenta */
+    --brand-3: 38 92% 50%;           /* #F59E0B amber */
+    --chart-1: 262 83% 58%;          /* violet */
+    --chart-2: 333 71% 51%;          /* magenta */
+    --chart-3: 142 76% 36%;          /* success */
+    --chart-4: 38 92% 50%;           /* amber */
+    --chart-5: 200 98% 39%;          /* sky */
   }
 
-  /* The dark appearance is warm espresso, not blue-black: the same palette
-     turned down, so the theme toggle does not swap the identity. */
+  /* The dark appearance is deep indigo, not blue-black: the same saturated
+     identity turned down, so the theme toggle does not swap the brand. */
   .dark {
-    --background: 22 22% 10%;
-    --foreground: 38 30% 94%;
-    --card: 22 20% 13%;
-    --card-foreground: 38 30% 94%;
-    --popover: 22 20% 14%;
-    --popover-foreground: 38 30% 94%;
-    --primary: 30 40% 58%;
-    --primary-foreground: 24 30% 10%;
-    --primary-hover: 30 42% 66%;
-    --secondary: 22 16% 19%;
-    --secondary-foreground: 38 26% 90%;
-    --muted: 22 14% 18%;
-    --muted-foreground: 33 16% 66%;
-    --accent: 30 18% 22%;
-    --accent-foreground: 38 40% 88%;
-    --surface-2: 22 16% 17%;
-    --destructive: 3 50% 58%;
+    --background: 227 46% 8%;        /* #0B0F1E */
+    --foreground: 225 55% 96%;       /* #EEF1FA */
+    --card: 226 39% 13%;             /* #141A2E */
+    --card-foreground: 225 55% 96%;
+    --popover: 225 38% 15%;          /* #171E33 */
+    --popover-foreground: 225 55% 96%;
+    --primary: 255 92% 76%;          /* #A78BFA */
+    --primary-foreground: 255 60% 12%;
+    --primary-hover: 252 95% 85%;    /* #C4B5FD */
+    --secondary: 228 36% 18%;        /* #1E2540 */
+    --secondary-foreground: 251 91% 92%;
+    --muted: 225 34% 16%;            /* #1B2237 */
+    --muted-foreground: 223 23% 71%; /* #A3ADC6 */
+    --accent: 228 36% 21%;           /* #232B4A */
+    --accent-foreground: 251 91% 92%;
+    --surface-2: 226 37% 16%;        /* #1A2138 */
+    --destructive: 351 95% 71%;      /* #FB7185 */
     --destructive-foreground: 0 0% 100%;
-    --success: 153 40% 48%;
-    --warning: 32 62% 56%;
-    --info: 208 30% 62%;
-    --border: 24 14% 24%;
-    --input: 24 14% 26%;
-    --ring: 30 40% 58%;
-    --bronze: 31 38% 58%;
-    --brand-2: 31 38% 58%;
-    --brand-3: 33 30% 70%;
+    --success: 142 69% 58%;          /* #4ADE80 */
+    --warning: 43 96% 56%;           /* #FBBF24 */
+    --info: 198 93% 60%;             /* #38BDF8 */
+    --border: 227 32% 22%;           /* #262E4A */
+    --input: 227 34% 25%;            /* #2A3355 */
+    --ring: 255 92% 76%;             /* #A78BFA */
+    --bronze: 43 96% 56%;            /* #FBBF24 */
+    --brand-2: 329 86% 70%;          /* #F472B6 */
+    --brand-3: 43 96% 56%;           /* #FBBF24 */
   }
 
   * {
@@ -266,9 +266,20 @@
   }
 
   /* Legacy aliases. `text-gradient` and `page-title-accent` now resolve to the
-     one flat mocha, so there is a single accent definition rather than several
-     that can drift apart. */
-  .text-gradient,
+     one brand fill, so there is a single accent definition rather than several
+     that can drift apart. `text-gradient` is a real gradient sweep in the brand
+     ramp; `page-title-accent` stays flat so a page heading is legible. */
+  .text-gradient {
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--brand-2)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
   .page-title-accent {
     color: hsl(var(--primary));
   }
@@ -281,42 +292,55 @@
    * Anything that needs "this is the brand" uses this class rather than
    * picking a hue, so it can be retuned in one place.
    *
-   * It is a flat mocha, not a ramp: the old version swept indigo -> fuchsia,
-   * which is exactly the flashy look this palette replaces, and a shine is
-   * not what "formal" means here.
+   * It sweeps violet -> magenta at 135°, which is what gives the storefront its
+   * colour identity. It stops at magenta on purpose: amber is a lighter hue, so
+   * ending the ramp on it would drop the contrast of the white text these
+   * panels carry. Amber still appears in the hero wash and as the bronze
+   * hairline, where nothing sits on top of it.
    * ------------------------------------------------------------------- */
 
   .brand-gradient {
     background-image: linear-gradient(
-      180deg,
+      135deg,
       hsl(var(--primary)) 0%,
-      hsl(22 35% 28%) 100%
+      hsl(var(--brand-2)) 100%
     );
   }
 
-  /* The same fill as text: a solid mocha, so a heading reads as one colour. */
+  /* The same fill as text: a solid brand hue, so a heading reads as one
+     colour. `.text-gradient` is the swept version for the wordmark. */
   .brand-text {
     color: hsl(var(--primary));
   }
 
-  /* A solid bronze hairline, for the rule under a card or section head. */
+  /* A brand hairline, for the rule under a card or section head. The class name
+     predates the current palette; the fill is the brand ramp now, so the rule
+     reads as the brand rather than as a separate amber line. */
   .brand-rule {
-    background-image: none;
-    background-color: hsl(var(--bronze));
+    background-image: linear-gradient(
+      90deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--brand-2)) 100%
+    );
   }
 
-  /* A soft warm wash for the hero: one mocha tone at low opacity, not three
-     competing hues behind the headline. */
+  /* A soft multi-hue wash for the hero: the brand ramp at low opacity, so the
+     headline sits on colour without any of it competing with the copy. */
   .warm-wash {
     background-image:
       radial-gradient(
-        120% 90% at 12% 0%,
-        hsl(var(--primary) / 0.1) 0%,
+        110% 90% at 10% 0%,
+        hsl(var(--primary) / 0.16) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        90% 80% at 92% 2%,
+        hsl(var(--brand-2) / 0.14) 0%,
         transparent 60%
       ),
       radial-gradient(
-        90% 80% at 88% 4%,
-        hsl(var(--bronze) / 0.1) 0%,
+        120% 70% at 50% 100%,
+        hsl(var(--brand-3) / 0.12) 0%,
         transparent 62%
       );
   }
@@ -325,13 +349,18 @@
   .brand-wash {
     background-image:
       radial-gradient(
-        120% 90% at 12% 0%,
-        hsl(var(--primary) / 0.1) 0%,
+        110% 90% at 10% 0%,
+        hsl(var(--primary) / 0.16) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        90% 80% at 92% 2%,
+        hsl(var(--brand-2) / 0.14) 0%,
         transparent 60%
       ),
       radial-gradient(
-        90% 80% at 88% 4%,
-        hsl(var(--bronze) / 0.1) 0%,
+        120% 70% at 50% 100%,
+        hsl(var(--brand-3) / 0.12) 0%,
         transparent 62%
       );
   }

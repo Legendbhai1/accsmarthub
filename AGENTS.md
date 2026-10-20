@@ -83,24 +83,31 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `import.meta.env.DEV`, so development stays diagnosable while production
   does not leak internal table or column names.
 
-## The theme is mocha and cream, and it lives in the tokens
+## The theme is vibrant commerce, and it lives in the tokens
 
-- **The palette is a warm neutral set: cream, mocha, espresso, bronze.** The
+- **The palette is a saturated brand ramp on clean neutral surfaces.** The
   values are recorded in `src/index.css`'s `:root` block with their hex
   comments. Anything that needs a colour uses a token (`bg-card`,
   `text-muted-foreground`, `bg-primary-hover`, `text-bronze`) — the previous
-  violet/indigo theme was removed rather than left beside a second system.
+  mocha/cream theme was removed rather than left beside a second system.
   Re-check computed styles in a browser after changing tokens; a token can be
   correct in CSS and still be overridden by a literal class in TSX.
-- **There is no blue in the brand.** `--info` is a muted slate, and it means
-  "information" only. If something needs to say "this is the brand" it uses
-  `--primary` (mocha) or `--bronze`. Do not reintroduce a blue accent.
-- **Bronze is a detail, not a fill.** `--bronze` belongs on hairlines, the
-  active indicator and at most one icon tile. It is flat: no metallic
-  gradient, no shine. `bg-primary` is a flat mocha, and `.brand-gradient` is a
-  near-flat two-stop for the wordmark tile only — the primary button
-  deliberately does not use it, because a gradient on the main action reads as
-  glossy.
+- **The brand is violet, with magenta and amber as its two supporting hues.**
+  `--primary` is a vivid violet (#7C3AED), `--brand-2` magenta (#DB2777) and
+  `--brand-3` amber (#F59E0B); `.brand-gradient` sweeps violet -> magenta and
+  `.text-gradient` sweeps the same pair as text. `--info` is a real sky blue
+  (#0284C7) and means "information" only. If something needs to say "this is
+  the brand" it uses `--primary`, the ramp, or `--bronze`.
+- **Colour is an accent, not a background.** The brand ramp belongs on the
+  wordmark tile, the hero wash, the CTA panel, the promo banner, an active rail
+  indicator and one icon tile — never as a saturated fill behind body copy or
+  on every card. `bg-primary` is a flat violet and `.brand-gradient` is
+  deliberately not used on the primary button, because a gradient on the main
+  action reads as glossy.
+- **The brand gradient stops at magenta.** Amber is a lighter hue, so ending
+  the ramp on it would drop the contrast of the white text the CTA and promo
+  panels carry. Amber still appears in the hero wash and the `--bronze`
+  hairline, where nothing sits on top of it.
 - **One radius system: 8 / 12 / 16px, and no pills.** `--radius` is 12px, so
   `rounded-lg` = 12, `rounded-xl` = 16, `rounded-2xl` = 20. Buttons, chips,
   badges, inputs and fields all share it; a pill (`rounded-full`) is reserved
@@ -109,11 +116,12 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   or a filter chip is the specific mistake this pass removed.
 - **Surfaces are opaque.** `backdrop-blur` is not used anywhere in app code:
   the sticky header, the dashboard header and the mobile tab bar are solid
-  `bg-card` with a hairline border. Translucent panels over a warm wash turn
+  `bg-card` with a hairline border. Translucent panels over the brand wash turn
   muddy and were part of the look being replaced.
-- **Dark mode is warm, not blue-black.** `.dark` is the same palette turned
-  down. The `heroText`/`--background` values differ from light only in
-  lightness; do not "fix" dark mode by making it slate or navy.
+- **Dark mode is deep indigo, not blue-black.** `.dark` is the same saturated
+  identity turned down: a near-black indigo canvas, and the primary becomes a
+  lighter violet so it still reads on the dark surface. Do not "fix" dark mode
+  by making it neutral slate or pure black.
 - **Motion is 140–240ms and reduced-motion is honoured.** Hover/focus is
   150ms, entrances 200ms, drawers 200ms. `src/index.css` drops decorative
   animation and transitions under `prefers-reduced-motion`; `LottieAnimation`
@@ -185,11 +193,11 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   all three accents rendered as plain text. If a class looks like it should do
   something and does not, grep the built CSS for it before assuming a
   specificity problem.
-- **Colour belongs to a token, not to a literal.** The palette is charcoal plus
-  a single violet accent, with status kept separate (`--success`, `--warning`,
-  `--info`, `--destructive`). Hardcoded `amber`/`emerald`/`sky`/hex values had
-  spread across ~50 files, which is how a saturated amber ended up meaning
-  "brand", "pending" and "warning" at the same time. Use `bg-primary`,
+- **Colour belongs to a token, not to a literal.** The palette is violet plus
+  the magenta/amber brand ramp, with status kept separate (`--success`,
+  `--warning`, `--info`, `--destructive`). Hardcoded `amber`/`emerald`/`sky`/hex
+  values had spread across ~50 files, which is how a saturated amber ended up
+  meaning "brand", "pending" and "warning" at the same time. Use `bg-primary`,
   `text-warning`, `border-success/30` and so on; a star rating is the one
   deliberate exception (`fill-amber-400`), because a star is yellow.
 - **Do not label the held-funds model "escrow".** The backend holds money in an

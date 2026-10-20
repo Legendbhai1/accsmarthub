@@ -330,18 +330,18 @@ export default function Marketplace() {
         <div className="mx-auto max-w-md">
           <div
             key={slide}
-            className="relative overflow-hidden rounded-2xl border border-border bg-secondary px-5 py-6"
+            className="brand-gradient relative overflow-hidden rounded-2xl border border-transparent px-5 py-6 text-primary-foreground"
           >
-            <span className="inline-flex rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
+            <span className="inline-flex rounded-md bg-card/95 px-2.5 py-1 text-[11px] font-semibold text-primary">
               {current.chip}
             </span>
             {/* A `<p>`, not a heading: this rotates between marketing slides,
                 so as an `h2` it inserted a section that had nothing to do with
                 the page outline and appeared above the real listings heading. */}
-            <p className="mt-3 text-[21px] font-bold leading-tight tracking-tight text-foreground">
+            <p className="mt-3 text-[21px] font-bold leading-tight tracking-tight text-primary-foreground">
               {current.title}
             </p>
-            <p className="mt-1 max-w-[62%] text-[11px] leading-snug text-muted-foreground">{current.subtitle}</p>
+            <p className="mt-1 max-w-[62%] text-[11px] leading-snug text-primary-foreground/80">{current.subtitle}</p>
             <BrandMark
               brand={current.brand}
               block
@@ -401,15 +401,15 @@ export default function Marketplace() {
                 >
                   <span
                     className={cn(
-                      "flex size-14 items-center justify-center rounded-xl border transition-colors duration-150",
+                      "flex size-14 items-center justify-center rounded-xl border transition-all duration-150",
                       activeCat
-                        ? "border-transparent bg-primary"
-                        : "border-border/70 bg-card/70",
+                        ? "border-transparent bg-card ring-2 ring-primary ring-offset-2 ring-offset-background"
+                        : "border-border/70 bg-card/70 hover:border-primary/40",
                     )}
                   >
                     <BrandMark brand={c.brand} colored className="size-6" />
                   </span>
-                  <span className={cn("text-[11px]", activeCat ? "font-semibold text-foreground" : "text-foreground")}>
+                  <span className={cn("text-[11px]", activeCat ? "font-semibold text-primary" : "text-foreground")}>
                     {c.name}
                   </span>
                 </button>
