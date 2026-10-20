@@ -330,18 +330,23 @@ export default function Marketplace() {
         <div className="mx-auto max-w-md">
           <div
             key={slide}
-            className="brand-gradient relative overflow-hidden rounded-2xl border border-transparent px-5 py-6 text-primary-foreground"
+            className="brand-gradient-animated relative overflow-hidden rounded-2xl border border-transparent px-5 py-6 text-primary-foreground shadow-lg shadow-primary/20"
           >
-            <span className="inline-flex rounded-md bg-card/95 px-2.5 py-1 text-[11px] font-semibold text-primary">
+            <span
+              aria-hidden="true"
+              className="orb animate-float-slow right-[-3rem] top-[-2rem] size-40 opacity-40"
+              style={{ ["--orb" as string]: "var(--pop-cyan)" }}
+            />
+            <span className="inline-flex rounded-md bg-card/95 px-2.5 py-1 text-[11px] font-semibold text-primary shadow-sm">
               {current.chip}
             </span>
             {/* A `<p>`, not a heading: this rotates between marketing slides,
                 so as an `h2` it inserted a section that had nothing to do with
                 the page outline and appeared above the real listings heading. */}
-            <p className="mt-3 text-[21px] font-bold leading-tight tracking-tight text-primary-foreground">
+            <p className="relative mt-3 text-[21px] font-bold leading-tight tracking-tight text-primary-foreground">
               {current.title}
             </p>
-            <p className="mt-1 max-w-[62%] text-[11px] leading-snug text-primary-foreground/80">{current.subtitle}</p>
+            <p className="relative mt-1 max-w-[62%] text-[11px] leading-snug text-primary-foreground/85">{current.subtitle}</p>
             <BrandMark
               brand={current.brand}
               block
@@ -357,8 +362,8 @@ export default function Marketplace() {
                 aria-current={i === slide}
                 onClick={() => setSlide(i)}
                 className={cn(
-                  "size-1.5 rounded-full transition-all",
-                  i === slide ? "w-4 bg-primary" : "bg-border",
+                  "size-1.5 rounded-full transition-all duration-200",
+                  i === slide ? "w-4 bg-primary" : "bg-border hover:bg-primary/40",
                 )}
               />
             ))}
@@ -540,15 +545,20 @@ export default function Marketplace() {
           )}
 
           {/* Sell CTA */}
-          <div className="ink-panel mt-8 px-5 py-5 text-center">
-            <p className="text-sm font-semibold">Want to sell an account?</p>
-            <p className="mt-1 text-[11px] leading-snug opacity-70">
+          <div className="ink-panel relative mt-8 overflow-hidden px-5 py-5 text-center">
+            <span
+              aria-hidden="true"
+              className="orb animate-float-slow right-[-2.5rem] top-[-2.5rem] size-36 opacity-40"
+              style={{ ["--orb" as string]: "var(--primary)" }}
+            />
+            <p className="relative text-sm font-semibold">Want to sell an account?</p>
+            <p className="relative mt-1 text-[11px] leading-snug opacity-70">
               Create a listing in minutes — it goes live once an admin approves
               it.
             </p>
             <Link
               to="/seller/listings?new=1"
-              className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-primary px-5 text-xs font-semibold text-primary-foreground"
+              className="sheen relative mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-primary px-5 text-xs font-semibold text-primary-foreground shadow-md shadow-primary/25 transition-colors hover:bg-primary-hover"
             >
               Start selling
             </Link>

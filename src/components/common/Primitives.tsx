@@ -183,11 +183,18 @@ export function SectionHeading({
   return (
     <div className="flex items-end justify-between gap-4">
       <div>
+        {/* A short brand-ramp tick before the title. It is the one piece of
+            colour a section head carries, so the heading reads as part of the
+            brand without a filled banner behind it. */}
+        <span
+          aria-hidden="true"
+          className="brand-rule mb-2.5 block h-1 w-10 rounded-full"
+        />
         <Heading
           className={
             level === 1
               ? "page-title"
-              : "text-lg font-semibold tracking-tight sm:text-xl"
+              : "font-display text-lg font-bold tracking-tight sm:text-xl"
           }
         >
           {title}

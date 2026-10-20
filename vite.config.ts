@@ -75,6 +75,11 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    // Vite blocks requests whose Host header it does not recognise, which
+    // makes the dev server unreachable through a port-forwarded preview
+    // hostname. Allowing the runtime's wildcard subdomain keeps the preview
+    // working; production is unaffected because this is dev-server only.
+    allowedHosts: [".prod-runtime.all-hands.dev"],
     // Freebuff requires HMR to stay off.
     hmr: false,
   },

@@ -285,7 +285,11 @@ export function DashShell({
     <div className="min-h-screen bg-background">
       {/* Desktop rail */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border bg-card lg:flex">
-        <div className="flex h-16 shrink-0 items-center border-b border-border px-4">
+        <div className="relative flex h-16 shrink-0 items-center border-b border-border px-4">
+          <span
+            aria-hidden="true"
+            className="brand-rule absolute inset-x-0 bottom-0 h-px opacity-60"
+          />
           <Logo />
         </div>
         <RailBody sections={nav} secondary={secondary} />
@@ -316,7 +320,7 @@ export function DashShell({
             it; every other surface in the app is opaque. The brand hairline
             along the bottom edge is what ties the three workspaces together
             visually without tinting the bar itself. */}
-        <header className="sticky top-0 z-30 border-b border-border bg-card">
+        <header className="sticky top-0 z-30 border-b border-border/70 bg-card/85 backdrop-blur-xl">
           <span
             aria-hidden="true"
             className="brand-rule absolute inset-x-0 bottom-0 h-px opacity-60"

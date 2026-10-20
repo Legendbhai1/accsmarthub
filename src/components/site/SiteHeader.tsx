@@ -60,7 +60,12 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40">
-      <div className="border-b border-border bg-card">
+      <div className="relative border-b border-border/70 bg-card/85 backdrop-blur-xl">
+        {/* A hairline of the brand ramp along the top edge of the header. */}
+        <span
+          aria-hidden="true"
+          className="brand-rule absolute inset-x-0 top-0 h-0.5 opacity-90"
+        />
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
           <Logo />
 
@@ -72,13 +77,26 @@ export function SiteHeader() {
                 end={link.to === "/"}
                 className={({ isActive }) =>
                   cn(
-                    "rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-secondary hover:text-foreground",
-                    isActive &&
-                      "bg-primary font-semibold text-primary-foreground hover:bg-primary-hover",
+                    "group relative rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-secondary hover:text-foreground",
+                    isActive && "font-semibold text-primary",
                   )
                 }
               >
-                {link.label}
+                {({ isActive }) => (
+                  <>
+                    {link.label}
+                    {/* The active indicator is the brand ramp rather than a
+                        solid block, so the nav reads as the brand without a
+                        heavy fill behind every active label. */}
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "brand-rule absolute inset-x-3 -bottom-px h-0.5 rounded-full transition-opacity duration-200",
+                        isActive ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                  </>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -87,15 +105,15 @@ export function SiteHeader() {
             <label htmlFor="site-search" className="sr-only">
               Search listings
             </label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <div className="group relative">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
               <input
                 id="site-search"
                 type="search"
                 placeholder="Search accounts, niches, platforms…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="inset-well h-10 w-56 rounded-lg pl-9 pr-3 text-sm outline-none transition-all duration-150 placeholder:text-muted-foreground focus:w-64 focus:ring-2 focus:ring-ring/30"
+                className="inset-well h-10 w-56 rounded-lg pl-9 pr-3 text-sm outline-none transition-all duration-200 placeholder:text-muted-foreground focus:w-64 focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-ring/25"
               />
             </div>
           </form>
@@ -110,7 +128,11 @@ export function SiteHeader() {
                 onClick={() => navigate("/account/notifications")}
               >
                 <Bell className="size-4.5" />
-                <span className="absolute right-2 top-2 size-2 rounded-full bg-destructive" />
+                <span className="absolute right-2 top-2 size-2 rounded-full bg-destructive ring-2 ring-card" />
+                <span
+                  aria-hidden="true"
+                  className="absolute right-2 top-2 size-2 animate-pulse-glow rounded-full bg-destructive"
+                />
               </Button>
             )}
 

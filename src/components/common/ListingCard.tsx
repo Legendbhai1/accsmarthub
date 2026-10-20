@@ -30,7 +30,7 @@ export function ListingCard({ listing, className }: ListingCardProps) {
   return (
     <article
       className={cn(
-        "group surface relative flex flex-col overflow-hidden p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5",
+        "group surface card-hover relative flex flex-col overflow-hidden p-3",
         className,
       )}
     >
@@ -42,13 +42,13 @@ export function ListingCard({ listing, className }: ListingCardProps) {
       />
       <Link to={`/marketplace/${listing.id}`} className="flex flex-1 flex-col">
         <div className="relative">
-          <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg bg-muted">
+          <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-secondary to-accent">
             {listing.imagePath ? (
               <img
                 src={publicAssetUrl("listing-assets", listing.imagePath)}
                 alt=""
                 loading="lazy"
-                className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
             ) : (
               // A listing with no uploaded image still needs a card that is
@@ -56,7 +56,7 @@ export function ListingCard({ listing, className }: ListingCardProps) {
               <BrandMark
                 brand={listing.brand}
                 block
-                className="size-10 transition-transform duration-300 group-hover:scale-105"
+                className="size-12 shadow-lg transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110"
               />
             )}
           </div>
@@ -66,7 +66,7 @@ export function ListingCard({ listing, className }: ListingCardProps) {
             </span>
           ) : (
             discounted && (
-              <span className="absolute left-2 top-2 rounded-md bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
+              <span className="brand-gradient absolute left-2 top-2 rounded-md px-2 py-0.5 text-[10px] font-bold text-primary-foreground shadow-md">
                 −{listing.discountPercent}%
               </span>
             )
@@ -74,7 +74,7 @@ export function ListingCard({ listing, className }: ListingCardProps) {
         </div>
 
         <div className="mt-3 min-w-0 flex-1">
-          <p className="line-clamp-2 text-sm font-semibold leading-snug">
+          <p className="line-clamp-2 text-sm font-semibold leading-snug transition-colors group-hover:text-primary">
             {listing.title}
           </p>
           <p className="mt-1 truncate text-[11px] text-muted-foreground">
@@ -86,12 +86,12 @@ export function ListingCard({ listing, className }: ListingCardProps) {
         </div>
 
         <div className="mt-2.5 flex items-baseline gap-1.5 border-t border-border/60 pt-2.5">
-          <span className="text-base font-bold tabular-nums">
+          <span className="text-base font-extrabold tabular-nums text-foreground">
             {formatPrice(listing.priceUsd)}
           </span>
           <span
             className={cn(
-              "ml-auto text-[11px] font-medium",
+              "ml-auto text-[11px] font-semibold",
               soldOut ? "text-muted-foreground" : "text-success",
             )}
           >

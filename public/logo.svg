@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#f6d488" />
-      <stop offset="55%" stop-color="#e0a32e" />
-      <stop offset="100%" stop-color="#b5751a" />
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8B5CF6" />
+      <stop offset="55%" stop-color="#7C3AED" />
+      <stop offset="100%" stop-color="#EE2C86" />
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="60" height="60" rx="18" fill="#14110d" />
-  <g fill="url(#gold)">
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#brand)" />
+  <g fill="#FFFFFF">
     <rect x="17" y="15" width="30" height="9" rx="4.5" opacity="0.98" />
     <rect x="17" y="27.5" width="30" height="9" rx="4.5" opacity="0.78" />
     <rect x="17" y="40" width="30" height="9" rx="4.5" opacity="0.56" />

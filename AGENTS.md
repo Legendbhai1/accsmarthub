@@ -83,41 +83,55 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `import.meta.env.DEV`, so development stays diagnosable while production
   does not leak internal table or column names.
 
-## The theme is vibrant commerce, and it lives in the tokens
+## The theme is vibrant commerce on white, and it lives in the tokens
 
-- **The palette is a saturated brand ramp on clean neutral surfaces.** The
-  values are recorded in `src/index.css`'s `:root` block with their hex
-  comments. Anything that needs a colour uses a token (`bg-card`,
-  `text-muted-foreground`, `bg-primary-hover`, `text-bronze`) — the previous
-  mocha/cream theme was removed rather than left beside a second system.
-  Re-check computed styles in a browser after changing tokens; a token can be
-  correct in CSS and still be overridden by a literal class in TSX.
+- **The canvas is white and the cards are white.** Separation comes from a
+  shadow (`--shadow-*`), not from a tinted page or a heavy border. The values
+  are recorded in `src/index.css`'s `:root` block with their hex comments.
+  Anything that needs a colour uses a token (`bg-card`, `text-muted-foreground`,
+  `bg-primary-hover`, `text-bronze`) — the previous mocha/cream theme was
+  removed rather than left beside a second system. Re-check computed styles in
+  a browser after changing tokens; a token can be correct in CSS and still be
+  overridden by a literal class in TSX.
+- **Type is Sora over Plus Jakarta Sans.** `--font-display` is Sora and is used
+  through the `font-display` utility on headings, the wordmark and section
+  titles; `--font-sans` is Plus Jakarta Sans and is the body default. Both are
+  imported at the top of `src/index.css` — a `font-display` class with no
+  matching family silently falls back to the body font, so check the computed
+  `font-family` if a heading looks wrong.
 - **The brand is violet, with magenta and amber as its two supporting hues.**
   `--primary` is a vivid violet (#7C3AED), `--brand-2` magenta (#DB2777) and
   `--brand-3` amber (#F59E0B); `.brand-gradient` sweeps violet -> magenta and
   `.text-gradient` sweeps the same pair as text. `--info` is a real sky blue
   (#0284C7) and means "information" only. If something needs to say "this is
   the brand" it uses `--primary`, the ramp, or `--bronze`.
+- **`--pop-*` exists so sections can differ.** `--pop-orange`, `--pop-cyan`,
+  `--pop-green` and `--pop-pink` are extra hues with no brand meaning. They are
+  reachable only through `.orb` and `.icon-tile`, which is how the hero, the
+  trust pillars and the commitment row get visual variety without each section
+  inventing its own colour. Do not use a `--pop-*` hue for a button, a status
+  or any text.
 - **Colour is an accent, not a background.** The brand ramp belongs on the
   wordmark tile, the hero wash, the CTA panel, the promo banner, an active rail
   indicator and one icon tile — never as a saturated fill behind body copy or
   on every card. `bg-primary` is a flat violet and `.brand-gradient` is
   deliberately not used on the primary button, because a gradient on the main
   action reads as glossy.
-- **The brand gradient stops at magenta.** Amber is a lighter hue, so ending
-  the ramp on it would drop the contrast of the white text the CTA and promo
-  panels carry. Amber still appears in the hero wash and the `--bronze`
-  hairline, where nothing sits on top of it.
+- **The animated gradients stop at magenta.** Amber and the `--pop-*` hues are
+  lighter, so ending a *panning* ramp on one drops the contrast of the white
+  text the CTA and promo panels carry. `.brand-gradient-animated` therefore
+  pans violet -> magenta -> violet; the extra hues reach the page through the
+  orbs and the icon tiles, where nothing sits on top of them.
 - **One radius system: 8 / 12 / 16px, and no pills.** `--radius` is 12px, so
   `rounded-lg` = 12, `rounded-xl` = 16, `rounded-2xl` = 20. Buttons, chips,
   badges, inputs and fields all share it; a pill (`rounded-full`) is reserved
   for things that are genuinely round — avatars, status dots, switches,
   sliders, progress bars, the hamburger's bars. A `rounded-full` on a button
   or a filter chip is the specific mistake this pass removed.
-- **Surfaces are opaque.** `backdrop-blur` is not used anywhere in app code:
-  the sticky header, the dashboard header and the mobile tab bar are solid
-  `bg-card` with a hairline border. Translucent panels over the brand wash turn
-  muddy and were part of the look being replaced.
+- **The two sticky headers are the one deliberate blur.** `SiteHeader` and
+  `DashShell`'s header are `bg-card/85 backdrop-blur-xl`, because rows really
+  do scroll under them. Every other surface is opaque: a translucent panel over
+  the brand wash turns muddy. Do not copy the blur onto a card.
 - **Dark mode is deep indigo, not blue-black.** `.dark` is the same saturated
   identity turned down: a near-black indigo canvas, and the primary becomes a
   lighter violet so it still reads on the dark surface. Do not "fix" dark mode

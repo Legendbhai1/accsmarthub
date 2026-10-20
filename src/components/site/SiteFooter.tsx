@@ -36,7 +36,13 @@ const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
 
 export function SiteFooter() {
   return (
-    <footer className="mt-24 border-t border-border/70">
+    <footer className="relative mt-24 border-t border-border/70 bg-muted/30">
+      {/* The brand ramp as a hairline across the top of the footer, so the page
+          closes on the same colour it opened with. */}
+      <span
+        aria-hidden="true"
+        className="brand-rule absolute inset-x-0 top-0 h-px"
+      />
       <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
@@ -56,7 +62,7 @@ export function SiteFooter() {
                   key={brand}
                   href="#"
                   aria-label={label}
-                  className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
+                  className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary hover:shadow-md"
                 >
                   <BrandMark brand={brand} className="size-4" />
                 </a>
@@ -66,14 +72,17 @@ export function SiteFooter() {
 
           {COLUMNS.map((col) => (
             <nav key={col.title} aria-label={col.title}>
-              <h3 className="text-sm font-semibold">{col.title}</h3>
+              <h3 className="font-display text-sm font-bold tracking-tight">
+                {col.title}
+              </h3>
               <ul className="mt-4 space-y-2.5">
                 {col.links.map((link) => (
                   <li key={link.label}>
                     <Link
                       to={link.to}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      className="group inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-primary"
                     >
+                      <span className="mr-0 h-px w-0 bg-primary transition-all duration-200 group-hover:mr-1.5 group-hover:w-3" />
                       {link.label}
                     </Link>
                   </li>

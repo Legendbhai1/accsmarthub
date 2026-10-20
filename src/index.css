@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* Dark mode follows a class on <html> rather than the OS preference: the user
@@ -40,10 +40,15 @@
   --color-chart-3: hsl(var(--chart-3));
   --color-chart-4: hsl(var(--chart-4));
   --color-chart-5: hsl(var(--chart-5));
-  /* Two extra brand hues, so a gradient or a coloured chip has real colours to
-     draw on instead of fading the primary toward transparent. */
+  /* The brand ramp. `--pop-*` are the extra hues a colourful storefront needs
+     for per-section variety (a category tile, a badge, a stat) so every block
+     does not reach for the same violet. */
   --color-brand-2: hsl(var(--brand-2));
   --color-brand-3: hsl(var(--brand-3));
+  --color-pop-pink: hsl(var(--pop-pink));
+  --color-pop-orange: hsl(var(--pop-orange));
+  --color-pop-cyan: hsl(var(--pop-cyan));
+  --color-pop-green: hsl(var(--pop-green));
   /* Brand-system tokens: the pressed/hover shade of the primary action, the
      second elevation surface, and the amber detail accent. Registered here so
      `bg-primary-hover`, `bg-surface-2` and `text-bronze` exist. */
@@ -51,7 +56,11 @@
   --color-surface-2: hsl(var(--surface-2));
   --color-bronze: hsl(var(--bronze));
 
-  --font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  /* Sora is the display face — geometric, confident, unmistakably a product
+     headline. Plus Jakarta Sans is the interface face: humanist and very
+     legible at the sizes a marketplace table and a form label use. */
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif;
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -60,95 +69,106 @@
 
 @layer base {
   /*
-   * Vibrant commerce: a saturated brand ramp on clean, neutral surfaces.
+   * Vibrant commerce: a saturated brand ramp on a clean white canvas.
    *
-   * The palette is a professional marketplace set. Near-white canvas
-   * (#F7F8FC), pure-white cards, deep ink (#12172B) for text, and a single
-   * vivid violet (#7C3AED) as the action colour, with magenta and amber as the
-   * two supporting brand hues for gradients and detail accents. Status keeps
-   * its own green / amber / red / sky so a badge means what it says and never
-   * borrows the brand hue.
+   * The canvas is white (#FFFFFF), the card is white lifted by a soft shadow so
+   * it reads as a raised surface rather than a bordered box, and the text is a
+   * deep ink (#0B1020). The brand is a violet -> fuchsia -> amber ramp, with
+   * four extra pop hues (pink, orange, cyan, green) so different sections of
+   * the storefront carry different colour instead of one hue everywhere.
    *
-   * The rule the palette is built on is unchanged from before: surfaces stay
-   * neutral and light, and colour carries meaning — this is the action, this is
-   * live, this needs attention, this is the brand. What changed is that the
-   * colour is now saturated rather than a warm neutral, so the site reads as a
-   * modern e-commerce storefront rather than a boutique finance page.
+   * Status keeps its own green / amber / red / sky so a badge means what it
+   * says and never borrows the brand hue.
    */
   :root {
-    /* Canvas and text. Near-white page, deep ink. */
-    --background: 228 45% 98%;       /* #F7F8FC */
-    --foreground: 228 41% 12%;       /* #12172B */
+    /* White canvas, deep ink. */
+    --background: 0 0% 100%;         /* #FFFFFF */
+    --foreground: 224 51% 8%;        /* #0B1020 */
     --card: 0 0% 100%;               /* #FFFFFF */
-    --card-foreground: 228 41% 12%;
+    --card-foreground: 224 51% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 228 41% 12%;
+    --popover-foreground: 224 51% 8%;
     /* The action colour: a vivid violet, with its pressed shade beside it. */
-    --primary: 262 83% 58%;          /* #7C3AED */
+    --primary: 262 88% 60%;          /* #7C3AED */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 263 70% 50%;    /* #6D28D9 */
+    --primary-hover: 263 80% 51%;    /* #6D28D9 */
     /* Tinted secondary surfaces — a soft lavender wash. */
-    --secondary: 251 91% 95%;        /* #EDE9FE */
-    --secondary-foreground: 262 60% 30%;
-    --muted: 210 40% 96%;            /* #F1F5F9 */
-    --muted-foreground: 215 16% 47%; /* #64748B */
-    --accent: 269 100% 95%;          /* #F3E8FF */
-    --accent-foreground: 262 60% 30%;
+    --secondary: 251 100% 96%;       /* #F1ECFF */
+    --secondary-foreground: 262 60% 32%;
+    --muted: 220 33% 97%;            /* #F6F8FC */
+    --muted-foreground: 220 12% 45%; /* #656D80 */
+    --accent: 269 100% 96%;          /* #F5EBFF */
+    --accent-foreground: 262 60% 32%;
     --surface-2: 248 100% 98%;       /* #F8F7FF */
     /* Status. Kept off the brand hue so a badge means what it says. */
-    --destructive: 347 77% 50%;      /* #E11D48 */
+    --destructive: 347 83% 52%;      /* #EB1D4E */
     --destructive-foreground: 0 0% 100%;
-    --success: 142 76% 36%;          /* #16A34A */
-    --warning: 26 90% 37%;           /* #B45309 */
+    --success: 142 71% 37%;          /* #16A34A */
+    --warning: 26 90% 40%;           /* #B45309 */
     --info: 200 98% 39%;             /* #0284C7 */
-    --border: 220 13% 91%;           /* #E5E7EB */
-    --input: 220 13% 91%;
-    --ring: 262 83% 58%;             /* violet focus ring */
-    --bronze: 38 92% 50%;            /* #F59E0B — amber detail accent */
+    --border: 220 20% 92%;           /* #E6E9F0 */
+    --input: 220 20% 92%;
+    --ring: 262 88% 60%;             /* violet focus ring */
+    --bronze: 38 96% 51%;            /* #F59E0B — amber detail accent */
+    /* The brand ramp plus the four pop hues the colourful sections draw on. */
+    --brand-2: 330 85% 58%;          /* #EE2C86 fuchsia */
+    --brand-3: 38 96% 51%;           /* #F59E0B amber */
+    --pop-pink: 330 85% 58%;         /* #EE2C86 */
+    --pop-orange: 24 95% 55%;        /* #F97316 */
+    --pop-cyan: 189 94% 43%;         /* #06B6D4 */
+    --pop-green: 160 84% 39%;        /* #10B981 */
     /* 12px base. Tailwind's `rounded-lg`/`xl`/`2xl` land on 8/12/16px, which
        is the whole radius system — nothing here is a pill. */
     --radius: 0.75rem;
-    /* The brand ramp: violet -> magenta -> amber. Used flat as a single hue, or
-       swept as a gradient for the wordmark, the hero wash and the CTA panel. */
-    --brand-2: 333 71% 51%;          /* #DB2777 magenta */
-    --brand-3: 38 92% 50%;           /* #F59E0B amber */
-    --chart-1: 262 83% 58%;          /* violet */
-    --chart-2: 333 71% 51%;          /* magenta */
-    --chart-3: 142 76% 36%;          /* success */
-    --chart-4: 38 92% 50%;           /* amber */
-    --chart-5: 200 98% 39%;          /* sky */
+    --chart-1: 262 88% 60%;          /* violet */
+    --chart-2: 330 85% 58%;          /* fuchsia */
+    --chart-3: 142 71% 37%;          /* green */
+    --chart-4: 38 96% 51%;           /* amber */
+    --chart-5: 189 94% 43%;          /* cyan */
+    /* A soft ambient shadow ramp. Cards lift off the white canvas with these
+       rather than a hard border, which is what makes the surface read modern. */
+    --shadow-sm: 0 1px 2px 0 hsl(224 51% 8% / 0.05);
+    --shadow-md: 0 4px 14px -4px hsl(224 51% 8% / 0.1);
+    --shadow-lg: 0 18px 40px -18px hsl(224 51% 8% / 0.22);
   }
 
-  /* The dark appearance is deep indigo, not blue-black: the same saturated
-     identity turned down, so the theme toggle does not swap the brand. */
+  /* The dark appearance is a deep indigo, not blue-black: the same saturated
+     identity turned down, with the primary lightened so it still reads. */
   .dark {
-    --background: 227 46% 8%;        /* #0B0F1E */
-    --foreground: 225 55% 96%;       /* #EEF1FA */
-    --card: 226 39% 13%;             /* #141A2E */
-    --card-foreground: 225 55% 96%;
-    --popover: 225 38% 15%;          /* #171E33 */
-    --popover-foreground: 225 55% 96%;
-    --primary: 255 92% 76%;          /* #A78BFA */
-    --primary-foreground: 255 60% 12%;
-    --primary-hover: 252 95% 85%;    /* #C4B5FD */
-    --secondary: 228 36% 18%;        /* #1E2540 */
+    --background: 228 40% 7%;        /* #0B0F1B */
+    --foreground: 225 45% 96%;       /* #EEF1FA */
+    --card: 226 33% 11%;             /* #131829 */
+    --card-foreground: 225 45% 96%;
+    --popover: 226 33% 13%;          /* #161C30 */
+    --popover-foreground: 225 45% 96%;
+    --primary: 258 92% 76%;          /* #A78BFA */
+    --primary-foreground: 258 60% 12%;
+    --primary-hover: 255 95% 85%;    /* #C4B5FD */
+    --secondary: 228 30% 17%;        /* #1E2540 */
     --secondary-foreground: 251 91% 92%;
-    --muted: 225 34% 16%;            /* #1B2237 */
-    --muted-foreground: 223 23% 71%; /* #A3ADC6 */
-    --accent: 228 36% 21%;           /* #232B4A */
+    --muted: 226 28% 15%;            /* #1B2135 */
+    --muted-foreground: 223 20% 70%; /* #A2ABC2 */
+    --accent: 228 30% 20%;           /* #232B4A */
     --accent-foreground: 251 91% 92%;
-    --surface-2: 226 37% 16%;        /* #1A2138 */
+    --surface-2: 226 30% 14%;        /* #191F32 */
     --destructive: 351 95% 71%;      /* #FB7185 */
     --destructive-foreground: 0 0% 100%;
     --success: 142 69% 58%;          /* #4ADE80 */
     --warning: 43 96% 56%;           /* #FBBF24 */
     --info: 198 93% 60%;             /* #38BDF8 */
-    --border: 227 32% 22%;           /* #262E4A */
-    --input: 227 34% 25%;            /* #2A3355 */
-    --ring: 255 92% 76%;             /* #A78BFA */
+    --border: 227 26% 20%;           /* #262D45 */
+    --input: 227 28% 23%;            /* #2A3355 */
+    --ring: 258 92% 76%;             /* #A78BFA */
     --bronze: 43 96% 56%;            /* #FBBF24 */
     --brand-2: 329 86% 70%;          /* #F472B6 */
     --brand-3: 43 96% 56%;           /* #FBBF24 */
+    --pop-pink: 329 86% 70%;         /* #F472B6 */
+    --pop-orange: 27 96% 62%;        /* #FB923C */
+    --pop-cyan: 187 92% 62%;         /* #22D3EE */
+    --pop-green: 158 74% 55%;        /* #34D399 */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 4px 14px -4px hsl(0 0% 0% / 0.5);
+    --shadow-lg: 0 18px 40px -18px hsl(0 0% 0% / 0.6);
   }
 
   * {
@@ -157,10 +177,8 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    /* Slightly tighter than the browser default: this density reads better at
-       the sizes the marketplace uses. */
-    line-height: 1.55;
+    font-family: var(--font-sans);
+    line-height: 1.6;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -170,26 +188,26 @@
   h2,
   h3,
   h4 {
-    @apply font-semibold tracking-tight;
+    font-family: var(--font-display);
+    @apply font-bold tracking-tight;
     text-wrap: balance;
   }
 
-  /* The refined serif, for the one or two marketing headlines that carry the
-     brand voice. Interface text stays Inter: a serif on a table or a form
-     label would read as an editorial site, not a marketplace. */
+  /* The display face, for the marketing headlines that carry the brand voice.
+     Interface text stays Plus Jakarta Sans: a geometric display face on a table
+     or a form label would read as a landing page, not a marketplace. */
   .font-display {
     font-family: var(--font-display);
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
-  /* Long listing titles and order references should not leave ragged gaps. */
   p {
     text-wrap: pretty;
   }
 
   ::selection {
-    background-color: hsl(var(--ring) / 0.2);
+    background-color: hsl(var(--primary) / 0.22);
   }
 
   :focus-visible {
@@ -210,6 +228,24 @@
 
   html {
     scroll-behavior: smooth;
+  }
+
+  /* A slim scrollbar that tints to the brand on hover. Decorative, and it
+     degrades to the platform default wherever these are unsupported. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--primary) / 0.55);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -265,6 +301,102 @@
     }
   }
 
+  /* ---------------------------------------------------------------------
+   * Motion
+   *
+   * The decorative keyframes the storefront animates with. Every one of them is
+   * neutralised by the `prefers-reduced-motion` block in `@layer base`, so none
+   * of them needs its own guard.
+   * ------------------------------------------------------------------- */
+
+  /* A slow drift for the floating colour orbs behind the hero. */
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(0, -22px, 0) scale(1.06);
+    }
+  }
+
+  .animate-float {
+    animation: float 9s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float 14s ease-in-out infinite;
+  }
+
+  /* A sheen that sweeps across a surface on hover. */
+  @keyframes sheen {
+    from {
+      transform: translateX(-130%) skewX(-18deg);
+    }
+    to {
+      transform: translateX(230%) skewX(-18deg);
+    }
+  }
+
+  /* A slow pan of a gradient, so a large brand fill is never static. */
+  @keyframes gradient-pan {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* A soft breathing pulse for a "live" status dot. */
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.35);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2.4s ease-in-out infinite;
+  }
+
+  /* A marquee for the trusted-platforms strip. */
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee 32s linear infinite;
+  }
+
+  .marquee-mask {
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 12%,
+      #000 88%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 12%,
+      #000 88%,
+      transparent 100%
+    );
+  }
+
   /* Legacy aliases. `text-gradient` and `page-title-accent` now resolve to the
      one brand fill, so there is a single accent definition rather than several
      that can drift apart. `text-gradient` is a real gradient sweep in the brand
@@ -273,11 +405,14 @@
     background-image: linear-gradient(
       100deg,
       hsl(var(--primary)) 0%,
-      hsl(var(--brand-2)) 100%
+      hsl(var(--brand-2)) 45%,
+      hsl(var(--brand-3)) 100%
     );
+    background-size: 220% 100%;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    animation: gradient-pan 7s ease-in-out infinite;
   }
 
   .page-title-accent {
@@ -292,8 +427,8 @@
    * Anything that needs "this is the brand" uses this class rather than
    * picking a hue, so it can be retuned in one place.
    *
-   * It sweeps violet -> magenta at 135°, which is what gives the storefront its
-   * colour identity. It stops at magenta on purpose: amber is a lighter hue, so
+   * It sweeps violet -> fuchsia at 135°, which is what gives the storefront its
+   * colour identity. It stops at fuchsia on purpose: amber is a lighter hue, so
    * ending the ramp on it would drop the contrast of the white text these
    * panels carry. Amber still appears in the hero wash and as the bronze
    * hairline, where nothing sits on top of it.
@@ -305,6 +440,21 @@
       hsl(var(--primary)) 0%,
       hsl(var(--brand-2)) 100%
     );
+  }
+
+  /* The same sweep, but wide enough to pan — for a large hero or CTA panel
+     where a static fill would look flat. It stays inside violet -> fuchsia so
+     the white text these panels carry keeps its contrast; the extra pop hues
+     reach the page through the orbs and the icon tiles instead. */
+  .brand-gradient-animated {
+    background-image: linear-gradient(
+      115deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--brand-2)) 45%,
+      hsl(var(--primary)) 100%
+    );
+    background-size: 220% 220%;
+    animation: gradient-pan 12s ease-in-out infinite;
   }
 
   /* The same fill as text: a solid brand hue, so a heading reads as one
@@ -324,24 +474,24 @@
     );
   }
 
-  /* A soft multi-hue wash for the hero: the brand ramp at low opacity, so the
-     headline sits on colour without any of it competing with the copy. */
+  /* A soft multi-hue wash for the hero: the brand ramp plus a cyan bloom at low
+     opacity, so the headline sits on colour without any of it competing. */
   .warm-wash {
     background-image:
       radial-gradient(
-        110% 90% at 10% 0%,
-        hsl(var(--primary) / 0.16) 0%,
+        90% 70% at 8% 0%,
+        hsl(var(--primary) / 0.22) 0%,
         transparent 58%
       ),
       radial-gradient(
-        90% 80% at 92% 2%,
-        hsl(var(--brand-2) / 0.14) 0%,
-        transparent 60%
+        70% 60% at 96% 4%,
+        hsl(var(--brand-2) / 0.2) 0%,
+        transparent 58%
       ),
       radial-gradient(
-        120% 70% at 50% 100%,
-        hsl(var(--brand-3) / 0.12) 0%,
-        transparent 62%
+        80% 60% at 60% 100%,
+        hsl(var(--pop-cyan) / 0.16) 0%,
+        transparent 60%
       );
   }
 
@@ -349,67 +499,85 @@
   .brand-wash {
     background-image:
       radial-gradient(
-        110% 90% at 10% 0%,
-        hsl(var(--primary) / 0.16) 0%,
+        90% 70% at 8% 0%,
+        hsl(var(--primary) / 0.22) 0%,
         transparent 58%
       ),
       radial-gradient(
-        90% 80% at 92% 2%,
-        hsl(var(--brand-2) / 0.14) 0%,
-        transparent 60%
+        70% 60% at 96% 4%,
+        hsl(var(--brand-2) / 0.2) 0%,
+        transparent 58%
       ),
       radial-gradient(
-        120% 70% at 50% 100%,
-        hsl(var(--brand-3) / 0.12) 0%,
-        transparent 62%
+        80% 60% at 60% 100%,
+        hsl(var(--pop-cyan) / 0.16) 0%,
+        transparent 60%
       );
+  }
+
+  /* A fine grid, faint, used behind the hero to give the white canvas texture.
+     Fades out toward the bottom so it never competes with the copy. */
+  .grid-veil {
+    background-image:
+      linear-gradient(hsl(var(--foreground) / 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--foreground) / 0.045) 1px, transparent 1px);
+    background-size: 46px 46px;
+    mask-image: radial-gradient(120% 90% at 50% 0%, #000 0%, transparent 72%);
+    -webkit-mask-image: radial-gradient(
+      120% 90% at 50% 0%,
+      #000 0%,
+      transparent 72%
+    );
+  }
+
+  /* A free-floating blurred colour orb. `--orb` is set inline by the caller. */
+  .orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(60px);
+    opacity: 0.55;
+    background: radial-gradient(
+      circle at 30% 30%,
+      hsl(var(--orb)),
+      transparent 70%
+    );
+    pointer-events: none;
   }
 
   /* ---------------------------------------------------------------------
    * Surfaces
    *
-   * One opaque card and one inset well. The old shell put a translucent
-   * `.glass` on nearly every block, which on a phone is a full-screen
-   * compositing pass per card and reads muddy over the ambient wash. Surfaces
-   * are opaque now; blur is reserved for the sticky bars where content really
-   * does scroll underneath.
-   *
-   * Colour rule: a surface stays neutral. The brand shows up as a hairline, a
-   * ring, an icon tile or a badge — not as a tinted background on every card,
-   * which is what made the palette look childish.
+   * The card is white on a white canvas, lifted by a shadow rather than a
+   * heavy border. That is what makes the surface read as a raised product card
+   * instead of a boxed panel.
    * ------------------------------------------------------------------- */
 
   .surface {
     @apply rounded-xl border border-border bg-card;
+    box-shadow: var(--shadow-sm);
   }
 
-  /* A card that should read as "the brand is here" — the featured listing, the
-     active plan. Same neutral body, with a brand hairline along the top and a
-     ring, rather than a saturated fill. */
+  /* A card that should read as "the brand is here": the same white body, with
+     a brand ring and a deeper lift on hover. */
   .surface-brand {
-    @apply relative overflow-hidden rounded-xl border border-border bg-card ring-1 ring-primary/20;
+    @apply relative overflow-hidden rounded-xl border border-border bg-card ring-1 ring-primary/25;
+    box-shadow: var(--shadow-md);
   }
 
-  /* Second elevation, for a panel that sits on top of a `.surface` — a
-     summary block inside a card, or a nested list container. Slightly darker
-     than the card in light mode and lighter in dark, so the two stay
-     distinguishable in both themes without a shadow. */
+  /* Second elevation, for a panel that sits on top of a `.surface`. */
   .surface-2 {
-    @apply rounded-xl border border-border/70 bg-muted/40;
+    @apply rounded-xl border border-border/70 bg-muted/50;
   }
 
-  /* The dark statement panel (homepage CTA, marketplace sell prompt). It was
-     referenced as `ink-panel` for a long time without ever being defined, so
-     those two blocks rendered as plain unlabelled text on the page
-     background. Defined once here, token-driven, so it tracks the theme. */
+  /* The statement panel (homepage CTA, marketplace sell prompt). */
   .ink-panel {
     @apply rounded-2xl border border-border bg-foreground text-background;
   }
 
   /* A coloured icon tile — the small square that fronts a stat, a section or a
-     nav item. `--tile` is set inline by the caller to one of the status or
-     brand hues; the tile supplies the tint and the ring so every tile in the
-     app has identical geometry. */
+     nav item. `--tile` is set inline by the caller to one of the brand or pop
+     hues; the tile supplies the tint and the ring so every tile in the app has
+     identical geometry. */
   .icon-tile {
     @apply flex shrink-0 items-center justify-center rounded-xl;
     background-color: hsl(var(--tile) / 0.14);
@@ -417,16 +585,65 @@
     box-shadow: inset 0 0 0 1px hsl(var(--tile) / 0.22);
   }
 
-  /* `.card` was used by eight pages and defined nowhere — the panels rendered
-     with no border, no radius and no background at all. It is now an alias of
-     `.surface` rather than a second, subtly different card, so the two names
-     cannot drift apart. */
+  /* The same tile as a solid brand fill, for a section head that should pop. */
+  .icon-tile-solid {
+    @apply flex shrink-0 items-center justify-center rounded-xl text-white;
+    background-image: linear-gradient(
+      135deg,
+      hsl(var(--tile)) 0%,
+      hsl(var(--tile) / 0.72) 100%
+    );
+    box-shadow: var(--shadow-md);
+  }
+
+  /* `.card` is an alias of `.surface` so the two names cannot drift apart. */
   .card {
     @apply rounded-xl border border-border bg-card;
+    box-shadow: var(--shadow-sm);
   }
 
   .inset-well {
-    @apply rounded-lg border border-border/60 bg-muted/40;
+    @apply rounded-lg border border-border/60 bg-muted/50;
+  }
+
+  /* A product card that lifts and glows on hover. */
+  .card-hover {
+    transition:
+      transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 200ms ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: hsl(var(--primary) / 0.4);
+  }
+
+  /* The sheen sweep that rides across a surface on hover. */
+  .sheen {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      hsl(0 0% 100% / 0.35) 50%,
+      transparent 80%
+    );
+    transform: translateX(-130%) skewX(-18deg);
+    pointer-events: none;
+  }
+
+  .sheen:hover::after {
+    animation: sheen 0.9s ease;
   }
 
   /* ---------------------------------------------------------------------
@@ -515,5 +732,6 @@
 
   .seller-editor {
     @apply rounded-xl border border-border bg-card p-6 text-card-foreground;
+    box-shadow: var(--shadow-sm);
   }
 }
