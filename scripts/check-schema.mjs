@@ -192,6 +192,9 @@ const SENTINELS = [
               and exists (select 1 from information_schema.columns
                 where table_schema = 'public' and table_name = 'stores'
                   and column_name = 'ownership_attested')
+              and exists (select 1 from information_schema.columns
+                where table_schema = 'public' and table_name = 'stores'
+                  and column_name = 'agreement_version')
               and to_regclass('public.store_application_events') is not null
               and position('approved' in coalesce(
                     (select pg_get_expr(polwithcheck, polrelid) from pg_policy

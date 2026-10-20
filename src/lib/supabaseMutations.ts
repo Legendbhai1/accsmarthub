@@ -225,9 +225,7 @@ export type SubmitStoreInput = {
   platforms: string[];
   deliverySpeed: string;
   accessFormat: string;
-  replacementPolicy: string;
   restrictedRegions: string;
-  sourcing: string;
   contactPolicyAccepted: boolean;
   /**
    * Every field below is OPTIONAL, and `undefined` means "the caller did not
@@ -243,14 +241,17 @@ export type SubmitStoreInput = {
   logoPath?: string | null;
   bannerPath?: string | null;
   categories?: string[];
+  /**
+   * The application questions the wizard no longer asks — the warranty and
+   * refund terms (question 4) and the support details (question 5) — stay
+   * optional and are simply left untouched, so an existing store's stored
+   * values are preserved rather than blanked. The settings form still edits
+   * them.
+   */
+  replacementPolicy?: string;
   refundPolicy?: string;
   warrantyHours?: string | number | null;
-  /**
-   * The four application questions removed from the wizard (support details
-   * and the ownership attestation) are no longer collected from a new
-   * applicant, so these stay optional and are simply left untouched — an
-   * existing store's stored values are preserved rather than blanked.
-   */
+  sourcing?: string;
   supportEmail?: string;
   supportHours?: string;
   supportChannel?: string;
@@ -267,6 +268,15 @@ function defined<T extends Record<string, unknown>>(input: T) {
   return Object.fromEntries(
     Object.entries(input).filter(([, value]) => value !== undefined),
   ) as Partial<T>;
+}
+
+/**
+ * An optional text column. `undefined` means "the caller did not mention it —
+ * leave the stored value alone"; an empty string is a deliberate clear and
+ * becomes `null`, matching every other optional column here.
+ */
+function optionalText(value: string | null | undefined) {
+  return value === undefined ? undefined : value || null;
 }
 
 /**
@@ -386,29 +396,24 @@ export async function submitStore(input: SubmitStoreInput) {
     platforms: input.platforms,
     delivery_speed: input.deliverySpeed || null,
     access_format: input.accessFormat || null,
-    replacement_policy: input.replacementPolicy || null,
-    restricted_regions: input.restrictedRegions || null,
-    sourcing: input.sourcing || null,
     contact_policy: true,
     ...defined({
       logo_path: input.logoPath,
       banner_path: input.bannerPath,
       categories: input.categories,
-      refund_policy: input.refundPolicy,
+      restricted_regions: optionalText(input.restrictedRegions),
+      replacement_policy: optionalText(input.replacementPolicy),
+      sourcing: optionalText(input.sourcing),
+      refund_policy: optionalText(input.refundPolicy),
       warranty_hours:
         input.warrantyHours === undefined
           ? undefined
           : input.warrantyHours == null || input.warrantyHours === ""
             ? null
             : Number(input.warrantyHours),
-      support_email:
-        input.supportEmail === undefined ? undefined : input.supportEmail || null,
-      support_hours:
-        input.supportHours === undefined ? undefined : input.supportHours || null,
-      support_channel:
-        input.supportChannel === undefined
-          ? undefined
-          : input.supportChannel || null,
+      support_email: optionalText(input.supportEmail),
+      support_hours: optionalText(input.supportHours),
+      support_channel: optionalText(input.supportChannel),
       // The attestation is recorded with the moment it was made, so a
       // resubmission that leaves it out keeps the original timestamp.
       ownership_attested: input.ownershipAttested,
@@ -512,32 +517,23 @@ export async function updateStore(storeId: string, input: SubmitStoreInput) {
     platforms: input.platforms,
     delivery_speed: input.deliverySpeed || null,
     access_format: input.accessFormat || null,
-    replacement_policy: input.replacementPolicy || null,
-    restricted_regions: input.restrictedRegions || null,
-    sourcing: input.sourcing || null,
     contact_policy: input.contactPolicyAccepted,
     // Omitted, not blanked — same rule as `submitStore`.
     ...defined({
       categories: input.categories,
-      refund_policy: input.refundPolicy,
+      restricted_regions: optionalText(input.restrictedRegions),
+      replacement_policy: optionalText(input.replacementPolicy),
+      sourcing: optionalText(input.sourcing),
+      refund_policy: optionalText(input.refundPolicy),
       warranty_hours:
         input.warrantyHours === undefined
           ? undefined
           : input.warrantyHours == null || input.warrantyHours === ""
             ? null
             : Number(input.warrantyHours),
-      support_email:
-        input.supportEmail === undefined
-          ? undefined
-          : input.supportEmail || null,
-      support_hours:
-        input.supportHours === undefined
-          ? undefined
-          : input.supportHours || null,
-      support_channel:
-        input.supportChannel === undefined
-          ? undefined
-          : input.supportChannel || null,
+      support_email: optionalText(input.supportEmail),
+      support_hours: optionalText(input.supportHours),
+      support_channel: optionalText(input.supportChannel),
       ownership_attested: input.ownershipAttested,
       agreement_version: input.agreementVersion,
     }),

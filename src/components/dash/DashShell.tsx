@@ -226,12 +226,13 @@ function WorkspaceSwitcher({ links }: { links: Workspace[] }) {
       size="sm"
       className="h-9 rounded-lg px-2.5 text-xs"
     >
-      {/* The label is hidden on the narrowest screens, where the header has no
-          room for it, so the name has to come from `aria-label` — otherwise
-          the control is a bare icon with no accessible name. */}
+      {/* The label is shown at every width. Hiding it below `sm` left a bare
+          icon on a phone, which is exactly where the rail is a drawer and the
+          switcher is the only visible way to change workspace — so the one
+          place the control mattered most was the one place it had no name. */}
       <Link to={to} aria-label={label}>
         <Icon className="size-3.5" aria-hidden="true" />
-        <span className="hidden sm:inline">{label}</span>
+        <span className="whitespace-nowrap">{label}</span>
       </Link>
     </Button>
   );
@@ -343,7 +344,11 @@ export function DashShell({
               {subtitle && <p>{subtitle}</p>}
             </div>
 
-            <div className="flex min-w-0 items-center gap-2 lg:hidden">
+            {/* The wordmark is dropped on the narrowest screens so the
+                labelled workspace switcher fits beside the menu button. The
+                drawer still carries the logo, and the page's own `h1` names
+                where the user is, so nothing is lost. */}
+            <div className="hidden min-w-0 items-center gap-2 sm:flex lg:hidden">
               <Logo />
             </div>
 

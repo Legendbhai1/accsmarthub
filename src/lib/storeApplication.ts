@@ -16,11 +16,8 @@ export type ApplicationDraft = {
   platforms: string[];
   deliverySpeed: string;
   accessFormat: string;
-  warrantyHours: string;
-  replacementPolicy: string;
-  refundPolicy: string;
   restrictedRegions: string;
-  sourcing: string;
+  ownershipAttested: boolean;
 };
 
 export const EMPTY_DRAFT: ApplicationDraft = {
@@ -29,11 +26,8 @@ export const EMPTY_DRAFT: ApplicationDraft = {
   platforms: [],
   deliverySpeed: "",
   accessFormat: "",
-  warrantyHours: "",
-  replacementPolicy: "",
-  refundPolicy: "",
   restrictedRegions: "",
-  sourcing: "",
+  ownershipAttested: false,
 };
 
 /** Bumped when the shape changes, so an old draft is discarded rather than
@@ -44,7 +38,7 @@ export type StepKey =
   | "store"
   | "platforms"
   | "delivery"
-  | "policies";
+  | "compliance";
 
 export type Step = {
   key: StepKey;
@@ -53,6 +47,17 @@ export type Step = {
   blurb: string;
 };
 
+/**
+ * The four questions the application asks, in order.
+ *
+ * It used to ask six: "Warranty & policies" (the fourth) and "Support" (the
+ * fifth) were dropped. Neither answer is shown to a buyer — the warranty and
+ * refund terms a buyer sees come from the listing, not the store — so the two
+ * steps only lengthened the form. The order here is the order the applicant
+ * walks, and the progress bar, the per-step validation, the saved draft, the
+ * submitted payload and the review summary are all derived from it, so nothing
+ * else needs to know how many questions there are.
+ */
 export const STEPS: Step[] = [
   {
     key: "store",
@@ -70,9 +75,9 @@ export const STEPS: Step[] = [
     blurb: "How fast you deliver, and in what format.",
   },
   {
-    key: "policies",
-    title: "Warranty & policies",
-    blurb: "What a buyer can expect if something goes wrong.",
+    key: "compliance",
+    title: "Compliance",
+    blurb: "Confirm you can lawfully transfer the accounts you sell.",
   },
 ];
 
@@ -123,15 +128,9 @@ export function stepError(
         return "Describe the format the buyer receives.";
       }
       return null;
-    case "policies":
-      if (!draft.replacementPolicy.trim()) {
-        return "Describe your replacement policy.";
-      }
-      if (storeApplicationFields && draft.warrantyHours.trim()) {
-        const hours = Number(draft.warrantyHours);
-        if (!Number.isFinite(hours) || hours < 0 || hours > 8760) {
-          return "Warranty must be between 0 and 8760 hours.";
-        }
+    case "compliance":
+      if (!draft.ownershipAttested) {
+        return "You must confirm you own or may transfer the accounts you sell.";
       }
       return null;
   }
@@ -212,11 +211,8 @@ export function draftFromStore(store: {
   platforms?: string[] | null;
   delivery_speed?: string | null;
   access_format?: string | null;
-  warranty_hours?: number | null;
-  replacement_policy?: string | null;
-  refund_policy?: string | null;
   restricted_regions?: string | null;
-  sourcing?: string | null;
+  ownership_attested?: boolean | null;
 }): ApplicationDraft {
   return {
     ...EMPTY_DRAFT,
@@ -225,12 +221,8 @@ export function draftFromStore(store: {
     platforms: store.platforms ?? [],
     deliverySpeed: store.delivery_speed ?? "",
     accessFormat: store.access_format ?? "",
-    warrantyHours:
-      store.warranty_hours == null ? "" : String(store.warranty_hours),
-    replacementPolicy: store.replacement_policy ?? "",
-    refundPolicy: store.refund_policy ?? "",
     restrictedRegions: store.restricted_regions ?? "",
-    sourcing: store.sourcing ?? "",
+    ownershipAttested: Boolean(store.ownership_attested),
   };
 }
 

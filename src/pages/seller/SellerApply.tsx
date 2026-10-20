@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { SERVICE_CATEGORIES } from "@/lib/db";
@@ -23,6 +23,7 @@ import { useStoreApplicationEvents } from "@/lib/supabaseQueries";
 import { submitStore, publicAssetUrl } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import {
+  AGREEMENT_VERSION,
   EMPTY_DRAFT,
   STEPS,
   clearDraft,
@@ -386,11 +387,9 @@ function ApplicationWizard({
         categories: draft.categories,
         deliverySpeed: draft.deliverySpeed.trim(),
         accessFormat: draft.accessFormat.trim(),
-        replacementPolicy: draft.replacementPolicy.trim(),
-        refundPolicy: draft.refundPolicy.trim(),
-        warrantyHours: draft.warrantyHours.trim(),
         restrictedRegions: draft.restrictedRegions.trim(),
-        sourcing: draft.sourcing.trim(),
+        ownershipAttested: draft.ownershipAttested,
+        agreementVersion: AGREEMENT_VERSION,
         contactPolicyAccepted: true,
       });
       clearDraft(userId);
@@ -398,9 +397,9 @@ function ApplicationWizard({
         // The row saved, but the server dropped the answers that live in
         // columns migration 0017 adds. Saying "submitted" without this would
         // be a lie the seller only discovers when a reviewer cannot see their
-        // categories or warranty terms.
+        // categories or ownership attestation.
         toast.warning(
-          "Application saved, but this server has not run the store-application migration yet — your categories, warranty and refund policy were not stored. Please contact support.",
+          "Application saved, but this server has not run the store-application migration yet — your categories and ownership attestation were not stored. Please contact support.",
         );
       } else {
         toast.success(
@@ -561,23 +560,15 @@ function ApplicationWizard({
             <ReviewItem label="Delivery speed" value={draft.deliverySpeed} />
             <ReviewItem label="Access format" value={draft.accessFormat} />
             <ReviewItem
-              label="Warranty"
-              value={
-                draft.warrantyHours.trim()
-                  ? `${draft.warrantyHours} hours`
-                  : "Not specified"
-              }
-            />
-            <ReviewItem
-              label="Replacement policy"
-              value={draft.replacementPolicy}
-            />
-            <ReviewItem label="Refund policy" value={draft.refundPolicy} />
-            <ReviewItem
               label="Restricted regions"
               value={draft.restrictedRegions}
             />
-            <ReviewItem label="Sourcing" value={draft.sourcing} />
+            <ReviewItem
+              label="Ownership"
+              value={
+                draft.ownershipAttested ? "Confirmed by the applicant" : ""
+              }
+            />
           </dl>
         </div>
       )}
@@ -723,73 +714,27 @@ function StepFields({
         </div>
       );
 
-    case "policies":
+    case "compliance":
       return (
-        <>
-          {canStoreApplicationFields && (
-            <div className="space-y-2">
-              <Label htmlFor="warranty-hours">
-                Warranty period in hours{" "}
-                <span className="font-normal text-muted-foreground">
-                  (optional)
-                </span>
-              </Label>
-              <Input
-                id="warranty-hours"
-                type="number"
-                min={0}
-                max={8760}
-                value={draft.warrantyHours}
-                onChange={(e) => update({ warrantyHours: e.target.value })}
-                placeholder="e.g. 72"
-              />
-              <p className="text-xs text-muted-foreground">
-                How long after delivery you will replace the account if the buyer
-                reports a valid problem.
-              </p>
-            </div>
-          )}
-          <div className="space-y-2">
-            <Label htmlFor="replacement-policy">Replacement policy</Label>
-            <Textarea
-              id="replacement-policy"
-              value={draft.replacementPolicy}
-              onChange={(e) => update({ replacementPolicy: e.target.value })}
-              placeholder="What happens when a buyer's issue is valid?"
-              className="min-h-24 resize-none"
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-4">
+            <Checkbox
+              id="ownership-attested"
+              checked={draft.ownershipAttested}
+              onCheckedChange={(checked) =>
+                update({ ownershipAttested: checked === true })
+              }
             />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="refund-policy">
-              Refund policy{" "}
-              <span className="font-normal text-muted-foreground">
-                (optional)
-              </span>
+            <Label
+              htmlFor="ownership-attested"
+              className="text-sm font-normal leading-relaxed"
+            >
+              I confirm I own these accounts, or am permitted by their owner to
+              transfer them, and that I will not list accounts I cannot lawfully
+              hand over.
             </Label>
-            <Textarea
-              id="refund-policy"
-              value={draft.refundPolicy}
-              onChange={(e) => update({ refundPolicy: e.target.value })}
-              placeholder="When you offer a refund instead of a replacement."
-              className="min-h-24 resize-none"
-            />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="sourcing">
-              Sourcing{" "}
-              <span className="font-normal text-muted-foreground">
-                (optional)
-              </span>
-            </Label>
-            <Textarea
-              id="sourcing"
-              value={draft.sourcing}
-              onChange={(e) => update({ sourcing: e.target.value })}
-              placeholder="How you vet the accounts you sell."
-              className="min-h-24 resize-none"
-            />
-          </div>
-        </>
+        </div>
       );
   }
 }

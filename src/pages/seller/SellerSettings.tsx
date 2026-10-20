@@ -73,8 +73,8 @@ export default function SellerSettings() {
         platforms,
         deliverySpeed,
         accessFormat,
-        replacementPolicy,
         restrictedRegions,
+        replacementPolicy,
         sourcing,
         contactPolicyAccepted,
       });

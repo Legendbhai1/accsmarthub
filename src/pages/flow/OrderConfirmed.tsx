@@ -122,11 +122,28 @@ export default function OrderConfirmed() {
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="surface w-full p-10"
       >
-        <LottieAnimation
-          name="order-confirmed"
-          size={148}
-          label="Order confirmed"
-        />
+        {/* The animation is the server's confirmation, so it is shown only
+            once the order row has actually come back from Supabase — a buyer
+            who follows a stale or mistyped link gets the neutral mark instead
+            of a celebration for an order that does not exist. */}
+        {order ? (
+          <LottieAnimation
+            name="order-confirmed"
+            size={148}
+            label="Order confirmed"
+          />
+        ) : (
+          <div
+            className="mx-auto flex size-[148px] max-w-full items-center justify-center"
+            aria-hidden="true"
+          >
+            {orderNo ? (
+              <Loader2 className="size-8 animate-spin text-muted-foreground" />
+            ) : (
+              <PackageCheck className="size-12 text-primary" />
+            )}
+          </div>
+        )}
         <h1 className="mt-4 text-2xl font-bold tracking-tight">
           {order ? `Order ${order.order_no} confirmed` : "Order confirmed"}
         </h1>

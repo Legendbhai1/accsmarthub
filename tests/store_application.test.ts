@@ -69,24 +69,34 @@ const complete: ApplicationDraft = {
   platforms: ["instagram"],
   deliverySpeed: "Within 24 hours",
   accessFormat: "Login + recovery guide",
-  replacementPolicy: "Replaced once within the warranty window.",
-  refundPolicy: "Full refund if no replacement is available.",
-  warrantyHours: "72",
   restrictedRegions: "",
-  sourcing: "Sourced from long-standing partners.",
+  ownershipAttested: true,
 };
 
 describe("store application steps", () => {
   it("has four steps and a unique key for each", () => {
-    // The support and compliance steps were removed: neither is shown to a
-    // buyer, so neither earned a place in the application.
+    // Questions 4 ("Warranty & policies") and 5 ("Support") were removed; the
+    // compliance attestation that used to be the sixth step is now the last.
     expect(STEPS).toHaveLength(4);
     expect(STEPS.map((s) => s.key)).toEqual([
       "store",
       "platforms",
       "delivery",
-      "policies",
+      "compliance",
     ]);
+  });
+
+  it("no longer asks the warranty, refund or support questions", () => {
+    const keys = STEPS.map((s) => s.key);
+    expect(keys).not.toContain("policies");
+    expect(keys).not.toContain("support");
+    // And the draft has no field to hold them, so nothing can quietly collect
+    // an answer the wizard does not show.
+    expect(EMPTY_DRAFT).not.toHaveProperty("replacementPolicy");
+    expect(EMPTY_DRAFT).not.toHaveProperty("refundPolicy");
+    expect(EMPTY_DRAFT).not.toHaveProperty("warrantyHours");
+    expect(EMPTY_DRAFT).not.toHaveProperty("sourcing");
+    expect(EMPTY_DRAFT).not.toHaveProperty("supportEmail");
   });
 
   it("starts empty and reports the first step as the blocker", () => {
@@ -118,22 +128,22 @@ describe("step validation", () => {
     expect(stepError({ ...complete, accessFormat: "  " }, "delivery")).toMatch(/format/);
   });
 
-  it("requires a replacement policy but not a refund policy", () => {
-    expect(stepError({ ...complete, replacementPolicy: "" }, "policies")).toMatch(
-      /replacement/,
+  it("requires the ownership attestation to be confirmed", () => {
+    expect(stepError({ ...complete, ownershipAttested: false }, "compliance")).toMatch(
+      /own or may transfer/,
     );
-    expect(stepError({ ...complete, refundPolicy: "" }, "policies")).toBeNull();
+    expect(stepError(complete, "compliance")).toBeNull();
   });
 
-  it("bounds the warranty window to one year", () => {
-    expect(stepError({ ...complete, warrantyHours: "-1" }, "policies")).toMatch(/0 and 8760/);
-    expect(stepError({ ...complete, warrantyHours: "8761" }, "policies")).toMatch(/0 and 8760/);
-    expect(stepError({ ...complete, warrantyHours: "abc" }, "policies")).toMatch(/0 and 8760/);
-    // Empty means "no warranty stated", which is allowed.
-    expect(stepError({ ...complete, warrantyHours: "" }, "policies")).toBeNull();
-    expect(stepError({ ...complete, warrantyHours: "8760" }, "policies")).toBeNull();
+  it("still requires categories only where the column exists", () => {
+    // On a pre-0017 database there is no `categories` column, so the answer is
+    // not demanded. The other rules are unaffected.
+    const withoutColumns = { storeApplicationFields: false };
+    expect(stepError({ ...complete, categories: [] }, "store", withoutColumns)).toBeNull();
+    expect(stepError({ ...complete, ownershipAttested: false }, "compliance", withoutColumns)).toMatch(
+      /own or may transfer/,
+    );
   });
-
 });
 
 describe("final submission re-checks every step", () => {
@@ -166,24 +176,20 @@ describe("resubmission starts from what was submitted", () => {
       platforms: ["instagram", "tiktok"],
       delivery_speed: "Within 24 hours",
       access_format: "Login + recovery guide",
-      warranty_hours: 72,
-      replacement_policy: "Replaced once.",
-      refund_policy: null,
       restricted_regions: null,
-      sourcing: null,
+      ownership_attested: true,
     });
 
     expect(draft.storeName).toBe("Nightowl Digital");
     expect(draft.platforms).toEqual(["instagram", "tiktok"]);
-    // A number column becomes the string the input expects.
-    expect(draft.warrantyHours).toBe("72");
+    expect(draft.ownershipAttested).toBe(true);
     // Nulls become empty strings rather than the text "null".
-    expect(draft.refundPolicy).toBe("");
+    expect(draft.restrictedRegions).toBe("");
   });
 
-  it("treats a missing warranty as no warranty", () => {
-    const draft = draftFromStore({ store_name: "S", warranty_hours: null });
-    expect(draft.warrantyHours).toBe("");
+  it("treats a missing attestation as not confirmed", () => {
+    const draft = draftFromStore({ store_name: "S", ownership_attested: null });
+    expect(draft.ownershipAttested).toBe(false);
   });
 
   it("pins the agreement version so a stored attestation is traceable", () => {
