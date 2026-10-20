@@ -319,9 +319,9 @@ export default function SellerListings() {
         {!storeApproved && (
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
             <Store className="size-3.5 shrink-0 text-primary" />
-            You do not need a store profile to sell. Adding one is optional —
-            buyers see your delivery, warranty and sourcing answers on every
-            listing.{" "}
+            A store profile records how you deliver, what access a buyer
+            receives and which regions you cannot serve, and an admin reviews
+            it. It is what unlocks publishing listings.{" "}
             <Link
               to="/seller/apply"
               className="font-medium text-foreground underline underline-offset-2 hover:no-underline"

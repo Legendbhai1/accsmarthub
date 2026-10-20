@@ -215,3 +215,33 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   needs a schema change to `apply_wallet()` (a `purpose` column), which is a
   financial migration and belongs behind explicit approval.
 
+- **A step list is a contract, and `STEPS` is its only copy.** The seller
+  application now asks four questions — store, platforms, delivery & access,
+  compliance. Questions 4 ("Warranty & policies") and 5 ("Support") were
+  removed. Progress, per-step validation, the saved draft, the submitted
+  payload and the review summary are all *derived* from `STEPS`, so trimming
+  that array is the whole change; do not reintroduce a parallel count.
+- **Dropping a question is not the same as dropping a column.** The warranty,
+  refund and support columns still exist, `SellerSettings` still edits them,
+  and existing stores keep their values. `submitStore` and `updateStore` route
+  every optional column through `defined()`, so a wizard submission *omits* a
+  field it does not collect instead of writing `null` over a value the seller
+  already stored. Writing an unasked field unconditionally is how the settings
+  form used to erase the logo and the warranty window.
+- **The three Lottie animations are success signals, so their trigger is the
+  contract.** `src/assets/animations/*.json` are the exact LottieFiles payloads
+  named in `src/assets/animations/README.md` (IDs and licence), bundled locally
+  rather than fetched from the CDN. Each mounts only on success —
+  `add-to-cart` after `cartAdd` resolves, `shopping-bag` on an empty cart,
+  `order-confirmed` only once the order row is back from Supabase.
+  `tests/animations.test.ts` pins that, plus reduced-motion, accessible text,
+  `loop={false}` and the lazy-loaded chunks. Do not move a player up so it
+  renders before its flow succeeds; that is the failure the tests exist to
+  catch.
+- **The workspace switcher must keep its label at every width.** It was
+  `hidden sm:inline`, which left a bare icon on a phone — the one place the
+  rail is a drawer and the switcher is the only visible way to change
+  workspace. The header wordmark yields below `sm` to make room. The stray
+  chevron that sat beside the hamburger was a *second* control reading as an
+  identical menu button; it was removed, not restyled.
+
