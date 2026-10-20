@@ -198,6 +198,20 @@ const SENTINELS = [
                       where polname = 'insert own listing'
                         and polrelid = 'public.listings'::regclass), '')) > 0`,
   },
+  {
+    file: "0017_store_applications.sql (resubmission guard)",
+    what: "guard_store_moderation permits rejected -> pending",
+    // The lifecycle 0017 describes is only reachable if the guard actually
+    // allows the requeue. 0007 introduced that clause, but production never
+    // ran 0007 and 0013 does not carry the function, so production kept
+    // 0001's version — which pins `status` for every non-admin write and
+    // silently reverted a rejected applicant's resubmission. Nothing else in
+    // this list could see it: the columns, the events table and the listing
+    // policy were all correct while the wizard's Resubmit button did
+    // nothing. Asserting the function's text is the only way to catch it.
+    probe: `select position('rejected' in pg_get_functiondef(
+              'public.guard_store_moderation()'::regprocedure)) > 0`,
+  },
 ];
 
 async function runQuery(query) {

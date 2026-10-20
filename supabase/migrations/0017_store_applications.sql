@@ -170,6 +170,47 @@ create trigger stamp_store_submitted_at before insert or update on public.stores
   for each row execute function public.stamp_store_submitted_at();
 
 -- ---------------------------------------------------------------------
+-- 3b. Resubmission is the one non-admin status change allowed.
+--
+--     0007 rewrote `guard_store_moderation` to permit `rejected -> pending`,
+--     but production never ran 0007 (it was migrated as 0001-0006 then
+--     0013+), and 0013 does not carry this function. So on production the
+--     0001 version was still installed, which pins `status` for every
+--     non-admin write — meaning a rejected applicant's resubmission was
+--     silently reverted and the wizard's "Resubmit" button could never
+--     work, no matter what 0017 did to the timeline.
+--
+--     Defined here so 0017's lifecycle is self-sufficient: it no longer
+--     depends on a migration that a given database may have skipped. The
+--     body is 0007's, unchanged — self-approval (`pending -> approved`) is
+--     still pinned, and the review fields still cannot be written by an
+--     applicant erasing their own rejection note.
+-- ---------------------------------------------------------------------
+create or replace function public.guard_store_moderation()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if public.is_trusted_write() then return new; end if;
+  if new.user_id <> old.user_id then raise exception 'Cannot transfer a store'; end if;
+  if new.status is distinct from old.status
+     and not (old.status = 'rejected' and new.status = 'pending') then
+    new.status := old.status;
+  end if;
+  if new.review_note is distinct from old.review_note
+     or new.reviewed_at is distinct from old.reviewed_at
+     or new.reviewed_by is distinct from old.reviewed_by then
+    new.review_note := old.review_note;
+    new.reviewed_at := old.reviewed_at;
+    new.reviewed_by := old.reviewed_by;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists guard_store_moderation on public.stores;
+create trigger guard_store_moderation before update on public.stores
+  for each row execute function public.guard_store_moderation();
+
+-- ---------------------------------------------------------------------
 -- 4. `review_store()` — same signature and same behaviour, plus the audit
 --    row it should always have written. The rejection path still requires a
 --    reason and still pauses the seller's live listings.

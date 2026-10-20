@@ -83,6 +83,23 @@ node scripts/migrate.mjs --apply \
 `stores`, `listings`, `orders`, `wallets`, `apply_wallet`, `admin_audit`,
 `is_admin`, `can_moderate`, `store_reviews`.
 
+It also redefines `guard_store_moderation()` itself. That is deliberate. `0007`
+is where the resubmission transition (`rejected -> pending`) was introduced,
+but production never ran `0007` and `0013` does not carry the function — so
+production still had `0001`'s version, which pins `status` on every non-admin
+write. A rejected applicant's resubmission was therefore silently reverted:
+the wizard's **Resubmit** button did nothing, with no error, on a database
+where every column and table `0017` creates looked correct. Carrying the guard
+inside `0017` removes that cross-migration dependency, so the lifecycle works
+on the `0001–0006 + 0017` path as well as on the full chain.
+
+One `0007` object is still absent on the minimum path and is **not** carried by
+`0017`: `sync_profile_store_status()`, the trigger that mirrors `stores.status`
+into `profiles.store_status`. Nothing depends on it — `src/lib/session.tsx`
+reads the live `stores` row first and treats the profile column as a fallback
+for accounts with no store at all — so its absence is cosmetic. Applying the
+full range installs it.
+
 ---
 
 ## 3. The 0008 / 0017 interaction — read before applying
@@ -128,7 +145,7 @@ flipped back.
 | `0014` | seller payouts | Low — new tables |
 | `0015` | support request safety | Low |
 | `0016` | `saved_listings` | Low — new table |
-| `0017` | `stores` columns, `store_application_events`, `review_store()` audit, `listings` insert policy, `place_order()` | **Medium** — two function/policy replacements |
+| `0017` | `stores` columns, `store_application_events`, `review_store()` audit, `guard_store_moderation()`, `listings` insert policy, `place_order()` | **Medium** — three function/policy replacements |
 
 ### Reversible?
 
