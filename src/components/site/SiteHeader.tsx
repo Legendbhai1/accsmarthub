@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import {
   Bell,
-  ChevronDown,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -118,12 +117,16 @@ export function SiteHeader() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="rounded-full">
+                  <Button
+                    variant="outline"
+                    className="rounded-full"
+                    aria-label="Account menu"
+                    aria-haspopup="menu"
+                  >
                     <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                       {user.name.charAt(0)}
                     </span>
                     <span className="hidden max-w-24 truncate sm:inline">{user.name}</span>
-                    <ChevronDown className="size-3.5 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52">

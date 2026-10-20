@@ -58,6 +58,7 @@ export default function Disputes() {
     <div className="overflow-x-clip">
       <section className="mx-auto w-full max-w-4xl px-4 pb-12 pt-16 sm:px-6 sm:pt-20">
         <SectionHeading
+          level={1}
           title="Disputes & payment protection"
           subtitle="What to do when an order goes wrong, who decides, and what happens to your money while the case is open."
         />

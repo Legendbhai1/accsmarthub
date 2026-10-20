@@ -95,8 +95,7 @@ export default function SellerAnalytics() {
     <SellerLayout>
       <div className="seller-page space-y-6">
         <div className="seller-page-head">
-          <h2 className="text-2xl font-bold tracking-tight">Analytics</h2>
-          <p className="seller-sub mt-1.5 text-sm text-muted-foreground">
+          <p className="seller-sub text-sm text-muted-foreground">
             Calculated from your actual completed and in-escrow orders.
           </p>
         </div>

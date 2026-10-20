@@ -387,7 +387,18 @@ if (invokedDirectly) {
       const { ok, body } = await post(wrapped);
       if (ok) {
         await post(ledgerStatements(file).record);
-        console.log("  applied");
+        // PostgREST caches the schema, so a migration that adds a column or a
+        // table is invisible to the API — the client keeps getting "column X
+        // does not exist in the schema cache" — until the cache is reloaded.
+        // Newer migration files ask for this themselves, but the older ones do
+        // not, so the runner asks once per applied file. A failed reload must
+        // not fail the migration: the DDL already committed.
+        const reload = await post("notify pgrst, 'reload schema';");
+        console.log(
+          reload.ok
+            ? "  applied (schema cache reloaded)"
+            : "  applied (schema cache reload request failed — reload it from the dashboard if the API still reports missing columns)",
+        );
         return { ok: true };
       }
       console.error(`  FAILED:\n${body}`);

@@ -92,8 +92,7 @@ export default function SellerEarnings() {
     <SellerLayout>
       <div className="seller-page space-y-6">
         <div className="seller-page-head">
-          <h2 className="text-2xl font-bold tracking-tight">Earnings</h2>
-          <p className="seller-sub mt-1 text-sm text-muted-foreground">
+          <p className="seller-sub text-sm text-muted-foreground">
             What you have earned, what escrow still holds, and what you can withdraw.
           </p>
         </div>

@@ -143,6 +143,19 @@ describe("friendlyError explains a rejected listing", () => {
       ),
     ).toBe("You do not have access to that information.");
   });
+
+  it("explains a PostgREST schema-cache miss as a missing migration", () => {
+    // The raw PostgREST text names one column at a time ("Could not find the
+    // 'agreement_version' column of 'stores' in the schema cache"), which
+    // reads like a bug in the form. The cause is an unapplied migration.
+    const message = friendlyError(
+      new Error(
+        "Could not find the 'agreement_version' column of 'stores' in the schema cache",
+      ),
+    );
+    expect(message).not.toMatch(/schema cache/);
+    expect(message).toMatch(/migration/i);
+  });
 });
 
 describe("the switcher is reachable from the dashboard header", () => {
@@ -159,7 +172,51 @@ describe("the switcher is reachable from the dashboard header", () => {
     expect(shell).toMatch(/const secondary = workspaceLinks\(/);
   });
 
-  it("renders the switcher links as navigable anchors", () => {
-    expect(shell).toMatch(/<Link to=\{to\} className="cursor-pointer">/);
+  it("names the destination on the button instead of hiding it in a menu", () => {
+    // A chevron-only menu beside the hamburger read as a second identical
+    // menu button, so the destination is now written on the control.
+    expect(shell).toMatch(/Switch to seller/);
+    expect(shell).toMatch(/Switch to buyer/);
+    expect(shell).not.toMatch(/<ChevronDown/);
+  });
+
+  it("renders the switcher link as a navigable anchor with an accessible name", () => {
+    // The visible label is hidden below `sm`, so `aria-label` is what gives
+    // the control a name on the narrowest screens — otherwise it is a bare
+    // icon and a screen reader announces nothing.
+    expect(shell).toMatch(/<Link to=\{to\} aria-label=\{label\}>/);
+    expect(shell).toMatch(/aria-label=\{label\}/);
+  });
+});
+
+describe("every dashboard page has exactly one h1", () => {
+  const shell = read("src/components/dash/DashShell.tsx");
+
+  it("puts the shell's single h1 in the page head, not the sticky bar", () => {
+    // The shell used to render an `h1` on mobile and the page an `h2` on
+    // desktop, so a desktop document had no `h1` at all and a phone had two.
+    // There is now exactly one `h1`, in the page head, at every width.
+    const headings = shell.match(/<h1/g) ?? [];
+    expect(headings).toHaveLength(1);
+    const pageHead = shell.slice(shell.indexOf('className="page-head'));
+    expect(pageHead).toMatch(/<h1 className="page-title/);
+  });
+
+  it("does not let a page repeat the shell title as its own h1", () => {
+    // A page that renders its own `h1` while the shell renders one gives the
+    // document two top-level headings.
+    const pages = [
+      "src/pages/seller/SellerDashboard.tsx",
+      "src/pages/seller/SellerOrders.tsx",
+      "src/pages/seller/SellerEarnings.tsx",
+      "src/pages/seller/SellerAnalytics.tsx",
+      "src/pages/seller/SellerDisputes.tsx",
+      "src/pages/seller/SellerTransactions.tsx",
+      "src/pages/buyer/BuyerDashboard.tsx",
+      "src/pages/buyer/BuyerProfile.tsx",
+    ];
+    for (const page of pages) {
+      expect(read(page), page).not.toMatch(/<h1/);
+    }
   });
 });

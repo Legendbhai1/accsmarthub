@@ -49,18 +49,25 @@ export default function Home() {
     <div className="overflow-x-clip">
       {/* ------------------------------ Hero ------------------------------ */}
       <section className="relative">
+        {/* The brand wash. Three low-opacity radial tints behind the hero —
+            enough to give the page a colour identity without putting
+            saturated paint behind the copy. */}
+        <div
+          aria-hidden="true"
+          className="brand-wash pointer-events-none absolute inset-0"
+        />
         <motion.section
           initial="hidden"
           animate="visible"
           variants={containerVariants}
-          className="mx-auto w-full max-w-3xl px-4 pb-16 pt-20 text-center sm:px-6 sm:pt-28"
+          className="relative mx-auto w-full max-w-3xl px-4 pb-16 pt-20 text-center sm:px-6 sm:pt-28"
         >
           <motion.div
             variants={cardVariants}
           >
             <Badge
               variant="secondary"
-              className="mb-6 gap-1.5 rounded-full border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-semibold text-primary"
+              className="mb-6 gap-1.5 rounded-full border-primary/30 bg-background/70 px-3.5 py-1.5 text-xs font-semibold text-primary backdrop-blur-sm"
             >
               <ShieldCheck className="size-3.5" />
               Reviewed listings, payment held in-platform
@@ -72,7 +79,7 @@ export default function Home() {
             className="text-4xl font-bold leading-[1.06] tracking-tight sm:text-6xl"
           >
             Buy &amp; sell social media accounts,{" "}
-            <span className="text-gradient">without the risk</span>
+            <span className="brand-text">without the risk</span>
           </motion.h1>
 
           <motion.p
@@ -206,18 +213,18 @@ export default function Home() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         className="mx-auto mt-20 w-full max-w-7xl px-4 pb-20 sm:px-6"
       >
-        <div className="ink-panel relative overflow-hidden px-6 py-12 text-center sm:py-16">
+        <div className="ink-panel brand-gradient relative overflow-hidden border-transparent px-6 py-12 text-center text-primary-foreground sm:py-16">
           <h2 className="relative text-2xl font-bold tracking-tight sm:text-3xl">
             Ready to make your first transfer?
           </h2>
-          <p className="relative mx-auto mt-3 max-w-md text-sm leading-relaxed opacity-70">
+          <p className="relative mx-auto mt-3 max-w-md text-sm leading-relaxed text-primary-foreground/80">
             Create an account to buy with payment held in-platform until you
             confirm — or list an account and keep 90% of the sale price.
           </p>
           <div className="relative mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button
               size="lg"
-              className="rounded-full px-7 font-semibold"
+              className="rounded-full bg-background px-7 font-semibold text-foreground hover:bg-background/90"
               asChild
             >
               <Link to="/auth?mode=register">Get started</Link>
@@ -225,7 +232,7 @@ export default function Home() {
             <Button
               size="lg"
               variant="outline"
-              className="rounded-full border-current/25 bg-transparent px-7 hover:bg-background/10"
+              className="rounded-full border-primary-foreground/40 bg-transparent px-7 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
               asChild
             >
               <Link to="/trust">How payment protection works</Link>

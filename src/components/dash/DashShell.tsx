@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
-import { ChevronDown, ExternalLink, LogOut, Menu, Plus } from "lucide-react";
+import { ExternalLink, LogOut, Menu, Plus, ShoppingBag, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -12,14 +12,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   workspaceForPath,
   workspaceLinks,
@@ -45,16 +37,25 @@ function RailLink({
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+          "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
           isActive
-            ? "bg-primary/10 text-foreground"
+            ? "bg-primary/10 font-semibold text-primary"
             : "text-muted-foreground hover:bg-muted hover:text-foreground",
         )
       }
     >
       {({ isActive }) => (
         <>
-          <Icon className={cn("size-4 shrink-0", isActive && "text-primary")} />
+          {/* A brand bar on the active item — the strongest "you are here"
+              signal in the rail, and the one place the gradient appears at
+              small scale. */}
+          {isActive && (
+            <span
+              aria-hidden="true"
+              className="brand-gradient absolute inset-y-1.5 left-0 w-1 rounded-full"
+            />
+          )}
+          <Icon className="size-4 shrink-0" />
           <span className="truncate">{label}</span>
         </>
       )}
@@ -192,43 +193,47 @@ function BuyerBalanceBar() {
 
 
 /**
- * The workspace switcher, in the header.
+ * "Switch to …", in the header.
  *
- * The rail already offers "Switch workspace", but on a phone the rail is a
+ * The rail already offers the other workspaces, but on a phone the rail is a
  * drawer and on desktop it is at the very bottom of a long sidebar — so the
- * control existed without being discoverable. This is the same list, rendered
- * where the eye already is, and it works identically at every width.
+ * control existed without being discoverable. This is a single, explicit
+ * button naming the destination, which is what a user looking to change
+ * workspace actually reaches for. A menu was tried first and replaced: a
+ * chevron sitting beside the hamburger read as a second, identical menu
+ * button, and the destination was hidden behind a tap for no benefit.
+ *
+ * The destination is the first workspace the account can open that is not the
+ * one it is standing in, so the label always matches what the click does.
  */
+const SWITCH_TARGET = {
+  seller: { label: "Switch to seller", to: "/seller", icon: Store },
+  buyer: { label: "Switch to buyer", to: "/account", icon: ShoppingBag },
+} as const;
+
 function WorkspaceSwitcher({ links }: { links: Workspace[] }) {
-  if (links.length === 0) return null;
+  const target =
+    links.find((link) => link.to === "/seller") ? SWITCH_TARGET.seller
+    : links.find((link) => link.to === "/account") ? SWITCH_TARGET.buyer
+    : null;
+  if (!target) return null;
+
+  const { label, to, icon: Icon } = target;
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 rounded-lg px-2.5 text-xs"
-          aria-label="Switch workspace"
-        >
-          <span className="hidden sm:inline">Switch</span>
-          <ChevronDown className="size-3.5" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-          Switch workspace
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {links.map(({ label, to, icon: Icon }) => (
-          <DropdownMenuItem key={to} asChild>
-            <Link to={to} className="cursor-pointer">
-              <Icon className="size-4" />
-              {label}
-            </Link>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      asChild
+      variant="outline"
+      size="sm"
+      className="h-9 rounded-lg px-2.5 text-xs"
+    >
+      {/* The label is hidden on the narrowest screens, where the header has no
+          room for it, so the name has to come from `aria-label` — otherwise
+          the control is a bare icon with no accessible name. */}
+      <Link to={to} aria-label={label}>
+        <Icon className="size-3.5" aria-hidden="true" />
+        <span className="hidden sm:inline">{label}</span>
+      </Link>
+    </Button>
   );
 }
 
@@ -307,8 +312,14 @@ export function DashShell({
 
       <div className="flex min-w-0 flex-col lg:pl-64">
         {/* Sticky bar. Blur is kept here because rows really do scroll under
-            it; every other surface in the app is opaque. */}
+            it; every other surface in the app is opaque. The brand hairline
+            along the bottom edge is what ties the three workspaces together
+            visually without tinting the bar itself. */}
         <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
+          <span
+            aria-hidden="true"
+            className="brand-rule absolute inset-x-0 bottom-0 h-px opacity-60"
+          />
           <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
             <button
               type="button"
@@ -320,13 +331,16 @@ export function DashShell({
               <Menu className="size-5" />
             </button>
 
-            <div className="hidden min-w-0 lg:block">
-              <p className="truncate text-sm font-semibold">{title}</p>
-              {subtitle && (
-                <p className="truncate text-xs text-muted-foreground">
-                  {subtitle}
-                </p>
-              )}
+            {/* The workspace name is visually hidden, not a heading: the
+                page's own `h1` sits in the page head below and is the only
+                title on screen. Previously the shell rendered an `h1` on
+                mobile and the page an `h2` on desktop, so the document had no
+                `h1` at all on desktop and two competing titles on mobile.
+                Kept in the accessibility tree so a desktop user moving by
+                landmark still hears which workspace this is. */}
+            <div className="sr-only">
+              <p>{title}</p>
+              {subtitle && <p>{subtitle}</p>}
             </div>
 
             <div className="flex min-w-0 items-center gap-2 lg:hidden">
@@ -348,10 +362,12 @@ export function DashShell({
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <div className="mx-auto w-full max-w-6xl">
-            <div className="page-head mb-6 lg:hidden">
+            {/* The one `h1` for the page, at every width, with the optional
+                primary action beside it. */}
+            <div className="page-head mb-7">
               <div className="min-w-0">
-                <h1 className="page-title truncate">{title}</h1>
-                {subtitle && <p className="page-sub">{subtitle}</p>}
+                <h1 className="page-title">{title}</h1>
+                {subtitle && <p className="page-sub mt-1.5">{subtitle}</p>}
               </div>
               {action}
             </div>

@@ -12,6 +12,7 @@ import {
   Settings,
   Shield,
   ShoppingBag,
+  ShoppingCart,
   Store,
   Tags,
   Ticket,
@@ -51,6 +52,7 @@ export const buyerNav: NavSection[] = [
     title: "Shopping",
     items: [
       { label: "Overview", to: "/account", icon: ShoppingBag, end: true },
+      { label: "Cart", to: "/account/cart", icon: ShoppingCart },
       { label: "Orders", to: "/account/orders", icon: Receipt },
       { label: "Purchased", to: "/account/purchased", icon: Package },
       { label: "Saved", to: "/account/saved", icon: Heart },

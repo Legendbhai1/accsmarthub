@@ -39,6 +39,10 @@
   --color-chart-3: hsl(var(--chart-3));
   --color-chart-4: hsl(var(--chart-4));
   --color-chart-5: hsl(var(--chart-5));
+  /* Two extra brand hues, so a gradient or a coloured chip has real colours to
+     draw on instead of fading the primary toward transparent. */
+  --color-brand-2: hsl(var(--brand-2));
+  --color-brand-3: hsl(var(--brand-3));
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -47,68 +51,79 @@
 
 @layer base {
   /*
-   * Charcoal + violet.
+   * Vibrant, but disciplined.
    *
-   * The accent is one restrained violet used for the active state and the
-   * primary action only. Everything else is a neutral surface, a hairline
-   * border or text. The previous palette led with a saturated amber gradient on
-   * every button, badge, avatar and stat icon, which left the accent meaning
-   * nothing and made "pending" indistinguishable from the brand.
+   * Three brand hues — indigo, fuchsia, amber — do the expressive work: the
+   * wordmark, the hero wash, the primary button's gradient, the active rail
+   * item, the featured card ring. Everything else stays a neutral surface,
+   * a hairline border or text, which is what keeps a saturated palette from
+   * turning into confetti.
+   *
+   * The rule the palette is built on: a colour only appears when it carries
+   * meaning (this is the action, this is live, this needs attention, this is
+   * the brand). A surface that is merely "a card" is neutral. That is also why
+   * status colours are their own tokens — a badge never borrows the brand hue
+   * to mean "ok", so "approved" and "primary action" cannot be confused.
    */
   :root {
-    --background: 240 20% 99%;
-    --foreground: 240 10% 12%;
+    --background: 250 30% 99%;
+    --foreground: 248 30% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 12%;
+    --card-foreground: 248 30% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 12%;
-    --primary: 258 85% 58%;
+    --popover-foreground: 248 30% 11%;
+    --primary: 256 90% 58%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 10% 96%;
-    --secondary-foreground: 240 10% 22%;
-    --muted: 240 10% 96%;
-    --muted-foreground: 240 5% 44%;
-    --accent: 258 60% 96%;
-    --accent-foreground: 258 55% 32%;
-    --destructive: 0 72% 51%;
+    --secondary: 250 24% 96%;
+    --secondary-foreground: 248 28% 20%;
+    --muted: 250 24% 96%;
+    --muted-foreground: 248 12% 43%;
+    --accent: 256 90% 96%;
+    --accent-foreground: 256 70% 34%;
+    --destructive: 352 84% 52%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 58% 34%;
-    --warning: 32 88% 42%;
-    --info: 217 80% 50%;
-    --border: 240 10% 90%;
-    --input: 240 10% 89%;
-    --ring: 258 85% 58%;
+    --success: 158 74% 34%;
+    --warning: 30 94% 46%;
+    --info: 205 92% 48%;
+    --border: 250 20% 90%;
+    --input: 250 20% 88%;
+    --ring: 256 90% 58%;
     --radius: 0.625rem;
-    --chart-1: 258 85% 58%;
-    --chart-2: 240 5% 44%;
-    --chart-3: 152 58% 40%;
-    --chart-4: 32 88% 50%;
-    --chart-5: 217 80% 55%;
+    /* Brand ramp: indigo -> violet -> fuchsia. */
+    --brand-2: 288 84% 58%;
+    --brand-3: 328 84% 58%;
+    --chart-1: 256 90% 58%;
+    --chart-2: 288 84% 58%;
+    --chart-3: 158 74% 38%;
+    --chart-4: 30 94% 50%;
+    --chart-5: 205 92% 52%;
   }
 
   .dark {
-    --background: 240 6% 7%;
-    --foreground: 240 12% 96%;
-    --card: 240 5% 10%;
-    --card-foreground: 240 12% 96%;
-    --popover: 240 5% 11%;
-    --popover-foreground: 240 12% 96%;
-    --primary: 258 90% 68%;
-    --primary-foreground: 258 40% 11%;
-    --secondary: 240 5% 15%;
-    --secondary-foreground: 240 12% 92%;
-    --muted: 240 5% 14%;
-    --muted-foreground: 240 6% 62%;
-    --accent: 258 28% 20%;
-    --accent-foreground: 258 60% 88%;
-    --destructive: 0 62% 54%;
+    --background: 250 24% 7%;
+    --foreground: 250 24% 97%;
+    --card: 250 20% 10%;
+    --card-foreground: 250 24% 97%;
+    --popover: 250 20% 11%;
+    --popover-foreground: 250 24% 97%;
+    --primary: 258 92% 68%;
+    --primary-foreground: 256 60% 10%;
+    --secondary: 250 18% 16%;
+    --secondary-foreground: 250 22% 93%;
+    --muted: 250 18% 15%;
+    --muted-foreground: 250 14% 64%;
+    --accent: 258 40% 21%;
+    --accent-foreground: 258 80% 90%;
+    --destructive: 352 76% 58%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 48% 48%;
-    --warning: 32 82% 56%;
-    --info: 217 78% 64%;
-    --border: 240 5% 17%;
-    --input: 240 5% 19%;
-    --ring: 258 90% 68%;
+    --success: 158 62% 48%;
+    --warning: 30 92% 58%;
+    --info: 205 88% 64%;
+    --border: 250 18% 19%;
+    --input: 250 18% 21%;
+    --ring: 258 92% 68%;
+    --brand-2: 288 80% 68%;
+    --brand-3: 328 80% 68%;
   }
 
   * {
@@ -204,12 +219,78 @@
     }
   }
 
-  /* Accent text. Used by the wordmark, the hero headline and the 404 page,
-     which previously referenced a class that did not exist — those three
-     accents silently rendered as plain text. A gradient rather than a flat
-     colour so it stays legible at display sizes in both themes. */
+  /* Legacy alias. Three call sites still use `text-gradient`; it now resolves
+     to the brand ramp so there is one accent definition rather than two that
+     can drift apart. */
   .text-gradient {
-    @apply bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--brand-2)) 55%,
+      hsl(var(--brand-3)) 100%
+    );
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* ---------------------------------------------------------------------
+   * Brand
+   *
+   * `.brand-gradient` is the one place the indigo -> violet -> fuchsia ramp is
+   * defined. It is used on the wordmark, the primary action, the hero wash and
+   * the featured card ring. Anything that needs "this is the brand" uses this
+   * class rather than picking a hue, so the ramp can be retuned in one place.
+   * ------------------------------------------------------------------- */
+
+  .brand-gradient {
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--brand-2)) 52%,
+      hsl(var(--brand-3)) 100%
+    );
+  }
+
+  /* The same ramp as text. */
+  .brand-text {
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--brand-2)) 55%,
+      hsl(var(--brand-3)) 100%
+    );
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* A soft tinted wash for a hero or a section header. Deliberately low
+     opacity: at full strength three hues behind text is unreadable. */
+  .brand-wash {
+    background-image:
+      radial-gradient(
+        120% 90% at 12% 0%,
+        hsl(var(--primary) / 0.16) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        90% 80% at 88% 4%,
+        hsl(var(--brand-2) / 0.14) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        70% 70% at 60% 100%,
+        hsl(var(--brand-3) / 0.1) 0%,
+        transparent 62%
+      );
+  }
+
+  /* A 1px brand hairline for the top of a card or a section rule. */
+  .brand-rule {
+    background-image: linear-gradient(
+      90deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--brand-2)) 45%,
+      hsl(var(--brand-3)) 75%,
+      transparent 100%
+    );
   }
 
   /* ---------------------------------------------------------------------
@@ -220,10 +301,21 @@
    * compositing pass per card and reads muddy over the ambient wash. Surfaces
    * are opaque now; blur is reserved for the sticky bars where content really
    * does scroll underneath.
+   *
+   * Colour rule: a surface stays neutral. The brand shows up as a hairline, a
+   * ring, an icon tile or a badge — not as a tinted background on every card,
+   * which is what made the palette look childish.
    * ------------------------------------------------------------------- */
 
   .surface {
     @apply rounded-xl border border-border bg-card;
+  }
+
+  /* A card that should read as "the brand is here" — the featured listing, the
+     active plan. Same neutral body, with a brand hairline along the top and a
+     ring, rather than a saturated fill. */
+  .surface-brand {
+    @apply relative overflow-hidden rounded-xl border border-border bg-card ring-1 ring-primary/20;
   }
 
   /* Second elevation, for a panel that sits on top of a `.surface` — a
@@ -240,6 +332,17 @@
      background. Defined once here, token-driven, so it tracks the theme. */
   .ink-panel {
     @apply rounded-2xl border border-border bg-foreground text-background;
+  }
+
+  /* A coloured icon tile — the small square that fronts a stat, a section or a
+     nav item. `--tile` is set inline by the caller to one of the status or
+     brand hues; the tile supplies the tint and the ring so every tile in the
+     app has identical geometry. */
+  .icon-tile {
+    @apply flex shrink-0 items-center justify-center rounded-xl;
+    background-color: hsl(var(--tile) / 0.14);
+    color: hsl(var(--tile));
+    box-shadow: inset 0 0 0 1px hsl(var(--tile) / 0.22);
   }
 
   /* `.card` was used by eight pages and defined nowhere — the panels rendered
@@ -264,8 +367,22 @@
     @apply flex flex-wrap items-start justify-between gap-4;
   }
 
+  /* The one `h1` per page, sized so it clearly outranks the section `h2`s
+     inside the page (which top out at `text-xl`). Pages that want the brand
+     accent use `.page-title-accent`; the plain form stays neutral so a
+     heading is not shouting on every screen. */
   .page-title {
-    @apply text-lg font-semibold tracking-tight sm:text-xl;
+    @apply text-2xl font-bold tracking-tight sm:text-3xl;
+  }
+
+  .page-title-accent {
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--brand-2)) 55%,
+      hsl(var(--brand-3)) 100%
+    );
+    @apply bg-clip-text text-transparent;
   }
 
   .page-sub {

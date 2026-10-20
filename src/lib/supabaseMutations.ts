@@ -221,6 +221,7 @@ export async function createDeposit(
 
 export type SubmitStoreInput = {
   storeName: string;
+  /** Required. An empty array is a real value here — it clears the list. */
   platforms: string[];
   deliverySpeed: string;
   accessFormat: string;
@@ -228,18 +229,92 @@ export type SubmitStoreInput = {
   restrictedRegions: string;
   sourcing: string;
   contactPolicyAccepted: boolean;
+  /**
+   * Every field below is OPTIONAL, and `undefined` means "the caller did not
+   * supply this — leave the stored value alone". Only an explicit value (or an
+   * empty string, which clears) is written.
+   *
+   * This matters because two different callers write a store: the application
+   * wizard, which answers every question, and the settings form, which edits a
+   * subset. When a missing field was written as `null`/`[]`, saving settings
+   * silently erased the logo, the categories, the refund policy and the
+   * warranty window the applicant had already filled in.
+   */
   logoPath?: string | null;
   bannerPath?: string | null;
-  /** Added in 0017; optional so existing callers keep compiling. */
   categories?: string[];
   refundPolicy?: string;
   warrantyHours?: string | number | null;
+  /**
+   * The four application questions removed from the wizard (support details
+   * and the ownership attestation) are no longer collected from a new
+   * applicant, so these stay optional and are simply left untouched — an
+   * existing store's stored values are preserved rather than blanked.
+   */
   supportEmail?: string;
   supportHours?: string;
   supportChannel?: string;
   ownershipAttested?: boolean;
   agreementVersion?: string;
 };
+
+/**
+ * Drop keys whose value is `undefined`, so a partial update never overwrites a
+ * column the caller did not mention. `null` and `""` are kept: both are
+ * deliberate clears.
+ */
+function defined<T extends Record<string, unknown>>(input: T) {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
+}
+
+/**
+ * The `stores` columns that only migration `0017_store_applications` creates.
+ *
+ * A database that has never run 0017 answers any write that names one of these
+ * with a PostgREST schema-cache error — which is what a seller sees as
+ * "Could not find the 'agreement_version' column of 'stores' in the schema
+ * cache" and what makes the application button look broken. The write is
+ * retried without these columns so the application still goes through on the
+ * older schema, and the caller is told that the extra detail was not stored.
+ */
+const APPLICATION_ONLY_COLUMNS = [
+  "categories",
+  "warranty_hours",
+  "refund_policy",
+  "support_email",
+  "support_hours",
+  "support_channel",
+  "ownership_attested",
+  "compliance_accepted_at",
+  "agreement_version",
+] as const;
+
+/**
+ * True when PostgREST rejected the payload because a named column is not in
+ * its schema cache. It reports this two ways depending on the route: a
+ * `PGRST204` code on some paths, and a `42703` / "schema cache" message on
+ * others, so both are matched.
+ */
+function isSchemaCacheError(error: { message?: string; code?: string } | null) {
+  if (!error) return false;
+  const message = error.message ?? "";
+  return (
+    error.code === "PGRST204" ||
+    error.code === "42703" ||
+    /schema cache/i.test(message) ||
+    /column .* does not exist/i.test(message)
+  );
+}
+
+/** Strip the 0017-only columns, for the retry against an older schema. */
+function withoutApplicationColumns<T extends Record<string, unknown>>(fields: T) {
+  const drop = new Set<string>(APPLICATION_ONLY_COLUMNS);
+  return Object.fromEntries(
+    Object.entries(fields).filter(([key]) => !drop.has(key)),
+  );
+}
 
 /** Slugify a store name for the unique `stores.slug` column. */
 function slugify(name: string) {
@@ -308,27 +383,43 @@ export async function submitStore(input: SubmitStoreInput) {
 
   const fields = {
     store_name: input.storeName,
-    logo_path: input.logoPath ?? null,
-    banner_path: input.bannerPath ?? null,
     platforms: input.platforms,
-    categories: input.categories ?? [],
     delivery_speed: input.deliverySpeed || null,
     access_format: input.accessFormat || null,
     replacement_policy: input.replacementPolicy || null,
-    refund_policy: input.refundPolicy || null,
-    warranty_hours:
-      input.warrantyHours == null || input.warrantyHours === ""
-        ? null
-        : Number(input.warrantyHours),
     restricted_regions: input.restrictedRegions || null,
     sourcing: input.sourcing || null,
-    support_email: input.supportEmail || null,
-    support_hours: input.supportHours || null,
-    support_channel: input.supportChannel || null,
-    ownership_attested: Boolean(input.ownershipAttested),
-    compliance_accepted_at: input.ownershipAttested ? new Date().toISOString() : null,
-    agreement_version: input.agreementVersion ?? null,
     contact_policy: true,
+    ...defined({
+      logo_path: input.logoPath,
+      banner_path: input.bannerPath,
+      categories: input.categories,
+      refund_policy: input.refundPolicy,
+      warranty_hours:
+        input.warrantyHours === undefined
+          ? undefined
+          : input.warrantyHours == null || input.warrantyHours === ""
+            ? null
+            : Number(input.warrantyHours),
+      support_email:
+        input.supportEmail === undefined ? undefined : input.supportEmail || null,
+      support_hours:
+        input.supportHours === undefined ? undefined : input.supportHours || null,
+      support_channel:
+        input.supportChannel === undefined
+          ? undefined
+          : input.supportChannel || null,
+      // The attestation is recorded with the moment it was made, so a
+      // resubmission that leaves it out keeps the original timestamp.
+      ownership_attested: input.ownershipAttested,
+      compliance_accepted_at:
+        input.ownershipAttested === undefined
+          ? undefined
+          : input.ownershipAttested
+            ? new Date().toISOString()
+            : null,
+      agreement_version: input.agreementVersion,
+    }),
   };
 
   // `.limit(1)` rather than `.maybeSingle()`: a stray second row (from the
@@ -346,18 +437,28 @@ export async function submitStore(input: SubmitStoreInput) {
   if (!existing) {
     // New applications always land as `pending` — the RLS insert policy and
     // the `contact_policy` check enforce that a seller cannot self-approve.
-    const { data, error } = await supabase
+    const row = {
+      user_id: userId,
+      slug: slugify(input.storeName),
+      ...fields,
+      status: "pending" as const,
+    };
+    const first = await supabase.from("stores").insert(row).select().single();
+    if (!first.error) return { store: first.data, degraded: false };
+    // The database has not run 0017, so the application-only columns do not
+    // exist. Retry without them: the seller's application still reaches the
+    // review queue, and the returned `degraded` flag lets the caller say which
+    // answers were not stored instead of claiming a clean save.
+    if (!isSchemaCacheError(first.error)) {
+      throw new Error(friendlyError(first.error));
+    }
+    const retry = await supabase
       .from("stores")
-      .insert({
-        user_id: userId,
-        slug: slugify(input.storeName),
-        ...fields,
-        status: "pending",
-      })
+      .insert(withoutApplicationColumns(row))
       .select()
       .single();
-    if (error) throw new Error(friendlyError(error));
-    return data;
+    if (retry.error) throw new Error(friendlyError(retry.error));
+    return { store: retry.data, degraded: true };
   }
 
   // A rejected application is re-queued by the resubmission. `guard_store_
@@ -366,24 +467,35 @@ export async function submitStore(input: SubmitStoreInput) {
   // rejected status — the caller reads the returned row, so the UI reports
   // what actually happened instead of claiming a queue entry that does not
   // exist.
-  const { data, error } = await supabase
+  const patch = {
+    ...fields,
+    ...(existing.status === "rejected"
+      ? {
+          status: "pending" as const,
+          review_note: null,
+          reviewed_at: null,
+          reviewed_by: null,
+        }
+      : {}),
+  };
+  const first = await supabase
     .from("stores")
-    .update({
-      ...fields,
-      ...(existing.status === "rejected"
-        ? {
-            status: "pending",
-            review_note: null,
-            reviewed_at: null,
-            reviewed_by: null,
-          }
-        : {}),
-    })
+    .update(patch)
     .eq("id", existing.id)
     .select()
     .single();
-  if (error) throw new Error(friendlyError(error));
-  return data;
+  if (!first.error) return { store: first.data, degraded: false };
+  if (!isSchemaCacheError(first.error)) {
+    throw new Error(friendlyError(first.error));
+  }
+  const retry = await supabase
+    .from("stores")
+    .update(withoutApplicationColumns(patch))
+    .eq("id", existing.id)
+    .select()
+    .single();
+  if (retry.error) throw new Error(friendlyError(retry.error));
+  return { store: retry.data, degraded: true };
 }
 
 /**
@@ -395,34 +507,62 @@ export async function submitStore(input: SubmitStoreInput) {
  * approval — an admin has to do that explicitly.
  */
 export async function updateStore(storeId: string, input: SubmitStoreInput) {
-  const { data, error } = await supabase
-    .from("stores")
-    .update({
-      store_name: input.storeName,
-      platforms: input.platforms,
-      categories: input.categories ?? [],
-      delivery_speed: input.deliverySpeed || null,
-      access_format: input.accessFormat || null,
-      replacement_policy: input.replacementPolicy || null,
-      refund_policy: input.refundPolicy || null,
+  const patch = {
+    store_name: input.storeName,
+    platforms: input.platforms,
+    delivery_speed: input.deliverySpeed || null,
+    access_format: input.accessFormat || null,
+    replacement_policy: input.replacementPolicy || null,
+    restricted_regions: input.restrictedRegions || null,
+    sourcing: input.sourcing || null,
+    contact_policy: input.contactPolicyAccepted,
+    // Omitted, not blanked — same rule as `submitStore`.
+    ...defined({
+      categories: input.categories,
+      refund_policy: input.refundPolicy,
       warranty_hours:
-        input.warrantyHours == null || input.warrantyHours === ""
-          ? null
-          : Number(input.warrantyHours),
-      restricted_regions: input.restrictedRegions || null,
-      sourcing: input.sourcing || null,
-      support_email: input.supportEmail || null,
-      support_hours: input.supportHours || null,
-      support_channel: input.supportChannel || null,
-      ownership_attested: Boolean(input.ownershipAttested),
-      agreement_version: input.agreementVersion ?? null,
-      contact_policy: input.contactPolicyAccepted,
-    })
+        input.warrantyHours === undefined
+          ? undefined
+          : input.warrantyHours == null || input.warrantyHours === ""
+            ? null
+            : Number(input.warrantyHours),
+      support_email:
+        input.supportEmail === undefined
+          ? undefined
+          : input.supportEmail || null,
+      support_hours:
+        input.supportHours === undefined
+          ? undefined
+          : input.supportHours || null,
+      support_channel:
+        input.supportChannel === undefined
+          ? undefined
+          : input.supportChannel || null,
+      ownership_attested: input.ownershipAttested,
+      agreement_version: input.agreementVersion,
+    }),
+  };
+
+  const first = await supabase
+    .from("stores")
+    .update(patch)
     .eq("id", storeId)
     .select()
     .single();
-  if (error) throw new Error(friendlyError(error));
-  return data;
+  if (!first.error) return { store: first.data, degraded: false };
+  // Same pre-0017 fallback as `submitStore`: the settings form must keep
+  // working on a database that has not run the migration.
+  if (!isSchemaCacheError(first.error)) {
+    throw new Error(friendlyError(first.error));
+  }
+  const retry = await supabase
+    .from("stores")
+    .update(withoutApplicationColumns(patch))
+    .eq("id", storeId)
+    .select()
+    .single();
+  if (retry.error) throw new Error(friendlyError(retry.error));
+  return { store: retry.data, degraded: true };
 }
 
 export type ReviewStoreInput = {

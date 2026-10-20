@@ -21,10 +21,6 @@ export type ApplicationDraft = {
   refundPolicy: string;
   restrictedRegions: string;
   sourcing: string;
-  supportEmail: string;
-  supportHours: string;
-  supportChannel: string;
-  ownershipAttested: boolean;
 };
 
 export const EMPTY_DRAFT: ApplicationDraft = {
@@ -38,10 +34,6 @@ export const EMPTY_DRAFT: ApplicationDraft = {
   refundPolicy: "",
   restrictedRegions: "",
   sourcing: "",
-  supportEmail: "",
-  supportHours: "",
-  supportChannel: "",
-  ownershipAttested: false,
 };
 
 /** Bumped when the shape changes, so an old draft is discarded rather than
@@ -52,9 +44,7 @@ export type StepKey =
   | "store"
   | "platforms"
   | "delivery"
-  | "policies"
-  | "support"
-  | "compliance";
+  | "policies";
 
 export type Step = {
   key: StepKey;
@@ -84,29 +74,39 @@ export const STEPS: Step[] = [
     title: "Warranty & policies",
     blurb: "What a buyer can expect if something goes wrong.",
   },
-  {
-    key: "support",
-    title: "Support",
-    blurb: "How buyers reach you when they need help.",
-  },
-  {
-    key: "compliance",
-    title: "Compliance",
-    blurb: "Confirm you can lawfully transfer the accounts you sell.",
-  },
 ];
+
+/**
+ * Whether the connected database stores the answers migration `0017` adds.
+ *
+ * The wizard and the database are deployed separately, and this project's
+ * production database has never run `0017`, so `stores.categories`,
+ * `warranty_hours` and `refund_policy` do not exist there. Asking for an answer
+ * that will be silently dropped is worse than not asking: the applicant types
+ * their warranty window, submits, and is then told it was not saved. Passing
+ * the probed capability in lets the wizard ask only for what it can keep.
+ *
+ * Defaults to `true` so the pure functions stay usable without a database and
+ * a fully migrated project behaves exactly as before.
+ */
+export type ApplicationCapabilities = { storeApplicationFields: boolean };
+
+const ALL_FIELDS: ApplicationCapabilities = { storeApplicationFields: true };
 
 /** Why a step is not finished yet, or null when it is. */
 export function stepError(
   draft: ApplicationDraft,
   step: StepKey,
+  capabilities: ApplicationCapabilities = ALL_FIELDS,
 ): string | null {
+  const { storeApplicationFields } = capabilities;
   switch (step) {
     case "store":
       if (draft.storeName.trim().length < 3) {
         return "Enter a store name of at least 3 characters.";
       }
-      if (draft.categories.length === 0) {
+      // Only required where the column exists to hold it.
+      if (storeApplicationFields && draft.categories.length === 0) {
         return "Choose at least one category.";
       }
       return null;
@@ -127,24 +127,11 @@ export function stepError(
       if (!draft.replacementPolicy.trim()) {
         return "Describe your replacement policy.";
       }
-      if (draft.warrantyHours.trim()) {
+      if (storeApplicationFields && draft.warrantyHours.trim()) {
         const hours = Number(draft.warrantyHours);
         if (!Number.isFinite(hours) || hours < 0 || hours > 8760) {
           return "Warranty must be between 0 and 8760 hours.";
         }
-      }
-      return null;
-    case "support":
-      if (!draft.supportEmail.trim()) {
-        return "A support email is required.";
-      }
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.supportEmail.trim())) {
-        return "Enter a valid support email address.";
-      }
-      return null;
-    case "compliance":
-      if (!draft.ownershipAttested) {
-        return "You must confirm you own or may transfer the accounts you sell.";
       }
       return null;
   }
@@ -153,20 +140,27 @@ export function stepError(
 /** Every step's error, in order, for the final review screen. */
 export function allStepErrors(
   draft: ApplicationDraft,
+  capabilities: ApplicationCapabilities = ALL_FIELDS,
 ): { step: Step; error: string }[] {
   return STEPS.flatMap((step) => {
-    const error = stepError(draft, step.key);
+    const error = stepError(draft, step.key, capabilities);
     return error ? [{ step, error }] : [];
   });
 }
 
-export function isComplete(draft: ApplicationDraft): boolean {
-  return allStepErrors(draft).length === 0;
+export function isComplete(
+  draft: ApplicationDraft,
+  capabilities: ApplicationCapabilities = ALL_FIELDS,
+): boolean {
+  return allStepErrors(draft, capabilities).length === 0;
 }
 
 /** The first unfinished step, so "continue" can jump the applicant to it. */
-export function firstIncompleteStep(draft: ApplicationDraft): StepKey | null {
-  return allStepErrors(draft)[0]?.step.key ?? null;
+export function firstIncompleteStep(
+  draft: ApplicationDraft,
+  capabilities: ApplicationCapabilities = ALL_FIELDS,
+): StepKey | null {
+  return allStepErrors(draft, capabilities)[0]?.step.key ?? null;
 }
 
 // ---------------------------------------------------------------------
@@ -223,10 +217,6 @@ export function draftFromStore(store: {
   refund_policy?: string | null;
   restricted_regions?: string | null;
   sourcing?: string | null;
-  support_email?: string | null;
-  support_hours?: string | null;
-  support_channel?: string | null;
-  ownership_attested?: boolean | null;
 }): ApplicationDraft {
   return {
     ...EMPTY_DRAFT,
@@ -241,10 +231,6 @@ export function draftFromStore(store: {
     refundPolicy: store.refund_policy ?? "",
     restrictedRegions: store.restricted_regions ?? "",
     sourcing: store.sourcing ?? "",
-    supportEmail: store.support_email ?? "",
-    supportHours: store.support_hours ?? "",
-    supportChannel: store.support_channel ?? "",
-    ownershipAttested: Boolean(store.ownership_attested),
   };
 }
 

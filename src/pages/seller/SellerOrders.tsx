@@ -62,8 +62,7 @@ export default function SellerOrders() {
       <div className="seller-page space-y-6">
         <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Orders</h2>
-            <p className="seller-sub mt-1 text-sm text-muted-foreground">
+            <p className="seller-sub text-sm text-muted-foreground">
               Sales and credential transfers from your listings.
             </p>
           </div>

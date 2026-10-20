@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { ArrowRight, Eye, Receipt, Wallet, Tag } from "lucide-react";
+import { ArrowRight, Eye, Receipt, ShoppingBag, Wallet, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SellerLayout } from "@/components/dash/SellerLayout";
 import { SectionHeading, StatCard, StatusBadge } from "@/components/common/Primitives";
@@ -26,17 +26,27 @@ export default function SellerDashboard() {
       <div className="seller-page">
         <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Seller overview</h2>
-            <p className="seller-sub mt-1.5 text-sm text-muted-foreground">
+            <p className="seller-sub text-sm text-muted-foreground">
               Manage listings, track sales and request payouts.
             </p>
           </div>
-          <Button className="rounded-xl" asChild>
-            <Link to="/seller/listings?new=1">
-              <Tag className="size-4" />
-              Create listing
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* The same affordance the buyer workspace offers to reach the
+                studio, in the other direction: a seller is also a buyer, and
+                the header switcher is easy to miss on a phone. */}
+            <Button variant="outline" className="rounded-xl" asChild>
+              <Link to="/account">
+                <ShoppingBag className="size-4" />
+                Switch to buyer
+              </Link>
+            </Button>
+            <Button className="rounded-xl" asChild>
+              <Link to="/seller/listings?new=1">
+                <Tag className="size-4" />
+                Create listing
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <div className="seller-stat-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -28,14 +28,10 @@ export default function BuyerDashboard() {
   return (
     <DashLayout title="Buyer overview" nav={buyerNav}>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">
-            Welcome back{user?.name ? `, ${user.name}` : ""}
-          </h2>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Track your purchases, escrow status and transfers.
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {user?.name ? `Signed in as ${user.name}. ` : ""}
+          Track your purchases, escrow status and transfers.
+        </p>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard

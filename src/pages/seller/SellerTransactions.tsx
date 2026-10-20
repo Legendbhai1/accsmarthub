@@ -57,8 +57,7 @@ export default function SellerTransactions() {
       <div className="seller-page space-y-6">
         <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Transactions</h2>
-            <p className="seller-sub mt-1.5 text-sm text-muted-foreground">
+            <p className="seller-sub text-sm text-muted-foreground">
               Every sale with the exact split the platform calculated.
             </p>
           </div>

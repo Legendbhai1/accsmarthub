@@ -7,6 +7,7 @@ import {
   Minus,
   Plus,
   ShieldCheck,
+  ShoppingCart,
   Undo2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -29,12 +30,16 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { BrandMark } from "@/components/site/BrandMark";
 
 import { ListingCard } from "@/components/common/ListingCard";
+import { LottieAnimation } from "@/components/common/LottieAnimation";
 import { RatingStars } from "@/components/common/RatingStars";
 import { StockBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { usePublicListing, usePublicListings } from "@/lib/supabaseQueries";
+import { cartAdd } from "@/lib/supabaseMutations";
+import { useCapabilities } from "@/lib/schemaCapabilities";
 import type { Review } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const REPORT_REASONS = [
   "Stolen or unauthorized account",
@@ -54,6 +59,9 @@ export default function ListingDetail() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<string>();
   const [reportDetail, setReportDetail] = useState("");
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
+  const { cart: cartAvailable } = useCapabilities();
 
   if (loading) {
     return (
@@ -122,6 +130,30 @@ export default function ListingDetail() {
 
   const buy = () => {
     navigate(`/checkout?listing=${listing.id}&qty=${qty}`);
+  };
+
+  /**
+   * Add to the server-side cart.
+   *
+   * The animation is rendered only after `cartAdd` resolves — the button's
+   * own pending label covers the wait. Rendering it from the click would show
+   * a success animation for a request that may still fail.
+   */
+  const addToCart = async () => {
+    setAddingToCart(true);
+    try {
+      await cartAdd({ listingId: listing.id, quantity: qty });
+      setJustAdded(true);
+      toast.success("Added to your cart", {
+        description: `${qty} × ${listing.title}`,
+      });
+    } catch (err) {
+      toast.error("Could not add it to your cart", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setAddingToCart(false);
+    }
   };
 
   const faqItems = ((listing as unknown as { faq?: { question: string; answer: string }[] }).faq as { question: string; answer: string }[] | undefined) ?? [];
@@ -349,6 +381,23 @@ export default function ListingDetail() {
             </div>
 
             <div className="mt-5 flex flex-col gap-2.5">
+              {/* Only after `cartAdd` has resolved. `key` is not needed: the
+                  player mounts once when this branch first renders, so a later
+                  re-render of the page cannot restart it. */}
+              {justAdded && (
+                <div className="surface flex items-center gap-3 p-3">
+                  <LottieAnimation name="add-to-cart" size={64} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Added to your cart</p>
+                    <Link
+                      to="/account/cart"
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      View cart and check out
+                    </Link>
+                  </div>
+                </div>
+              )}
               <Button
                 size="lg"
                 className="h-11 w-full rounded-xl"
@@ -364,6 +413,22 @@ export default function ListingDetail() {
                   "Sold out"
                 )}
               </Button>
+              {/* Hidden entirely when the connected database has no
+                  `cart_items` table. A cart button that can only fail is worse
+                  than no cart button; Buy Now works either way because it does
+                  not depend on the cart. */}
+              {cartAvailable && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-11 w-full rounded-xl"
+                  disabled={!available || addingToCart}
+                  onClick={addToCart}
+                >
+                  <ShoppingCart className="size-4" />
+                  {addingToCart ? "Adding…" : "Add to cart"}
+                </Button>
+              )}
               <Dialog open={reportOpen} onOpenChange={setReportOpen}>
                 <DialogTrigger asChild>
                   <Button variant="ghost" className="w-full rounded-xl text-muted-foreground">

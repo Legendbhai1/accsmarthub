@@ -24,23 +24,31 @@ interface ListingCardProps {
  */
 export function ListingCard({ listing, className }: ListingCardProps) {
   const soldOut = listing.stock === 0;
+  const discounted =
+    listing.discountPercent != null && listing.discountPercent > 0;
 
   return (
     <article
       className={cn(
-        "group rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:border-primary/40",
+        "group surface relative flex flex-col overflow-hidden p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5",
         className,
       )}
     >
-      <Link to={`/marketplace/${listing.id}`} className="block">
+      {/* The brand hairline only appears on hover, so a grid of cards stays
+          calm until the pointer is on one of them. */}
+      <span
+        aria-hidden="true"
+        className="brand-rule absolute inset-x-0 top-0 h-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+      />
+      <Link to={`/marketplace/${listing.id}`} className="flex flex-1 flex-col">
         <div className="relative">
-          <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl bg-muted">
+          <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg bg-muted">
             {listing.imagePath ? (
               <img
                 src={publicAssetUrl("listing-assets", listing.imagePath)}
                 alt=""
                 loading="lazy"
-                className="size-full object-cover transition-transform duration-200 group-hover:scale-105"
+                className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
               // A listing with no uploaded image still needs a card that is
@@ -48,22 +56,28 @@ export function ListingCard({ listing, className }: ListingCardProps) {
               <BrandMark
                 brand={listing.brand}
                 block
-                className="size-10 transition-transform duration-200 group-hover:scale-105"
+                className="size-10 transition-transform duration-300 group-hover:scale-105"
               />
             )}
           </div>
-          {soldOut && (
-            <span className="absolute left-2 top-2 rounded-full bg-card/90 px-2 py-0.5 text-[10px] font-bold text-foreground">
+          {soldOut ? (
+            <span className="absolute left-2 top-2 rounded-full bg-foreground/85 px-2 py-0.5 text-[10px] font-bold text-background backdrop-blur-sm">
               Sold out
             </span>
+          ) : (
+            discounted && (
+              <span className="absolute left-2 top-2 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
+                −{listing.discountPercent}%
+              </span>
+            )
           )}
         </div>
 
-        <div className="mt-2.5 min-w-0">
-          <p className="truncate text-sm font-semibold leading-snug">
+        <div className="mt-3 min-w-0 flex-1">
+          <p className="line-clamp-2 text-sm font-semibold leading-snug">
             {listing.title}
           </p>
-          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+          <p className="mt-1 truncate text-[11px] text-muted-foreground">
             {listing.serviceCategory ?? listing.brand}
             {listing.warrantyHours != null && listing.warrantyHours > 0
               ? ` · ${listing.warrantyHours}h warranty`
@@ -71,16 +85,16 @@ export function ListingCard({ listing, className }: ListingCardProps) {
           </p>
         </div>
 
-        <div className="mt-2 flex items-baseline gap-1.5">
+        <div className="mt-2.5 flex items-baseline gap-1.5 border-t border-border/60 pt-2.5">
           <span className="text-base font-bold tabular-nums">
             {formatPrice(listing.priceUsd)}
           </span>
-          {listing.discountPercent != null && listing.discountPercent > 0 && (
-            <span className="rounded bg-muted px-1 text-[10px] font-semibold text-muted-foreground">
-              -{listing.discountPercent}%
-            </span>
-          )}
-          <span className="ml-auto text-[11px] text-muted-foreground">
+          <span
+            className={cn(
+              "ml-auto text-[11px] font-medium",
+              soldOut ? "text-muted-foreground" : "text-success",
+            )}
+          >
             {soldOut ? "Unavailable" : `${listing.stock} in stock`}
           </span>
         </div>

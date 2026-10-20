@@ -184,6 +184,12 @@ export function friendlyError(error: unknown): string {
   }
   if (/row-level security|permission denied/i.test(raw))
     return "You do not have access to that information.";
+  // PostgREST answers with this when a column the client names is not in its
+  // schema cache. The usual cause is a migration that has not been applied to
+  // this database (or has been applied without a cache reload), not a bug in
+  // the form — so say that, instead of showing the raw PostgREST string.
+  if (/schema cache/i.test(raw))
+    return "This part of the app is not set up on this server yet. The database migration that adds it has not been applied — please contact support.";
   if (/Failed to fetch/i.test(raw))
     return "Could not reach the server. Check your connection and try again.";
   return raw.replace(/^Failed to run sql query:\s*ERROR:\s*/, "").trim();

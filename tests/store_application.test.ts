@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   AGREEMENT_VERSION,
   EMPTY_DRAFT,
@@ -12,6 +15,9 @@ import {
   type ApplicationDraft,
 } from "@/lib/storeApplication";
 
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const read = (rel: string) => readFileSync(join(root, rel), "utf8");
+
 /**
  * The seller application's rules.
  *
@@ -19,6 +25,42 @@ import {
  * applicant actually experiences: which step blocks "continue", what the final
  * submit re-checks, and what a resubmission starts from.
  */
+
+/**
+ * The store write must not erase a field the caller did not mention.
+ *
+ * Two different callers write `stores`: the application wizard, which answers
+ * every question, and the settings form, which edits a subset. `submitStore`
+ * used to fill every absent optional field with `null`/`[]`, so saving the
+ * settings form silently wiped the logo, the categories, the refund policy and
+ * the warranty window the applicant had already provided.
+ */
+describe("a partial store write preserves untouched columns", () => {
+  const source = read("src/lib/supabaseMutations.ts");
+
+  it("filters undefined values out of the update payload", () => {
+    // `defined()` drops `undefined` but keeps `null` and `""`, which are real
+    // clears. Without it, an absent optional column is set to null.
+    expect(source).toMatch(/function defined</);
+    expect(source).toMatch(/value !== undefined/);
+  });
+
+  it("routes the optional columns through the filter in both writers", () => {
+    const submits = source.match(/\.\.\.defined\(\{/g) ?? [];
+    // One in `submitStore`, one in `updateStore`.
+    expect(submits.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("never defaults an unsupplied category list to an empty array", () => {
+    // `categories: input.categories ?? []` is the exact line that wiped them.
+    expect(source).not.toMatch(/categories: input\.categories \?\? \[\]/);
+  });
+
+  it("never defaults an unsupplied logo to null", () => {
+    expect(source).not.toMatch(/logo_path: input\.logoPath \?\? null/);
+  });
+});
+
 
 const complete: ApplicationDraft = {
   ...EMPTY_DRAFT,
@@ -32,16 +74,19 @@ const complete: ApplicationDraft = {
   warrantyHours: "72",
   restrictedRegions: "",
   sourcing: "Sourced from long-standing partners.",
-  supportEmail: "support@nightowl.example",
-  supportHours: "09:00-18:00 UTC",
-  supportChannel: "On-platform messages",
-  ownershipAttested: true,
 };
 
 describe("store application steps", () => {
-  it("has six steps and a unique key for each", () => {
-    expect(STEPS).toHaveLength(6);
-    expect(new Set(STEPS.map((s) => s.key)).size).toBe(6);
+  it("has four steps and a unique key for each", () => {
+    // The support and compliance steps were removed: neither is shown to a
+    // buyer, so neither earned a place in the application.
+    expect(STEPS).toHaveLength(4);
+    expect(STEPS.map((s) => s.key)).toEqual([
+      "store",
+      "platforms",
+      "delivery",
+      "policies",
+    ]);
   });
 
   it("starts empty and reports the first step as the blocker", () => {
@@ -89,19 +134,6 @@ describe("step validation", () => {
     expect(stepError({ ...complete, warrantyHours: "8760" }, "policies")).toBeNull();
   });
 
-  it("requires a well-formed support email", () => {
-    expect(stepError({ ...complete, supportEmail: "" }, "support")).toMatch(/required/);
-    expect(stepError({ ...complete, supportEmail: "nope" }, "support")).toMatch(/valid/);
-    expect(stepError({ ...complete, supportEmail: "a@b" }, "support")).toMatch(/valid/);
-    expect(stepError({ ...complete, supportEmail: "a@b.co" }, "support")).toBeNull();
-  });
-
-  it("blocks submission until ownership is attested", () => {
-    expect(stepError({ ...complete, ownershipAttested: false }, "compliance")).toMatch(
-      /confirm/,
-    );
-    expect(stepError({ ...complete, ownershipAttested: true }, "compliance")).toBeNull();
-  });
 });
 
 describe("final submission re-checks every step", () => {
@@ -112,17 +144,16 @@ describe("final submission re-checks every step", () => {
       ...complete,
       storeName: "",
       platforms: [],
-      ownershipAttested: false,
     };
     const errors = allStepErrors(broken);
-    expect(errors.map((e) => e.step.key)).toEqual(["store", "platforms", "compliance"]);
+    expect(errors.map((e) => e.step.key)).toEqual(["store", "platforms"]);
     expect(firstIncompleteStep(broken)).toBe("store");
   });
 
   it("counts progress by finished steps, not filled fields", () => {
-    // One step finished out of six is 17%, rounded.
+    // One step finished out of four is 25%.
     const onlyStore = { ...EMPTY_DRAFT, storeName: "Store", categories: ["instagram"] };
-    expect(progressPercent(onlyStore)).toBe(17);
+    expect(progressPercent(onlyStore)).toBe(25);
     expect(progressPercent(EMPTY_DRAFT)).toBe(0);
   });
 });
@@ -140,10 +171,6 @@ describe("resubmission starts from what was submitted", () => {
       refund_policy: null,
       restricted_regions: null,
       sourcing: null,
-      support_email: "support@nightowl.example",
-      support_hours: null,
-      support_channel: null,
-      ownership_attested: true,
     });
 
     expect(draft.storeName).toBe("Nightowl Digital");
@@ -152,8 +179,6 @@ describe("resubmission starts from what was submitted", () => {
     expect(draft.warrantyHours).toBe("72");
     // Nulls become empty strings rather than the text "null".
     expect(draft.refundPolicy).toBe("");
-    expect(draft.supportHours).toBe("");
-    expect(draft.ownershipAttested).toBe(true);
   });
 
   it("treats a missing warranty as no warranty", () => {

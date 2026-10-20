@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { SERVICE_CATEGORIES } from "@/lib/db";
@@ -24,7 +23,6 @@ import { useStoreApplicationEvents } from "@/lib/supabaseQueries";
 import { submitStore, publicAssetUrl } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import {
-  AGREEMENT_VERSION,
   EMPTY_DRAFT,
   STEPS,
   clearDraft,
@@ -35,9 +33,11 @@ import {
   readDraft,
   stepError,
   writeDraft,
+  type ApplicationCapabilities,
   type ApplicationDraft,
   type StepKey,
 } from "@/lib/storeApplication";
+import { detectCapabilities } from "@/lib/schemaCapabilities";
 import { toast } from "sonner";
 
 type Store = Awaited<ReturnType<typeof readMyStore>>;
@@ -318,8 +318,28 @@ function ApplicationWizard({
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const step = STEPS[stepIndex];
-  const currentError = stepError(draft, step.key);
-  const complete = isComplete(draft);
+  // Probe once per mount. Until it resolves, `caps` stays `null` and the
+  // wizard behaves exactly as it did before — optimistic, with the write-path
+  // retry as the backstop. It only ever *narrows* what is asked for.
+  const [caps, setCaps] = useState<ApplicationCapabilities | null>(null);
+  useEffect(() => {
+    let alive = true;
+    detectCapabilities()
+      .then((c) => {
+        if (alive) setCaps({ storeApplicationFields: c.storeApplicationFields });
+      })
+      .catch(() => {
+        // A failed probe must not block the form; the defaults already assume
+        // the fullest schema.
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const capabilities = caps ?? { storeApplicationFields: true };
+  const currentError = stepError(draft, step.key, capabilities);
+  const complete = isComplete(draft, capabilities);
   const progress = progressPercent(draft);
 
   const update = (patch: Partial<ApplicationDraft>) => {
@@ -349,7 +369,7 @@ function ApplicationWizard({
     setSubmitError(null);
     // Re-check every step, not just the visible one: the applicant can jump
     // back and empty a field, and the review screen must not submit it.
-    const missing = firstIncompleteStep(draft);
+    const missing = firstIncompleteStep(draft, capabilities);
     if (missing) {
       setStepIndex(STEPS.findIndex((s) => s.key === missing));
       setSubmitError(
@@ -360,7 +380,7 @@ function ApplicationWizard({
 
     setSubmitting(true);
     try {
-      await submitStore({
+      const { degraded } = await submitStore({
         storeName: draft.storeName.trim(),
         platforms: draft.platforms,
         categories: draft.categories,
@@ -371,17 +391,22 @@ function ApplicationWizard({
         warrantyHours: draft.warrantyHours.trim(),
         restrictedRegions: draft.restrictedRegions.trim(),
         sourcing: draft.sourcing.trim(),
-        supportEmail: draft.supportEmail.trim(),
-        supportHours: draft.supportHours.trim(),
-        supportChannel: draft.supportChannel.trim(),
-        ownershipAttested: draft.ownershipAttested,
-        agreementVersion: AGREEMENT_VERSION,
         contactPolicyAccepted: true,
       });
       clearDraft(userId);
-      toast.success(
-        store ? "Application updated and resubmitted" : "Application submitted",
-      );
+      if (degraded) {
+        // The row saved, but the server dropped the answers that live in
+        // columns migration 0017 adds. Saying "submitted" without this would
+        // be a lie the seller only discovers when a reviewer cannot see their
+        // categories or warranty terms.
+        toast.warning(
+          "Application saved, but this server has not run the store-application migration yet — your categories, warranty and refund policy were not stored. Please contact support.",
+        );
+      } else {
+        toast.success(
+          store ? "Application updated and resubmitted" : "Application submitted",
+        );
+      }
       await onDone();
     } catch (err) {
       setSubmitError(friendlyError(err));
@@ -420,7 +445,7 @@ function ApplicationWizard({
         </div>
         <ol className="mt-4 flex flex-wrap gap-1.5">
           {STEPS.map((s, i) => {
-            const done = stepError(draft, s.key) === null;
+            const done = stepError(draft, s.key, capabilities) === null;
             return (
               <li key={s.key}>
                 <button
@@ -459,6 +484,7 @@ function ApplicationWizard({
             step={step.key}
             update={update}
             toggle={toggle}
+            capabilities={capabilities}
           />
         </div>
 
@@ -547,8 +573,6 @@ function ApplicationWizard({
               value={draft.replacementPolicy}
             />
             <ReviewItem label="Refund policy" value={draft.refundPolicy} />
-            <ReviewItem label="Support email" value={draft.supportEmail} />
-            <ReviewItem label="Support hours" value={draft.supportHours} />
             <ReviewItem
               label="Restricted regions"
               value={draft.restrictedRegions}
@@ -577,13 +601,20 @@ function StepFields({
   step,
   update,
   toggle,
+  capabilities,
 }: {
   draft: ApplicationDraft;
   step: StepKey;
   update: (patch: Partial<ApplicationDraft>) => void;
   toggle: (field: "platforms" | "categories", value: string) => void;
+  capabilities: ApplicationCapabilities;
 }) {
   const platformOptions = SERVICE_CATEGORIES.map((c) => c.slug);
+  // On a database that has not run 0017 these two answers have no column to
+  // land in, so the fields are not shown at all. The alternative — collecting
+  // them and dropping them on save — is what produced the "your categories and
+  // warranty were not stored" warning this replaces.
+  const canStoreApplicationFields = capabilities.storeApplicationFields;
 
   switch (step) {
     case "store":
@@ -603,26 +634,28 @@ function StepFields({
               the slug it was created with.
             </p>
           </div>
-          <div className="space-y-2">
-            <Label>Categories</Label>
-            <div className="flex flex-wrap gap-2">
-              {SERVICE_CATEGORIES.map((c) => (
-                <Button
-                  key={c.slug}
-                  type="button"
-                  size="sm"
-                  variant={
-                    draft.categories.includes(c.slug) ? "default" : "outline"
-                  }
-                  className="rounded-full"
-                  aria-pressed={draft.categories.includes(c.slug)}
-                  onClick={() => toggle("categories", c.slug)}
-                >
-                  {c.name}
-                </Button>
-              ))}
+          {canStoreApplicationFields && (
+            <div className="space-y-2">
+              <Label>Categories</Label>
+              <div className="flex flex-wrap gap-2">
+                {SERVICE_CATEGORIES.map((c) => (
+                  <Button
+                    key={c.slug}
+                    type="button"
+                    size="sm"
+                    variant={
+                      draft.categories.includes(c.slug) ? "default" : "outline"
+                    }
+                    className="rounded-full"
+                    aria-pressed={draft.categories.includes(c.slug)}
+                    onClick={() => toggle("categories", c.slug)}
+                  >
+                    {c.name}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </>
       );
 
@@ -693,27 +726,29 @@ function StepFields({
     case "policies":
       return (
         <>
-          <div className="space-y-2">
-            <Label htmlFor="warranty-hours">
-              Warranty period in hours{" "}
-              <span className="font-normal text-muted-foreground">
-                (optional)
-              </span>
-            </Label>
-            <Input
-              id="warranty-hours"
-              type="number"
-              min={0}
-              max={8760}
-              value={draft.warrantyHours}
-              onChange={(e) => update({ warrantyHours: e.target.value })}
-              placeholder="e.g. 72"
-            />
-            <p className="text-xs text-muted-foreground">
-              How long after delivery you will replace the account if the buyer
-              reports a valid problem.
-            </p>
-          </div>
+          {canStoreApplicationFields && (
+            <div className="space-y-2">
+              <Label htmlFor="warranty-hours">
+                Warranty period in hours{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </Label>
+              <Input
+                id="warranty-hours"
+                type="number"
+                min={0}
+                max={8760}
+                value={draft.warrantyHours}
+                onChange={(e) => update({ warrantyHours: e.target.value })}
+                placeholder="e.g. 72"
+              />
+              <p className="text-xs text-muted-foreground">
+                How long after delivery you will replace the account if the buyer
+                reports a valid problem.
+              </p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="replacement-policy">Replacement policy</Label>
             <Textarea
@@ -755,83 +790,6 @@ function StepFields({
             />
           </div>
         </>
-      );
-
-    case "support":
-      return (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="support-email">Support email</Label>
-            <Input
-              id="support-email"
-              type="email"
-              value={draft.supportEmail}
-              onChange={(e) => update({ supportEmail: e.target.value })}
-              placeholder="support@mystore.com"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="support-hours">
-              Support hours{" "}
-              <span className="font-normal text-muted-foreground">
-                (optional)
-              </span>
-            </Label>
-            <Input
-              id="support-hours"
-              value={draft.supportHours}
-              onChange={(e) => update({ supportHours: e.target.value })}
-              placeholder="09:00–18:00 UTC"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="support-channel">
-              Preferred channel{" "}
-              <span className="font-normal text-muted-foreground">
-                (optional)
-              </span>
-            </Label>
-            <Input
-              id="support-channel"
-              value={draft.supportChannel}
-              onChange={(e) => update({ supportChannel: e.target.value })}
-              placeholder="On-platform messages"
-            />
-          </div>
-        </div>
-      );
-
-    case "compliance":
-      return (
-        <div className="space-y-4">
-          <div className="inset-well px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Agreement version {AGREEMENT_VERSION}
-            </p>
-            <p className="mt-2 text-sm leading-relaxed">
-              You must own each account you list, or have the right to transfer
-              it. Account transfers must comply with the platform's own terms.
-              Selling an account you do not control, or one that was obtained
-              by fraud, is grounds for removal and a permanent ban.
-            </p>
-          </div>
-          <div className="flex items-start gap-3">
-            <Checkbox
-              id="ownership-attested"
-              checked={draft.ownershipAttested}
-              onCheckedChange={(checked) =>
-                update({ ownershipAttested: Boolean(checked) })
-              }
-            />
-            <Label
-              htmlFor="ownership-attested"
-              className="cursor-pointer text-sm leading-relaxed"
-            >
-              I confirm I own or may lawfully transfer every account I list, and
-              that I will keep all conversations and payments on the platform.
-            </Label>
-          </div>
-        </div>
       );
   }
 }

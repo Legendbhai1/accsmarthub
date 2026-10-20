@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/common/Primitives";
+import { LottieAnimation } from "@/components/common/LottieAnimation";
 import { formatPrice } from "@/lib/format";
 import {
   fetchOrder,
@@ -121,10 +122,12 @@ export default function OrderConfirmed() {
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="surface w-full p-10"
       >
-        <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-success/10">
-          <PackageCheck className="size-7 text-success" />
-        </div>
-        <h1 className="mt-6 text-2xl font-bold tracking-tight">
+        <LottieAnimation
+          name="order-confirmed"
+          size={148}
+          label="Order confirmed"
+        />
+        <h1 className="mt-4 text-2xl font-bold tracking-tight">
           {order ? `Order ${order.order_no} confirmed` : "Order confirmed"}
         </h1>
         <p className="mt-3 leading-relaxed text-muted-foreground">

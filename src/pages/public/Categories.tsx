@@ -25,6 +25,7 @@ export default function Categories() {
     <div className="overflow-x-clip">
       <section className="mx-auto w-full max-w-7xl px-4 pb-10 pt-16 sm:px-6 sm:pt-20">
         <SectionHeading
+          level={1}
           title="Browse by platform"
           subtitle="Every account on AccsMartHub belongs to one of these ecosystems. Pick a platform to see what is live right now."
         />

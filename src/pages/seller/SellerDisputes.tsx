@@ -179,8 +179,7 @@ export default function SellerDisputes() {
     <SellerLayout>
       <div className="seller-page space-y-6">
         <div className="seller-page-head">
-          <h2 className="text-2xl font-bold tracking-tight">Disputes</h2>
-          <p className="seller-sub mt-1 text-sm text-muted-foreground">
+          <p className="seller-sub text-sm text-muted-foreground">
             Buyer-raised issues on your orders, and your responses to them.
           </p>
         </div>

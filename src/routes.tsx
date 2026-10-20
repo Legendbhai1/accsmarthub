@@ -8,6 +8,7 @@ import BuyerDashboard from "@/pages/buyer/BuyerDashboard";
 import BuyerOrders from "@/pages/buyer/BuyerOrders";
 import BuyerPurchased from "@/pages/buyer/BuyerPurchased";
 import BuyerSaved from "@/pages/buyer/BuyerSaved";
+import BuyerCart from "@/pages/buyer/BuyerCart";
 import BuyerNotifications from "@/pages/buyer/BuyerNotifications";
 import BuyerSupport from "@/pages/buyer/BuyerSupport";
 import BuyerWallet from "@/pages/buyer/BuyerWallet";
@@ -173,6 +174,7 @@ export const routes: RouteObject[] = [
           { path: "orders/:orderId", element: <BuyerOrderDetail /> },
           { path: "purchased", element: <BuyerPurchased /> },
           { path: "saved", element: <BuyerSaved /> },
+          { path: "cart", element: <BuyerCart /> },
           { path: "notifications", element: <BuyerNotifications /> },
           { path: "support", element: <BuyerSupport /> },
           { path: "wallet", element: <BuyerWallet /> },

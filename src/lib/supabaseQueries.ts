@@ -530,12 +530,33 @@ export function useReviewQueue(status: "pending" | "approved" | "rejected") {
 }
 
 /**
+ * True when PostgREST says the whole table is absent from its schema cache.
+ * The companion to `isSchemaCacheError` for a *missing table* rather than a
+ * missing column, which is what a database that has not run 0017 answers.
+ */
+function isMissingTableError(error: { message?: string; code?: string } | null) {
+  if (!error) return false;
+  const message = error.message ?? "";
+  return (
+    error.code === "PGRST205" ||
+    error.code === "42P01" ||
+    /could not find the table/i.test(message) ||
+    /relation .* does not exist/i.test(message)
+  );
+}
+
+/**
  * The application timeline for one store.
  *
  * `store_application_events` is readable by the store's owner and by admins
  * (0017's select policy), so the same hook serves the applicant's status
  * screen and the admin review dialog without either needing a privileged
  * path.
+ *
+ * The table is created by 0017. On a database that has not run it the table
+ * does not exist, and an error would replace the applicant's status screen
+ * with a failure banner — so a missing table is treated as "no events yet".
+ * The application itself is still readable; only its history is unavailable.
  */
 export function useStoreApplicationEvents(storeId: string | null) {
   return useSBQuery(
@@ -546,6 +567,7 @@ export function useStoreApplicationEvents(storeId: string | null) {
         .select("*")
         .eq("store_id", storeId)
         .order("created_at", { ascending: true });
+      if (isMissingTableError(error)) return [] as StoreApplicationEvent[];
       if (error) throw new Error(friendlyError(error));
       return (data ?? []) as StoreApplicationEvent[];
     },
@@ -976,4 +998,75 @@ async function fetchAdminListings(): Promise<AdminListingRow[]> {
 
 export function useAdminListings() {
   return useSBQuery(fetchAdminListings, []);
+}
+
+/* ------------------------------ cart ------------------------------ */
+
+export type CartLine = {
+  /** `cart_items.id` — the id `checkoutCart()` is handed. */
+  id: string;
+  listingId: string;
+  title: string;
+  brand: string;
+  quantity: number;
+  /** Live listing price. The server re-reads this at checkout; it is shown
+   *  here only so the summary is not blank. */
+  unitPriceUsd: number;
+  stock: number;
+  status: string;
+  imagePath: string | null;
+};
+
+/**
+ * The signed-in buyer's cart, joined to the live listing.
+ *
+ * The cart row stores only `listing_id` and `quantity`; price, stock and title
+ * come from the listing at read time. That is deliberate — a cart row must
+ * never carry a price the buyer could have edited, and the total on screen
+ * should follow the listing rather than a stale snapshot. Checkout re-derives
+ * everything again on the server, so this read is for display only.
+ */
+async function fetchCart(): Promise<CartLine[]> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session?.user.id) return [];
+  const { data, error } = await supabase
+    .from("cart_items")
+    .select(
+      "id, listing_id, quantity, added_at, listings!inner(id, title, brand, price_usd, stock, status, image_path)",
+    )
+    .order("added_at", { ascending: false });
+  if (error) throw new Error(friendlyError(error));
+  return (data ?? []).map((row) => {
+    // The embedded listing is a to-one join, but the generated types model it
+    // as an array; normalise both shapes rather than casting.
+    const listing = Array.isArray(row.listings) ? row.listings[0] : row.listings;
+    return {
+      id: row.id,
+      listingId: row.listing_id,
+      title: listing?.title ?? "Listing unavailable",
+      brand: listing?.brand ?? "",
+      quantity: Number(row.quantity ?? 0),
+      unitPriceUsd: Number(listing?.price_usd ?? 0),
+      stock: Number(listing?.stock ?? 0),
+      status: listing?.status ?? "unknown",
+      imagePath: listing?.image_path ?? null,
+    };
+  });
+}
+
+export function useCart() {
+  return useSBQuery(fetchCart, []);
+}
+
+/** How many distinct listings are in the cart, for the header badge. */
+export function useCartCount() {
+  const { user } = useSession();
+  return useSBQuery(async () => {
+    if (!user?.id) return 0;
+    const { count, error } = await supabase
+      .from("cart_items")
+      .select("id", { count: "exact", head: true });
+    if (error) throw new Error(friendlyError(error));
+    return count ?? 0;
+  }, [user?.id ?? ""]);
 }

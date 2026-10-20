@@ -357,3 +357,24 @@ begin
   return v_order_no;
 end;
 $$;
+
+-- ---------------------------------------------------------------------
+-- 14. Reload PostgREST's schema cache.
+--
+-- PostgREST caches the table and column definitions it will accept, and only
+-- refreshes that cache when told to. Without this, every column added above is
+-- live in Postgres but invisible to the API, and a write naming one fails with
+--
+--   Could not find the 'agreement_version' column of 'stores'
+--   in the schema cache
+--
+-- which is exactly the error an unapplied 0017 produces — so the two causes
+-- are indistinguishable to whoever is holding the form. The Supabase
+-- dashboard sends this itself after a migration; the CLI runner used here
+-- does not, so the migration carries it.
+--
+-- `NOTIFY` is transactional: it is delivered when this file's transaction
+-- commits, so the cache can never be reloaded ahead of the schema it
+-- describes.
+-- ---------------------------------------------------------------------
+notify pgrst, 'reload schema';

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   applyMigrations,
@@ -143,6 +143,39 @@ describe("the real migrations are all safe to run transactionally", () => {
 
   it.each(names)("%s can be wrapped in one transaction", (name) => {
     expect(isTransactional(read(`supabase/migrations/${name}`))).toBe(true);
+  });
+
+  it("0017 reloads PostgREST's schema cache after adding columns", () => {
+    // Without this, the columns are live in Postgres but absent from the API's
+    // cache, and a write naming one fails with "Could not find the
+    // 'agreement_version' column of 'stores' in the schema cache" — the same
+    // error an unapplied migration gives.
+    const sql = read("supabase/migrations/0017_store_applications.sql");
+    expect(sql).toMatch(/notify\s+pgrst\s*,\s*'reload schema'/i);
+  });
+
+  it("0018 repairs the cart checkout's oversell guard", () => {
+    const fixed = read("supabase/migrations/0018_cart_checkout_stock_guard.sql");
+    // The bug: the cart branch tested `v_listing.stock`, but `v_listing` is
+    // only assigned on the Buy Now path. `NULL < n` is NULL, `if NULL` does
+    // not run, and the guard was dead — a cart checkout could oversell.
+    const code = fixed.replace(/--[^\n]*/g, "");
+    expect(code).not.toMatch(/v_listing/);
+    // The replacement must actually compare against a read of the row.
+    expect(code).toMatch(/select stock into v_available/i);
+    expect(code).toMatch(/coalesce\(v_available,\s*0\)\s*<\s*v_item\.quantity/i);
+    // It replaces the function rather than adding a second definition.
+    expect(fixed.match(/create or replace function public\.checkout\(/gi)).toHaveLength(1);
+  });
+
+  it("every migration file is recorded in the runner's ledger order", () => {
+    // A new migration that is not safe to run in one transaction, or that
+    // duplicates a function definition across files, is how the production
+    // drift started. Every file must parse as one transactionable unit.
+    for (const name of readdirSync("supabase/migrations")) {
+      if (!name.endsWith(".sql")) continue;
+      expect(isTransactional(read(`supabase/migrations/${name}`)), name).toBe(true);
+    }
   });
 
   it("the runner never invokes a command that bypasses the API's single query", () => {

@@ -313,6 +313,16 @@ export default function Marketplace() {
             </div>
           </form>
         )}
+
+        {/* The page's one `h1`. The header above carries the wordmark only, so
+            before this the document had no top-level heading at all and a
+            screen reader announced the page by its `<title>` alone. */}
+        <div className="mx-auto mt-5 max-w-md">
+          <h1 className="page-title">Marketplace</h1>
+          <p className="page-sub mt-1">
+            Every account here was reviewed by an admin before it went live.
+          </p>
+        </div>
       </header>
 
       {/* ---------------------------- Promo banner ---------------------------- */}
@@ -325,7 +335,12 @@ export default function Marketplace() {
             <span className="inline-flex rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">
               {current.chip}
             </span>
-            <h2 className="mt-3 text-[21px] font-bold leading-tight tracking-tight text-foreground">{current.title}</h2>
+            {/* A `<p>`, not a heading: this rotates between marketing slides,
+                so as an `h2` it inserted a section that had nothing to do with
+                the page outline and appeared above the real listings heading. */}
+            <p className="mt-3 text-[21px] font-bold leading-tight tracking-tight text-foreground">
+              {current.title}
+            </p>
             <p className="mt-1 max-w-[62%] text-[11px] leading-snug text-muted-foreground">{current.subtitle}</p>
             <BrandMark
               brand={current.brand}

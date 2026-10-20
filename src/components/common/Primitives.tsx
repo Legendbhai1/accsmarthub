@@ -14,34 +14,34 @@ import { Inbox, Minus, Plus } from "lucide-react";
 
 export function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    active: "bg-success/10 text-success",
-    completed: "bg-success/10 text-success",
-    paid: "bg-success/10 text-success",
-    released: "bg-success/10 text-success",
-    resolved: "bg-success/10 text-success",
-    answered: "bg-success/10 text-success",
-    in_escrow: "bg-muted text-foreground",
-    transferring: "bg-warning/10 text-warning",
-    pending: "bg-warning/10 text-warning",
-    under_review: "bg-warning/10 text-warning",
-    held: "bg-warning/10 text-warning",
-    open: "bg-destructive/10 text-destructive",
-    disputed: "bg-destructive/10 text-destructive",
-    suspended: "bg-destructive/10 text-destructive",
-    refunded: "bg-muted text-muted-foreground",
-    closed: "bg-muted text-muted-foreground",
-    paused: "bg-muted text-muted-foreground",
-    sold: "bg-muted text-muted-foreground",
-    requested: "bg-warning/10 text-warning",
-    approved: "bg-info/10 text-info",
-    rejected: "bg-destructive/10 text-destructive",
-    cancelled: "bg-muted text-muted-foreground",
+    active: "border-success/25 bg-success/12 text-success",
+    completed: "border-success/25 bg-success/12 text-success",
+    paid: "border-success/25 bg-success/12 text-success",
+    released: "border-success/25 bg-success/12 text-success",
+    resolved: "border-success/25 bg-success/12 text-success",
+    answered: "border-success/25 bg-success/12 text-success",
+    in_escrow: "border-primary/25 bg-primary/10 text-primary",
+    transferring: "border-warning/30 bg-warning/12 text-warning",
+    pending: "border-warning/30 bg-warning/12 text-warning",
+    under_review: "border-warning/30 bg-warning/12 text-warning",
+    held: "border-warning/30 bg-warning/12 text-warning",
+    requested: "border-warning/30 bg-warning/12 text-warning",
+    open: "border-destructive/30 bg-destructive/12 text-destructive",
+    disputed: "border-destructive/30 bg-destructive/12 text-destructive",
+    suspended: "border-destructive/30 bg-destructive/12 text-destructive",
+    rejected: "border-destructive/30 bg-destructive/12 text-destructive",
+    approved: "border-info/30 bg-info/12 text-info",
+    refunded: "border-border bg-muted text-muted-foreground",
+    closed: "border-border bg-muted text-muted-foreground",
+    paused: "border-border bg-muted text-muted-foreground",
+    sold: "border-border bg-muted text-muted-foreground",
+    cancelled: "border-border bg-muted text-muted-foreground",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium capitalize",
-        styles[status] ?? "bg-muted text-muted-foreground",
+        "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium capitalize",
+        styles[status] ?? "border-border bg-muted text-muted-foreground",
       )}
     >
       {status.replace(/_/g, " ")}
@@ -132,10 +132,17 @@ export function StatCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="surface p-5">
+    <div className="surface relative overflow-hidden p-5">
+      {/* A brand hairline rather than a tinted card: the row of stats reads as
+          one branded set without four saturated panels competing with the
+          numbers. */}
+      <span
+        aria-hidden="true"
+        className="brand-rule absolute inset-x-0 top-0 h-px opacity-70"
+      />
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">{label}</p>
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary">
+        <span className="brand-gradient flex size-9 shrink-0 items-center justify-center rounded-full">
           <Icon className="size-4 text-primary-foreground" />
         </span>
       </div>
@@ -145,19 +152,46 @@ export function StatCard({
   );
 }
 
+/**
+ * A section title inside a page.
+ *
+ * Deliberately one step below `.page-title`: the page `h1` tops out at
+ * `text-2xl`, so a section `h2` at `text-xl` always reads as subordinate.
+ * These two used to be the same size, which left every page with a flat
+ * heading hierarchy and no clear entry point.
+ *
+ * `level` exists for the pages that are *not* inside `DashShell` — the public
+ * marketing pages (`/marketplace/categories`, `/disputes`) render their page
+ * title through this component and had no `h1` in the document at all, which
+ * left a screen reader with no page title to announce. Passing `level={1}`
+ * emits the real `h1`; the default stays `h2` so a section heading inside a
+ * dashboard page cannot become a second top-level heading.
+ */
 export function SectionHeading({
   title,
   subtitle,
   action,
+  level = 2,
 }: {
   title: string;
   subtitle?: string;
   action?: ReactNode;
+  /** `1` renders an `h1` with the page-title scale; `2` (default) an `h2`. */
+  level?: 1 | 2;
 }) {
+  const Heading = level === 1 ? "h1" : "h2";
   return (
     <div className="flex items-end justify-between gap-4">
       <div>
-        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{title}</h2>
+        <Heading
+          className={
+            level === 1
+              ? "page-title"
+              : "text-lg font-semibold tracking-tight sm:text-xl"
+          }
+        >
+          {title}
+        </Heading>
         {subtitle && <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {action}
@@ -176,8 +210,14 @@ export function EmptyState({
 }) {
   return (
     <div className="surface flex flex-col items-center px-6 py-16 text-center">
-      <span className="flex size-14 items-center justify-center rounded-full bg-primary/10">
-        <Inbox className="size-5 text-warning" />
+      {/* The tile and the glyph share one hue. They previously disagreed — a
+          violet disc behind an amber icon — which read as a rendering fault
+          rather than a style. */}
+      <span
+        className="icon-tile size-14"
+        style={{ ["--tile" as string]: "var(--primary)" }}
+      >
+        <Inbox className="size-5" />
       </span>
       <h3 className="mt-4 font-semibold">{title}</h3>
       {description && (

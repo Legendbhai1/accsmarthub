@@ -37,10 +37,13 @@ export function SellerLayout({
 
   // Most studio pages already pass a title. When one does not, take the label
   // from the nav so the header and the highlighted rail entry always agree.
+  // The pathname never carries a query string, so the nav's `?new=1`
+  // shortcut entry is compared by its path alone.
   const derived =
     title ??
-    flatNav(sellerNav).find((item) => item.to.split("?")[0] === pathname)
-      ?.label ??
+    flatNav(sellerNav).find(
+      (item) => item.to.split("?")[0] === pathname,
+    )?.label ??
     "Seller studio";
 
   return (

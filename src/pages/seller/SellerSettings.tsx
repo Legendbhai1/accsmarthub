@@ -68,7 +68,7 @@ export default function SellerSettings() {
 
     setSubmitting(true);
     try {
-      await submitStore({
+      const { degraded } = await submitStore({
         storeName: storeName.trim(),
         platforms,
         deliverySpeed,
@@ -78,7 +78,13 @@ export default function SellerSettings() {
         sourcing,
         contactPolicyAccepted,
       });
-      toast.success("Store updated");
+      if (degraded) {
+        toast.warning(
+          "Saved, but this server has not run the store-application migration yet, so some newer fields were not stored. Please contact support.",
+        );
+      } else {
+        toast.success("Store updated");
+      }
       const updated = await readMyStore();
       setStore(updated);
     } catch (err) {
