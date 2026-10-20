@@ -181,11 +181,11 @@ describe("the switcher is reachable from the dashboard header", () => {
   });
 
   it("renders the switcher link as a navigable anchor with an accessible name", () => {
-    // The visible label is hidden below `sm`, so `aria-label` is what gives
-    // the control a name on the narrowest screens — otherwise it is a bare
-    // icon and a screen reader announces nothing.
+    // The visible label is shown at every width, and `aria-label` repeats it
+    // so the control keeps a name even if the text is ever truncated.
     expect(shell).toMatch(/<Link to=\{to\} aria-label=\{label\}>/);
     expect(shell).toMatch(/aria-label=\{label\}/);
+    expect(shell).toMatch(/<span className="whitespace-nowrap">\{label\}<\/span>/);
   });
 });
 
