@@ -53,6 +53,17 @@ reset_db() {
 
 mig() { echo "$root/supabase/migrations/$1"; }
 
+check() {
+  local db="$1" label="$2" sql="$3" got
+  got=$("${PSQL[@]}" -d "$db" -tA -c "$sql" 2>&1)
+  if [ "$got" = "t" ]; then
+    echo "     ok   $db $label"
+  else
+    echo "     FAIL $db $label (got: $got)"
+    status=1
+  fi
+}
+
 status=0
 
 # ---------------------------------------------------------------- scenario 1
@@ -69,17 +80,19 @@ apply s1 "$(mig 0015_support_request_safety.sql)" || status=1
 apply s1 "$(mig 0016_saved_listings.sql)" || status=1
 
 # ---------------------------------------------------------------- scenario 2
-echo "SCENARIO 2  legacy chain 0001-0012 (0007/0009/0012 abort) then 0013"
+echo "SCENARIO 2  legacy chain 0001-0012 then 0013"
 reset_db s2
 apply s2 "$root/tests/bootstrap.sql" || status=1
 for f in 0001_core 0002_storage 0003_disputes 0004_payments \
          0005_deposit_settlement 0006_deposit_currency_fix; do
   apply s2 "$(mig "$f.sql")" || status=1
 done
+# 0007, 0009 and 0012 used to abort part-way on PostgreSQL; commit b055240
+# repaired them in place, so the whole chain must now apply cleanly.
 for f in 0007_email_and_store_policy 0008_listing_first_publishing \
          0009_buying_to_delivery_lifecycle 0010_admin_users_edge_function \
          0011_dispute_rls_fix 0012_dispute_resolution_consistency; do
-  apply s2 "$(mig "$f.sql")" allow || status=1
+  apply s2 "$(mig "$f.sql")" || status=1
 done
 apply s2 "$(mig 0013_reconcile_marketplace.sql)" || status=1
 apply s2 "$(mig 0014_seller_payouts.sql)" || status=1
@@ -99,18 +112,71 @@ apply s2 "$(mig 0015_support_request_safety.sql)" || status=1
 apply s1 "$(mig 0016_saved_listings.sql)" || status=1
 apply s2 "$(mig 0016_saved_listings.sql)" || status=1
 
+# ---------------------------------------------------------------- scenario 5
+# The production shape: a 0001-0006 project that already holds disputes whose
+# reason is a UI label, then 0013 applied on top. 0013 used to abort here with
+# "check constraint ... is violated by some row". It must now normalise the
+# labels, record what it rewrote, and add the constraint.
+echo "SCENARIO 5  0001-0006 with legacy dispute reasons, then 0013"
+reset_db s5
+apply s5 "$root/tests/bootstrap.sql" || status=1
+for f in 0001_core 0002_storage 0003_disputes 0004_payments \
+         0005_deposit_settlement 0006_deposit_currency_fix; do
+  apply s5 "$(mig "$f.sql")" || status=1
+done
+
+cat > "$stage/legacy_disputes.sql" <<'SQL'
+insert into auth.users (id, email) values
+  ('11111111-1111-1111-1111-111111111111', 'buyer@example.com'),
+  ('22222222-2222-2222-2222-222222222222', 'seller@example.com')
+on conflict (id) do nothing;
+insert into public.listings
+  (id, listing_key, seller_id, title, brand, price_usd, stock, status)
+values ('eeeeeeee-0000-0000-0000-000000000001', 'legacy-1',
+        '22222222-2222-2222-2222-222222222222', 'Legacy Account', 'instagram',
+        10, 0, 'active')
+on conflict (id) do nothing;
+insert into public.orders
+  (order_no, listing_id, listing_title, brand, buyer_id, seller_id, quantity,
+   unit_price_usd, gross_amount, escrow_fee_usd, total_usd,
+   commission_amount, seller_net_amount, status)
+select 'LEG-' || g, 'eeeeeeee-0000-0000-0000-000000000001', 'Legacy Account',
+       'instagram', '11111111-1111-1111-1111-111111111111',
+       '22222222-2222-2222-2222-222222222222', 1, 10, 10, 0.3, 10.3, 1, 9,
+       'disputed'
+  from generate_series(1, 5) g
+on conflict (order_no) do nothing;
+-- The exact labels the 0003-era buyer UI posted.
+insert into public.disputes (order_no, opened_by, reason, detail) values
+  ('LEG-1', '11111111-1111-1111-1111-111111111111', 'Not as described', 'legacy one'),
+  ('LEG-2', '11111111-1111-1111-1111-111111111111', 'Transfer failed', 'legacy two'),
+  ('LEG-3', '11111111-1111-1111-1111-111111111111', 'Seller unresponsive', 'legacy three'),
+  ('LEG-4', '11111111-1111-1111-1111-111111111111', 'Other', 'legacy four'),
+  ('LEG-5', '11111111-1111-1111-1111-111111111111', 'not_as_described', 'legacy five');
+SQL
+apply s5 "$stage/legacy_disputes.sql" || status=1
+
+# Now the migration that used to abort.
+apply s5 "$(mig 0013_reconcile_marketplace.sql)" || status=1
+apply s5 "$(mig 0014_seller_payouts.sql)" || status=1
+apply s5 "$(mig 0015_support_request_safety.sql)" || status=1
+apply s5 "$(mig 0016_saved_listings.sql)" || status=1
+
+check s5 "legacy labels were normalised, none left" \
+  "select not exists (select 1 from public.disputes where reason not in ('not_as_described','transfer_failed','seller_unresponsive','item_not_received','other'))"
+check s5 "the normalisation is recorded" \
+  "select count(*) >= 4 from public.dispute_reason_normalizations"
+check s5 "the record names the legacy label" \
+  "select exists (select 1 from public.dispute_reason_normalizations where legacy_reason = 'Not as described' and canonical_reason = 'not_as_described')"
+check s5 "all five disputes survived" \
+  "select count(*) = 5 from public.disputes where order_no like 'LEG-%'"
+check s5 "the reason constraint is present" \
+  "select exists (select 1 from pg_constraint where conname = 'disputes_reason_check' and conrelid = 'public.disputes'::regclass)"
+check s5 "the normalisation function is not client-callable" \
+  "select not has_function_privilege('authenticated','public.normalize_dispute_reasons()','execute')"
+
 # ------------------------------------------------------- required objects
 echo "SCENARIO 4  required objects present in both scenarios"
-check() {
-  local db="$1" label="$2" sql="$3" got
-  got=$("${PSQL[@]}" -d "$db" -tA -c "$sql" 2>&1)
-  if [ "$got" = "t" ]; then
-    echo "     ok   $db $label"
-  else
-    echo "     FAIL $db $label (got: $got)"
-    status=1
-  fi
-}
 
 for db in s1 s2; do
   check "$db" "orders.delivery_status exists" \

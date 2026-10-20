@@ -33,7 +33,13 @@ run() {
   staged="$stage/$label"
   cp "$file" "$staged"
   chmod 644 "$staged"
-  if out=$("${PSQL[@]}" -d "$DB" -f "$staged" 2>&1); then
+  # One transaction per migration where the file does not open its own, so a
+  # failure rolls the whole file back rather than leaving part of it applied.
+  local -a extra=()
+  if ! grep -qiE '^[[:space:]]*(begin|start[[:space:]]+transaction)[[:space:]]*;' "$staged"; then
+    extra=(-1)
+  fi
+  if out=$("${PSQL[@]}" "${extra[@]}" -d "$DB" -f "$staged" 2>&1); then
     echo "  ok   $label"
   else
     echo "  FAIL $label"
@@ -43,6 +49,7 @@ run() {
 }
 
 status=0
+completed=0
 run "$root/tests/bootstrap.sql" || status=1
 
 if [ "$#" -gt 0 ]; then
@@ -51,8 +58,17 @@ else
   files=("$root"/supabase/migrations/*.sql)
 fi
 
+# Stop at the first failure. A migration that fails may still have committed
+# part of itself if it could not be wrapped, so the chain is not continued and
+# the caller is told how far it got.
 for f in "${files[@]}"; do
-  run "$f" || status=1
+  if run "$f"; then
+    completed=$((completed + 1))
+  else
+    status=1
+    echo "RESULT: FAILED after $completed migration(s); not attempting anything after $(basename "$f")"
+    exit 1
+  fi
 done
 
 if [ "$status" -ne 0 ]; then

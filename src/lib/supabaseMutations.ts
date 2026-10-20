@@ -1,5 +1,6 @@
 import { supabase, SUPABASE_PROJECT_URL } from "@/lib/supabase";
 import { friendlyError, type Report } from "@/lib/supabaseData";
+import { isDisputeReason } from "@/lib/disputeReasons";
 
 /**
  * Supabase-backed mutation helpers.
@@ -593,12 +594,19 @@ export { downloadCredentials } from "@/lib/supabaseData";
 /**
  * Buyer opens a dispute. Escrow freezes by flipping the order to 'disputed';
  * nothing moves until an admin resolves it.
+ *
+ * `reason` must be a canonical value. The RPC rejects anything else with
+ * "Invalid dispute reason", so an invalid value is caught here with a clearer
+ * message rather than as a raw Postgres error.
  */
 export async function openDispute(
   orderNo: string,
   reason: string,
   detail: string,
 ): Promise<void> {
+  if (!isDisputeReason(reason)) {
+    throw new Error("Choose a dispute reason from the list.");
+  }
   const { error } = await supabase.rpc("open_dispute", {
     p_order_no: orderNo,
     p_reason: reason,

@@ -17,6 +17,7 @@ import {
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
+import { disputeReasonLabel } from "@/lib/disputeReasons";
 import { useAdminDisputes } from "@/lib/supabaseQueries";
 import { resolveDispute } from "@/lib/supabaseMutations";
 
@@ -123,7 +124,7 @@ export default function AdminDisputes() {
                   <div className="flex flex-wrap items-start gap-3">
                     <div className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium">
-                        {d.reason}
+                        {disputeReasonLabel(d.reason)}
                       </span>
                       <span className="block text-xs text-muted-foreground">
                         {d.order_no} · {d.listing_title}
@@ -194,7 +195,7 @@ export default function AdminDisputes() {
                   <p className="font-medium">
                     {openDispute.order_no} · {openDispute.listing_title}
                   </p>
-                  <p className="mt-1 text-muted-foreground">{openDispute.reason}</p>
+                  <p className="mt-1 text-muted-foreground">{disputeReasonLabel(openDispute.reason)}</p>
                 </div>
 
                 <div className="grid gap-3">

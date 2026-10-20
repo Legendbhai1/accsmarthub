@@ -11,6 +11,7 @@ import {
 import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
+import { disputeReasonLabel } from "@/lib/disputeReasons";
 import { addDisputeMessage } from "@/lib/supabaseMutations";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/supabaseData";
@@ -199,7 +200,7 @@ export default function SellerDisputes() {
                   <div>
                     <p className="text-sm font-medium">{d.listingTitle}</p>
                     <p className="text-xs text-muted-foreground">
-                      {d.order_no} · {d.reason} · {formatPrice(d.amount)} in
+                      {d.order_no} · {disputeReasonLabel(d.reason)} · {formatPrice(d.amount)} in
                       escrow
                     </p>
                   </div>

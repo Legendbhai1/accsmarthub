@@ -170,6 +170,33 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   which files are missing. `tests/listing_creation.sql` pins the *text* of the
   policy (that it does not mention `approved`), not merely that the policy
   exists, because "exists but is the old one" was the entire bug.
+- **A migration runner that keeps going after a failure is worse than none.**
+  `scripts/migrate.mjs` used to apply statements one at a time, each in its own
+  implicit transaction, and continue to the next file after a failure. A
+  half-applied `0013` (its `order_events`/`order_refunds` committed, its
+  `disputes_reason_check` never reached) is exactly what that produces. It now
+  sends each file as ONE query wrapped in `begin; … commit;`, stops dead at the
+  first failure, refuses to wrap a file containing `create index concurrently`
+  / `vacuum` / `reindex` (those cannot run in a transaction), and records what
+  it applied in `public.schema_migrations`. Plan mode is the default and writes
+  nothing at all — not even the ledger table. `tests/migration_runner.test.ts`
+  and `tests/migration_runner_stops.sh` pin this; `npm run test:db:migrations`
+  runs the whole readiness check.
+- **Dispute reasons are a snake_case vocabulary, not the labels the UI
+  renders.** `disputes.reason` is constrained by `0013` to
+  `not_as_described | transfer_failed | seller_unresponsive |
+  item_not_received | other`, and `open_dispute()` validates the same set. The
+  buyer page used to render its own label array and post the selected label as
+  `p_reason`, so every dispute opened from the UI failed with
+  `Invalid dispute reason` (P0001). The vocabulary now lives in
+  `src/lib/disputeReasons.ts` (values, labels, `isDisputeReason`,
+  `disputeReasonLabel`) and `tests/dispute_reasons.test.ts` asserts the UI
+  module, the RPC guard and the CHECK constraint are the same set — three
+  copies that had silently drifted. Legacy label-valued rows are normalised by
+  `public.normalize_dispute_reasons()` (server-only, audited in
+  `dispute_reason_normalizations`); an unrecognised value raises rather than
+  being filed under `other`. `supabase/preflight/*.sql` are the read-only
+  queries to run against production before applying `0013`/`0014`.
 - **Migrations must be applied in order, and the drift checker proves they
   are.** When adding a migration, add a sentinel for it to
   `scripts/check-schema.mjs`: a *query* that is false without that specific

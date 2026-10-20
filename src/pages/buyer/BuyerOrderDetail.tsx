@@ -27,6 +27,11 @@ import { buyerNav } from "@/components/dash/navs";
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
+import {
+  DISPUTE_REASON_OPTIONS,
+  disputeReasonLabel,
+  type DisputeReason,
+} from "@/lib/disputeReasons";
 import { fetchOrder, useDispute, type OrderRow } from "@/lib/supabaseQueries";
 import { useNow } from "@/hooks/use-now";
 import {
@@ -44,7 +49,7 @@ const TIMELINE: { key: string; label: string }[] = [
   { key: "completed", label: "Completed — escrow released" },
 ];
 
-const DISPUTE_REASONS = ["Not as described", "Transfer failed", "Seller unresponsive", "Other"];
+const DISPUTE_REASON_FALLBACK: DisputeReason = "not_as_described";
 
 /** Off-platform contact is a policy breach, not a payment problem. */
 const REPORT_REASONS = [
@@ -64,7 +69,7 @@ export default function BuyerOrderDetail() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [advancing, setAdvancing] = useState(false);
   const [disputeOpen, setDisputeOpen] = useState(false);
-  const [reason, setReason] = useState(DISPUTE_REASONS[0]);
+  const [reason, setReason] = useState<DisputeReason>(DISPUTE_REASON_FALLBACK);
   const [detail, setDetail] = useState("");
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<string>("shared_contact");
@@ -362,12 +367,12 @@ export default function BuyerOrderDetail() {
                       <select
                         id="dispute-reason"
                         value={reason}
-                        onChange={(e) => setReason(e.target.value)}
+                        onChange={(e) => setReason(e.target.value as DisputeReason)}
                         className="inset-well h-10 rounded-xl px-3 text-sm outline-none"
                       >
-                        {DISPUTE_REASONS.map((r) => (
-                          <option key={r} value={r} className="bg-popover">
-                            {r}
+                        {DISPUTE_REASON_OPTIONS.map((r) => (
+                          <option key={r.value} value={r.value} className="bg-popover">
+                            {r.label}
                           </option>
                         ))}
                       </select>
@@ -406,7 +411,7 @@ export default function BuyerOrderDetail() {
             <div className="mt-4 space-y-3">
               <div className="flex items-center gap-3 text-sm">
                 <StatusBadge status={dispute.status} />
-                <span className="font-medium">{dispute.reason}</span>
+                <span className="font-medium">{disputeReasonLabel(dispute.reason)}</span>
                 <span className="text-muted-foreground">
                   {formatPrice(order.total_usd)} in escrow
                 </span>

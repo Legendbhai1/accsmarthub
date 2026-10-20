@@ -126,9 +126,28 @@ const SENTINELS = [
   },
   {
     file: "0013_reconcile_marketplace.sql",
-    what: "order_events + order_refunds",
+    what: "order_events + order_refunds + the canonical dispute vocabulary",
+    // Presence of the two tables is not enough. 0013 also pins
+    // `disputes.reason` to the canonical set and normalises legacy rows; a
+    // database where the tables exist but the constraint does not (which is
+    // what a half-applied 0013 looks like) still accepts label-valued reasons
+    // and would break the moment the constraint is finally added. Check the
+    // constraint's text, and that no row is sitting outside it.
     probe: `select to_regclass('public.order_events') is not null
-              and to_regclass('public.order_refunds') is not null`,
+              and to_regclass('public.order_refunds') is not null
+              and exists (
+                select 1 from pg_constraint c
+                 where c.conname = 'disputes_reason_check'
+                   and c.conrelid = 'public.disputes'::regclass
+                   and pg_get_constraintdef(c.oid) like '%not_as_described%'
+                   and pg_get_constraintdef(c.oid) like '%item_not_received%'
+              )
+              and not exists (
+                select 1 from public.disputes d
+                 where d.reason not in (
+                   'not_as_described','transfer_failed','seller_unresponsive',
+                   'item_not_received','other')
+              )`,
   },
   {
     file: "0014_seller_payouts.sql",
@@ -205,7 +224,7 @@ if (missing > 0) {
     `RESULT: ${missing} migration(s) missing from project ${REF}.\n` +
       "Apply them in order:\n" +
       "  SUPABASE_PROJECT_REF=<ref> SUPABASE_ACCESS_TOKEN=sbp_... \\\n" +
-      "    node scripts/migrate.mjs supabase/migrations/<file>.sql",
+      "    node scripts/migrate.mjs --apply",
   );
   process.exit(1);
 }

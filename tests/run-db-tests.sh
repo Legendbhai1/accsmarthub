@@ -37,16 +37,38 @@ KNOWN_BROKEN=""
 
 "${PSQL[@]}" -d "$DB" -f "$(stage_file "$root/tests/bootstrap.sql")" >/dev/null
 
+# Applies one migration as a single transaction where the file does not manage
+# its own, so a failure rolls the whole file back instead of leaving half of it
+# committed. `-1` is what psql offers for that; it is skipped when the file has
+# its own begin/commit (0011), where nesting would only produce warnings.
+apply_migration() {
+  local staged="$1" body
+  if grep -qiE '^[[:space:]]*(begin|start[[:space:]]+transaction)[[:space:]]*;' "$staged"; then
+    "${PSQL[@]}" -d "$DB" -f "$staged"
+  else
+    "${PSQL[@]}" -1 -d "$DB" -f "$staged"
+  fi
+}
+
+completed=()
 for f in "$root"/supabase/migrations/*.sql; do
   name="$(basename "$f")"
   staged="$(stage_file "$f")"
-  if "${PSQL[@]}" -d "$DB" -f "$staged" >/dev/null 2>&1; then
+  if apply_migration "$staged" >/dev/null 2>&1; then
+    completed+=("$name")
     continue
   fi
   case " $KNOWN_BROKEN " in
-    *" $name "*) ;;
-    *) echo "migration $name failed to apply; aborting" >&2; exit 2 ;;
+    *" $name "*) continue ;;
   esac
+  # Stop dead: nothing after this file is attempted, and the caller is told
+  # exactly how far the chain got so a partial application is never assumed
+  # away.
+  echo "migration $name failed to apply; aborting" >&2
+  echo "completed before the failure (${#completed[@]}): ${completed[*]:-none}" >&2
+  echo "failed: $name" >&2
+  echo "not attempted: everything after $name" >&2
+  exit 2
 done
 
 # The test file itself runs with ON_ERROR_STOP off so one failing assertion is

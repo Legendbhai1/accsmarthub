@@ -637,8 +637,114 @@ create policy "buyer may request replacement or cancellation" on public.order_re
   );
 
 -- 7e. `disputes.reason` had no constraint on the 0003-era table, so any text
---   could be stored. Pin it to the vocabulary the UI and the admin filters
---   understand.
+--   could be stored — and 0003 also shipped a buyer UI that posted its human
+--   labels ("Not as described") verbatim as the reason. Those labels are real
+--   production values, so the constraint below cannot simply be added: it
+--   would be rejected by existing rows.
+--
+--   Every existing row is therefore normalised onto the canonical vocabulary
+--   first, through an explicit, recorded mapping — never a blind
+--   `set reason = 'other'`. `dispute_reason_normalizations` is that record:
+--   one row per reason value that had to be rewritten, the canonical value it
+--   became, how many disputes it covered, and when. It is server-only (RLS on,
+--   no policies, no grants), the same shape as `disposable_email_domains`.
+create table if not exists public.dispute_reason_normalizations (
+  id uuid primary key default gen_random_uuid(),
+  legacy_reason text not null,
+  canonical_reason text not null,
+  affected_count integer not null,
+  normalized_at timestamptz not null default now()
+);
+create unique index if not exists dispute_reason_normalizations_legacy_idx
+  on public.dispute_reason_normalizations (legacy_reason);
+alter table public.dispute_reason_normalizations enable row level security;
+
+-- The normalisation itself, as a function so the migration and the regression
+-- suite exercise exactly the same code. Returns the number of rows rewritten.
+--   * a canonical value is left alone;
+--   * a value in the map is rewritten and recorded;
+--   * anything else raises, naming every offending value at once.
+create or replace function public.normalize_dispute_reasons()
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  -- The deliberate, auditable policy: which legacy strings mean what. The
+  -- first block is the exact set of labels the 0003-era buyer UI posted; the
+  -- second is case/spacing variants of the canonical values themselves.
+  v_map constant jsonb := jsonb_build_object(
+    'Not as described',    'not_as_described',
+    'Transfer failed',     'transfer_failed',
+    'Seller unresponsive', 'seller_unresponsive',
+    'Item not received',   'item_not_received',
+    'Other',               'other',
+    'not as described',    'not_as_described',
+    'transfer failed',     'transfer_failed',
+    'seller unresponsive', 'seller_unresponsive',
+    'item not received',   'item_not_received',
+    'NOT AS DESCRIBED',    'not_as_described',
+    'TRANSFER FAILED',     'transfer_failed',
+    'SELLER UNRESPONSIVE', 'seller_unresponsive',
+    'ITEM NOT RECEIVED',   'item_not_received',
+    'OTHER',               'other'
+  );
+  v_canonical constant text[] := array[
+    'not_as_described','transfer_failed','seller_unresponsive',
+    'item_not_received','other'];
+  r record;
+  v_total integer := 0;
+  v_unmapped text;
+begin
+  -- Rewrite only values we have an explicit mapping for. A row already holding
+  -- a canonical value is left exactly as it is, so re-running rewrites nothing
+  -- and records nothing.
+  for r in
+    select reason, v_map ->> reason as canonical, count(*)::integer as n
+      from public.disputes
+     where (v_map ->> reason) is not null
+       and reason <> (v_map ->> reason)
+     group by reason, v_map ->> reason
+  loop
+    update public.disputes set reason = r.canonical where reason = r.reason;
+    insert into public.dispute_reason_normalizations
+      (legacy_reason, canonical_reason, affected_count)
+    values (r.reason, r.canonical, r.n)
+    on conflict (legacy_reason) do update
+      set canonical_reason = excluded.canonical_reason,
+          affected_count    = excluded.affected_count,
+          normalized_at     = now();
+    v_total := v_total + r.n;
+  end loop;
+
+  -- Anything left that is not canonical has no agreed mapping. Refuse loudly
+  -- and name it, rather than silently filing it under 'other'. The operator
+  -- adds a mapping above (or corrects the row) and re-runs; the rows that did
+  -- have a mapping are already normalised and recorded.
+  select string_agg(distinct format('%L (%s row(s))', reason, n), ', ')
+    into v_unmapped
+    from (
+      select reason, count(*) as n
+        from public.disputes
+       where reason <> all (v_canonical)
+       group by reason
+    ) t;
+
+  if v_unmapped is not null then
+    raise exception using
+      message = format(
+        'disputes.reason holds unmapped value(s): %s. Add each to the map in normalize_dispute_reasons() (or correct the row) and re-run. Canonical values are: %s',
+        v_unmapped, array_to_string(v_canonical, ', ')),
+      hint = 'Mapped values were already normalised and recorded in public.dispute_reason_normalizations; nothing was silently coerced to ''other''.';
+  end if;
+
+  return v_total;
+end;
+$$;
+
+-- Server-only: this rewrites financial-adjacent history and must never be
+-- callable from a client session.
+revoke all on function public.normalize_dispute_reasons() from public, anon, authenticated;
+
+select public.normalize_dispute_reasons();
+
 alter table public.disputes drop constraint if exists disputes_reason_check;
 alter table public.disputes
   add constraint disputes_reason_check check (reason in

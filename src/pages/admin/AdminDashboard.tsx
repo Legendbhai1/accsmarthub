@@ -6,6 +6,7 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
+import { disputeReasonLabel } from "@/lib/disputeReasons";
 import { usePlatformStats } from "@/lib/supabaseQueries";
 import { useAdminDisputes } from "@/lib/supabaseQueries";
 
@@ -157,7 +158,7 @@ export default function AdminDashboard() {
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">
-                          {d.reason}
+                          {disputeReasonLabel(d.reason)}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {d.order_no} · {d.listing_title}
