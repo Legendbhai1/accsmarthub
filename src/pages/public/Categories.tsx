@@ -80,7 +80,7 @@ export default function Categories() {
               before it appears here.
             </p>
           </div>
-          <Button className="rounded-full" asChild>
+          <Button asChild>
             <Link to="/seller/listings?new=1">Start selling</Link>
           </Button>
         </div>

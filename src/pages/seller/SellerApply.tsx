@@ -451,7 +451,7 @@ function ApplicationWizard({
                   type="button"
                   onClick={() => setStepIndex(i)}
                   aria-current={i === stepIndex ? "step" : undefined}
-                  className={`flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors ${
                     i === stepIndex
                       ? "border-primary/50 bg-primary/10 text-primary"
                       : done
@@ -637,7 +637,7 @@ function StepFields({
                     variant={
                       draft.categories.includes(c.slug) ? "default" : "outline"
                     }
-                    className="rounded-full"
+                    
                     aria-pressed={draft.categories.includes(c.slug)}
                     onClick={() => toggle("categories", c.slug)}
                   >
@@ -661,7 +661,7 @@ function StepFields({
                 type="button"
                 size="sm"
                 variant={draft.platforms.includes(p) ? "default" : "outline"}
-                className="rounded-full"
+                
                 aria-pressed={draft.platforms.includes(p)}
                 onClick={() => toggle("platforms", p)}
               >

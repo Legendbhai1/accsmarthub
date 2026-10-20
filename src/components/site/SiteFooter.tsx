@@ -56,7 +56,7 @@ export function SiteFooter() {
                   key={brand}
                   href="#"
                   aria-label={label}
-                  className="flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/60 text-muted-foreground backdrop-blur-xl transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-foreground"
+                  className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground"
                 >
                   <BrandMark brand={brand} className="size-4" />
                 </a>

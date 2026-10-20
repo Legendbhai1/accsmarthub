@@ -60,11 +60,11 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40">
-      <div className="border-b border-border/70 bg-card/75 backdrop-blur-2xl">
+      <div className="border-b border-border bg-card">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
           <Logo />
 
-          <nav aria-label="Primary" className="ml-4 hidden items-center gap-1 lg:flex">
+          <nav aria-label="Primary" className="ml-4 hidden items-center lg:flex">
             {NAV_LINKS.map((link) => (
               <NavLink
                 key={link.to}
@@ -72,9 +72,9 @@ export function SiteHeader() {
                 end={link.to === "/"}
                 className={({ isActive }) =>
                   cn(
-                    "rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                    "rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-secondary hover:text-foreground",
                     isActive &&
-                      "bg-primary font-semibold text-primary-foreground   hover:text-primary-foreground",
+                      "bg-primary font-semibold text-primary-foreground hover:bg-primary-hover",
                   )
                 }
               >
@@ -95,7 +95,7 @@ export function SiteHeader() {
                 placeholder="Search accounts, niches, platforms…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="inset-well h-10 w-56 rounded-full pl-9 pr-3 text-sm outline-none transition-all placeholder:text-muted-foreground focus:w-72 focus:ring-2 focus:ring-ring/60"
+                className="inset-well h-10 w-56 rounded-lg pl-9 pr-3 text-sm outline-none transition-all duration-150 placeholder:text-muted-foreground focus:w-64 focus:ring-2 focus:ring-ring/30"
               />
             </div>
           </form>
@@ -119,7 +119,7 @@ export function SiteHeader() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="rounded-full"
+                    className="rounded-lg"
                     aria-label="Account menu"
                     aria-haspopup="menu"
                   >
@@ -170,13 +170,13 @@ export function SiteHeader() {
               </DropdownMenu>
             ) : (
               <>
-                <Button variant="ghost" className="rounded-full" asChild>
+                <Button variant="ghost" className="hidden sm:inline-flex" asChild>
                   <Link to="/auth">
                     <LogIn className="size-4" />
                     Log in
                   </Link>
                 </Button>
-                <Button className="rounded-full" asChild>
+                <Button className="hidden sm:inline-flex" asChild>
                   <Link to="/auth?mode=register">
                     <UserPlus className="size-4" />
                     <span className="hidden sm:inline">Create account</span>
@@ -192,7 +192,7 @@ export function SiteHeader() {
             <Button
               variant="outline"
               size="icon"
-              className="rounded-full lg:hidden"
+              className="lg:hidden"
               aria-label="Open menu"
               aria-haspopup="menu"
               onClick={() => setMobileOpen(true)}
@@ -286,12 +286,12 @@ export function SiteHeader() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search listings…"
-                  className="inset-well h-10 w-full rounded-full pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/60"
+                  className="inset-well h-10 w-full rounded-lg pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/30"
                 />
               </div>
             </form>
             {!user && (
-              <Button variant="outline" className="rounded-full" asChild>
+              <Button variant="outline" asChild>
                 <Link to="/auth" onClick={() => setMobileOpen(false)}>
                   <ShoppingCart className="size-4" />
                   Sign in to buy or sell

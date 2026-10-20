@@ -260,8 +260,8 @@ export default function BuyerWallet() {
                   <span
                     className={
                       d.status === "paid"
-                        ? "rounded-full bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success"
-                        : "rounded-full bg-warning/10 px-2.5 py-1 text-[11px] font-medium text-warning"
+                        ? "rounded-md bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success"
+                        : "rounded-md bg-warning/10 px-2.5 py-1 text-[11px] font-medium text-warning"
                     }
                   >
                     {d.status === "paid" ? "Credited" : "Awaiting payment"}

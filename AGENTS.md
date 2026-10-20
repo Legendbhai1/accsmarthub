@@ -83,6 +83,49 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `import.meta.env.DEV`, so development stays diagnosable while production
   does not leak internal table or column names.
 
+## The theme is mocha and cream, and it lives in the tokens
+
+- **The palette is a warm neutral set: cream, mocha, espresso, bronze.** The
+  values are recorded in `src/index.css`'s `:root` block with their hex
+  comments. Anything that needs a colour uses a token (`bg-card`,
+  `text-muted-foreground`, `bg-primary-hover`, `text-bronze`) — the previous
+  violet/indigo theme was removed rather than left beside a second system.
+  Re-check computed styles in a browser after changing tokens; a token can be
+  correct in CSS and still be overridden by a literal class in TSX.
+- **There is no blue in the brand.** `--info` is a muted slate, and it means
+  "information" only. If something needs to say "this is the brand" it uses
+  `--primary` (mocha) or `--bronze`. Do not reintroduce a blue accent.
+- **Bronze is a detail, not a fill.** `--bronze` belongs on hairlines, the
+  active indicator and at most one icon tile. It is flat: no metallic
+  gradient, no shine. `bg-primary` is a flat mocha, and `.brand-gradient` is a
+  near-flat two-stop for the wordmark tile only — the primary button
+  deliberately does not use it, because a gradient on the main action reads as
+  glossy.
+- **One radius system: 8 / 12 / 16px, and no pills.** `--radius` is 12px, so
+  `rounded-lg` = 12, `rounded-xl` = 16, `rounded-2xl` = 20. Buttons, chips,
+  badges, inputs and fields all share it; a pill (`rounded-full`) is reserved
+  for things that are genuinely round — avatars, status dots, switches,
+  sliders, progress bars, the hamburger's bars. A `rounded-full` on a button
+  or a filter chip is the specific mistake this pass removed.
+- **Surfaces are opaque.** `backdrop-blur` is not used anywhere in app code:
+  the sticky header, the dashboard header and the mobile tab bar are solid
+  `bg-card` with a hairline border. Translucent panels over a warm wash turn
+  muddy and were part of the look being replaced.
+- **Dark mode is warm, not blue-black.** `.dark` is the same palette turned
+  down. The `heroText`/`--background` values differ from light only in
+  lightness; do not "fix" dark mode by making it slate or navy.
+- **Motion is 140–240ms and reduced-motion is honoured.** Hover/focus is
+  150ms, entrances 200ms, drawers 200ms. `src/index.css` drops decorative
+  animation and transitions under `prefers-reduced-motion`; `LottieAnimation`
+  seeks to the last frame instead of playing. Status that moves (spinners,
+  progress) is left running on purpose.
+- **The header fits a 360px phone.** It overflowed by 69px before: the logo,
+  bell, avatar, both auth buttons and the hamburger could not fit in one row.
+  The Log in / Create account buttons are now `hidden sm:inline-flex`, because
+  the hamburger sheet already carries "Sign in to buy or sell". If you add
+  anything else to the header row, re-check `document.documentElement.scrollWidth`
+  at 360px — it must equal `clientWidth`.
+
 ## Styling and routing traps (learned the hard way)
 
 - **Tailwind v4 needs an explicit build hook.** `tailwindcss` v4 does not run

@@ -177,7 +177,7 @@ export default function AdminAudit() {
                     </div>
                     <Badge
                       variant="outline"
-                      className="rounded-full border-border/70 text-xs font-medium uppercase tracking-wide"
+                      className="rounded-lg border-border/70 text-xs font-medium uppercase tracking-wide"
                     >
                       {r.action}
                     </Badge>

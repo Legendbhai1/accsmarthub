@@ -49,9 +49,9 @@ export default function Home() {
     <div className="overflow-x-clip">
       {/* ------------------------------ Hero ------------------------------ */}
       <section className="relative">
-        {/* The brand wash. Three low-opacity radial tints behind the hero —
-            enough to give the page a colour identity without putting
-            saturated paint behind the copy. */}
+        {/* The warm wash. Two low-opacity warm tints behind the hero — enough
+            to give the page a colour identity without putting saturated paint
+            behind the copy. */}
         <div
           aria-hidden="true"
           className="brand-wash pointer-events-none absolute inset-0"
@@ -67,7 +67,7 @@ export default function Home() {
           >
             <Badge
               variant="secondary"
-              className="mb-6 gap-1.5 rounded-full border-primary/30 bg-background/70 px-3.5 py-1.5 text-xs font-semibold text-primary backdrop-blur-sm"
+              className="mb-6 gap-1.5 rounded-lg border border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-primary"
             >
               <ShieldCheck className="size-3.5" />
               Reviewed listings, payment held in-platform
@@ -76,7 +76,7 @@ export default function Home() {
 
           <motion.h1
             variants={cardVariants}
-            className="text-4xl font-bold leading-[1.06] tracking-tight sm:text-6xl"
+            className="font-display text-4xl leading-[1.08] sm:text-6xl"
           >
             Buy &amp; sell social media accounts,{" "}
             <span className="brand-text">without the risk</span>
@@ -108,10 +108,10 @@ export default function Home() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Try “fitness TikTok 300K” or “monetized YouTube”"
-                  className="inset-well h-12 w-full rounded-full bg-background pl-11 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/60"
+                  className="inset-well h-12 w-full rounded-lg bg-card pl-11 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/30"
                 />
               </div>
-              <Button type="submit" size="lg" className="rounded-full px-7">
+              <Button type="submit" size="lg" className="px-7">
                 Search
               </Button>
             </div>
@@ -175,7 +175,7 @@ export default function Home() {
               title="Featured listings"
               subtitle="The newest accounts approved by our review team."
               action={
-                <Button variant="ghost" className="hidden rounded-full sm:inline-flex" asChild>
+                <Button variant="ghost" className="hidden sm:inline-flex" asChild>
                   <Link to="/marketplace">
                     View all <ArrowRight className="size-4" />
                   </Link>
@@ -197,7 +197,7 @@ export default function Home() {
                 Every listing is reviewed by an admin before it goes live.
                 Check back shortly, or list an account of your own.
               </p>
-              <Button className="mt-5 rounded-full" asChild>
+              <Button className="mt-5" asChild>
                 <Link to="/seller/listings?new=1">Start selling</Link>
               </Button>
             </div>
@@ -224,7 +224,7 @@ export default function Home() {
           <div className="relative mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button
               size="lg"
-              className="rounded-full bg-background px-7 font-semibold text-foreground hover:bg-background/90"
+              className="bg-card px-7 font-semibold text-foreground hover:bg-secondary"
               asChild
             >
               <Link to="/auth?mode=register">Get started</Link>
@@ -232,7 +232,7 @@ export default function Home() {
             <Button
               size="lg"
               variant="outline"
-              className="rounded-full border-primary-foreground/40 bg-transparent px-7 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+              className="border-primary-foreground/40 bg-transparent px-7 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
               asChild
             >
               <Link to="/trust">How payment protection works</Link>

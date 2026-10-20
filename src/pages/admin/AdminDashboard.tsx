@@ -164,7 +164,7 @@ export default function AdminDashboard() {
                           {d.order_no} · {d.listing_title}
                         </span>
                       </span>
-                      <Badge variant="outline" className="rounded-full border-border/70 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      <Badge variant="outline" className="rounded-lg border-border/70 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         {d.status.replace("_", " ")}
                       </Badge>
                       <span className="w-20 text-right text-xs text-muted-foreground">

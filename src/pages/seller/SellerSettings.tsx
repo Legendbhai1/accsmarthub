@@ -124,7 +124,7 @@ export default function SellerSettings() {
                       key={p}
                       type="button"
                       variant={platforms.includes(p) ? "default" : "outline"}
-                      className="rounded-full"
+                      
                       onClick={() =>
                         setPlatforms((prev) =>
                           prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p],

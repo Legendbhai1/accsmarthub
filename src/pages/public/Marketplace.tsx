@@ -65,11 +65,11 @@ function AccountCard({
               className="size-14 transition-transform duration-200 group-hover:scale-105"
             />
           )}
-          <span className="absolute bottom-2 left-2 rounded-full bg-card/85 px-2 py-0.5 text-[10px] font-bold text-foreground backdrop-blur-sm">
+          <span className="absolute bottom-2 left-2 rounded-md bg-card/90 px-2 py-0.5 text-[10px] font-bold text-foreground">
             {listing.serviceCategory ?? listing.brand}
           </span>
           {listing.stock <= 3 && (
-            <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+            <span className="absolute left-2 top-2 rounded-md bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
               {listing.stock === 0 ? "Sold out" : `Only ${listing.stock} left`}
             </span>
           )}
@@ -83,7 +83,7 @@ function AccountCard({
             e.stopPropagation();
             onToggleLike(listing.id);
           }}
-          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-card text-foreground shadow-sm transition-transform active:scale-90"
+          className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-lg bg-card text-foreground shadow-sm transition-colors duration-150"
         >
           <Heart className={cn("size-3.5", liked ? "fill-destructive text-destructive" : "text-foreground")} />
         </button>
@@ -262,7 +262,7 @@ export default function Marketplace() {
       <header className="px-4 pt-5">
         <div className="mx-auto flex max-w-md items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary">
               <svg viewBox="0 0 24 24" className="size-5 text-primary-foreground" fill="currentColor" aria-hidden="true">
                 <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H14a1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 6V5.5ZM4 12a2.5 2.5 0 0 1 2.5-2.5H18a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 12.5V12ZM4 18.5A2.5 2.5 0 0 1 6.5 16H14a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18.5Z" />
               </svg>
@@ -278,14 +278,14 @@ export default function Marketplace() {
               type="button"
               aria-label="Search accounts"
               onClick={() => setSearchOpen((v) => !v)}
-              className="flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/70 text-foreground backdrop-blur-xl transition-colors hover:bg-primary/10"
+              className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors duration-150 hover:bg-accent"
             >
               {searchOpen ? <X className="size-4" /> : <Search className="size-4" />}
             </button>
             <Link
               to="/account/notifications"
               aria-label="Notifications"
-              className="relative flex size-10 items-center justify-center rounded-full border border-border/70 bg-card/70 text-foreground backdrop-blur-xl transition-colors hover:bg-primary/10"
+              className="relative flex size-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors duration-150 hover:bg-accent"
             >
               <Bell className="size-4" />
               <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-destructive" />
@@ -330,9 +330,9 @@ export default function Marketplace() {
         <div className="mx-auto max-w-md">
           <div
             key={slide}
-            className="relative overflow-hidden rounded-3xl border border-warning/30 bg-gradient-to-br from-primary/15 via-card/60 to-primary/10 px-5 py-6 backdrop-blur-xl"
+            className="relative overflow-hidden rounded-2xl border border-border bg-secondary px-5 py-6"
           >
-            <span className="inline-flex rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold text-primary-foreground">
+            <span className="inline-flex rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
               {current.chip}
             </span>
             {/* A `<p>`, not a heading: this rotates between marketing slides,
@@ -380,10 +380,10 @@ export default function Marketplace() {
             >
               <span
                 className={cn(
-                  "flex size-14 items-center justify-center rounded-full border transition-colors",
+                  "flex size-14 items-center justify-center rounded-xl border transition-colors duration-150",
                   !category
                     ? "border-transparent bg-primary"
-                    : "border-border/70 bg-card/70",
+                    : "border-border bg-card",
                 )}
               >
                 <LayoutGrid className={cn("size-5", !category ? "text-primary-foreground" : "text-foreground")} />
@@ -401,7 +401,7 @@ export default function Marketplace() {
                 >
                   <span
                     className={cn(
-                      "flex size-14 items-center justify-center rounded-full border transition-colors",
+                      "flex size-14 items-center justify-center rounded-xl border transition-colors duration-150",
                       activeCat
                         ? "border-transparent bg-primary"
                         : "border-border/70 bg-card/70",
@@ -441,7 +441,7 @@ export default function Marketplace() {
               id="sort"
               value={sort}
               onChange={(e) => updateParam("sort", e.target.value === "newest" ? "" : e.target.value)}
-              className="inset-well h-9 rounded-full px-3 text-xs outline-none focus:ring-2 focus:ring-ring/60"
+              className="inset-well h-9 rounded-lg px-3 text-xs outline-none focus:ring-2 focus:ring-ring/30"
             >
               <option value="newest">Newest first</option>
               <option value="price_asc">Price: low to high</option>
@@ -459,7 +459,7 @@ export default function Marketplace() {
               value={minPrice}
               onChange={(e) => updateParam("min", e.target.value)}
               placeholder="Min $"
-              className="inset-well h-9 w-24 rounded-full px-3 text-xs outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/60"
+              className="inset-well h-9 w-24 rounded-lg px-3 text-xs outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/30"
             />
             <label className="sr-only" htmlFor="max-price">
               Maximum price
@@ -472,7 +472,7 @@ export default function Marketplace() {
               value={maxPrice}
               onChange={(e) => updateParam("max", e.target.value)}
               placeholder="Max $"
-              className="inset-well h-9 w-24 rounded-full px-3 text-xs outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/60"
+              className="inset-well h-9 w-24 rounded-lg px-3 text-xs outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/30"
             />
             {(minPrice || maxPrice || sort !== "newest") && (
               <button
@@ -486,7 +486,7 @@ export default function Marketplace() {
                   setPage(1);
                   navigate(qs ? `/marketplace?${qs}` : "/marketplace", { replace: true });
                 }}
-                className="rounded-full border border-border/70 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors duration-150 hover:text-foreground"
               >
                 Clear filters
               </button>
@@ -517,7 +517,7 @@ export default function Marketplace() {
                     setPage(1);
                     navigate("/marketplace", { replace: true });
                   }}
-                  className="mt-4 rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground"
+                  className="mt-4 rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground"
                 >
                   View all accounts
                 </button>
@@ -548,7 +548,7 @@ export default function Marketplace() {
             </p>
             <Link
               to="/seller/listings?new=1"
-              className="mt-3 inline-flex h-9 items-center justify-center rounded-full bg-primary px-5 text-xs font-semibold text-primary-foreground"
+              className="mt-3 inline-flex h-9 items-center justify-center rounded-lg bg-primary px-5 text-xs font-semibold text-primary-foreground"
             >
               Start selling
             </Link>

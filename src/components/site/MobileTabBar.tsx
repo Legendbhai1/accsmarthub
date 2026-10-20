@@ -43,7 +43,7 @@ export function MobileTabBar() {
       // overlaps a tab. `md:hidden` keeps it to phones and small tablets.
       className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden"
     >
-      <div className="mx-auto flex w-full max-w-md items-center justify-around gap-1 rounded-2xl border border-border bg-background/95 p-1.5 shadow-lg shadow-foreground/5 backdrop-blur-md">
+      <div className="mx-auto flex w-full max-w-md items-center justify-around gap-1 rounded-xl border border-border bg-card p-1.5 shadow-md shadow-foreground/5">
         {MOBILE_TABS.map(({ label, to, icon: Icon }) => {
           const active = isTabActive(to, pathname);
           return (

@@ -172,7 +172,7 @@ export default function AdminPayments() {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors ${
                 tab === t.key
                   ? "border-primary/50 bg-primary/15 text-primary"
                   : "border-border/70 text-muted-foreground hover:text-foreground"

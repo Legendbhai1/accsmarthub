@@ -75,7 +75,7 @@ export default function AdminReports() {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors ${
                 tab === t.key
                   ? "border-primary/50 bg-primary/15 text-primary"
                   : "border-border/70 text-muted-foreground hover:text-foreground"
@@ -148,7 +148,7 @@ export default function AdminReports() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge
                         variant="outline"
-                        className={`rounded-full border-border/70 text-xs font-medium uppercase tracking-wide ${
+                        className={`rounded-lg border-border/70 text-xs font-medium uppercase tracking-wide ${
                           r.status === "open"
                             ? "border-warning/30 text-warning"
                             : r.status === "reviewing"
@@ -207,7 +207,7 @@ export default function AdminReports() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/10 px-3 py-1.5 text-warning">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-warning/10 px-3 py-1.5 text-warning">
                     <AlertTriangle className="size-3.5" />
                     This calls resolve_report against the database. Make sure the
                     report status and any penalty are set on the real row.

@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&display=swap');
 @import "tailwindcss";
 
 /* Dark mode follows a class on <html> rather than the OS preference: the user
@@ -43,6 +44,14 @@
      draw on instead of fading the primary toward transparent. */
   --color-brand-2: hsl(var(--brand-2));
   --color-brand-3: hsl(var(--brand-3));
+  /* Warm-system tokens: the pressed/hover shade of the mocha action, the
+     secondary beige surface, and the restrained bronze accent. Registered
+     here so `bg-primary-hover`, `bg-surface-2` and `text-bronze` exist. */
+  --color-primary-hover: hsl(var(--primary-hover));
+  --color-surface-2: hsl(var(--surface-2));
+  --color-bronze: hsl(var(--bronze));
+
+  --font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -51,13 +60,14 @@
 
 @layer base {
   /*
-   * Vibrant, but disciplined.
+   * Mocha and cream: one warm ramp, disciplined.
    *
-   * Three brand hues — indigo, fuchsia, amber — do the expressive work: the
-   * wordmark, the hero wash, the primary button's gradient, the active rail
-   * item, the featured card ring. Everything else stays a neutral surface,
-   * a hairline border or text, which is what keeps a saturated palette from
-   * turning into confetti.
+   * The palette is a boutique-financial warm neutral set. Cream (#F5EFE5) is
+   * the canvas, off-white (#FFFCF7) the card, mocha (#6F4E37) the single
+   * action colour, espresso (#35251D) the text, and bronze (#A47C52) a
+   * restrained detail accent — hairlines, active indicators, one icon tile.
+   * There is no blue anywhere in the brand, and no metallic gradient: bronze
+   * is used flat and sparingly.
    *
    * The rule the palette is built on: a colour only appears when it carries
    * meaning (this is the action, this is live, this needs attention, this is
@@ -66,64 +76,79 @@
    * to mean "ok", so "approved" and "primary action" cannot be confused.
    */
   :root {
-    --background: 250 30% 99%;
-    --foreground: 248 30% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 248 30% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 248 30% 11%;
-    --primary: 256 90% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 250 24% 96%;
-    --secondary-foreground: 248 28% 20%;
-    --muted: 250 24% 96%;
-    --muted-foreground: 248 12% 43%;
-    --accent: 256 90% 96%;
-    --accent-foreground: 256 70% 34%;
-    --destructive: 352 84% 52%;
+    /* Canvas and text. Cream page, espresso ink. */
+    --background: 37 44% 93%;        /* #F5EFE5 */
+    --foreground: 20 29% 16%;        /* #35251D */
+    --card: 38 100% 98%;             /* #FFFCF7 */
+    --card-foreground: 20 29% 16%;
+    --popover: 38 100% 98%;
+    --popover-foreground: 20 29% 16%;
+    /* The one action colour: mocha, with its pressed shade beside it. */
+    --primary: 25 34% 33%;           /* #6F4E37 */
+    --primary-foreground: 38 100% 98%;
+    --primary-hover: 22 35% 26%;     /* #593C2B */
+    /* Beige secondary surfaces. */
+    --secondary: 35 43% 89%;         /* #EFE5D7 */
+    --secondary-foreground: 20 29% 16%;
+    --muted: 33 44% 89%;             /* #F0E5D8 */
+    --muted-foreground: 27 14% 40%;  /* #746457 */
+    --accent: 35 39% 85%;            /* #E8DCCB */
+    --accent-foreground: 22 35% 26%;
+    --surface-2: 35 39% 85%;         /* #E8DCCB */
+    /* Status. Kept off the brand hue so a badge means what it says. */
+    --destructive: 3 46% 48%;        /* #B44943 */
     --destructive-foreground: 0 0% 100%;
-    --success: 158 74% 34%;
-    --warning: 30 94% 46%;
-    --info: 205 92% 48%;
-    --border: 250 20% 90%;
-    --input: 250 20% 88%;
-    --ring: 256 90% 58%;
-    --radius: 0.625rem;
-    /* Brand ramp: indigo -> violet -> fuchsia. */
-    --brand-2: 288 84% 58%;
-    --brand-3: 328 84% 58%;
-    --chart-1: 256 90% 58%;
-    --chart-2: 288 84% 58%;
-    --chart-3: 158 74% 38%;
-    --chart-4: 30 94% 50%;
-    --chart-5: 205 92% 52%;
+    --success: 153 40% 33%;          /* #327657 */
+    --warning: 32 64% 40%;           /* #A66A24 */
+    --info: 208 24% 43%;             /* #536F87 */
+    --border: 33 32% 80%;            /* #DCCDBB */
+    --input: 33 32% 80%;
+    --ring: 25 34% 33%;              /* mocha focus ring */
+    --bronze: 31 33% 48%;            /* #A47C52 */
+    /* 12px base. Tailwind's `rounded-lg`/`xl`/`2xl` land on 8/12/16px, which
+       is the whole radius system — nothing here is a pill. */
+    --radius: 0.75rem;
+    /* Warm ramp for the rare gradient: mocha -> bronze -> tan. Deliberately
+       not a metallic shine; these are flat tones a hair apart. */
+    --brand-2: 31 33% 48%;           /* bronze */
+    --brand-3: 33 30% 64%;           /* soft tan */
+    --chart-1: 25 34% 33%;           /* mocha */
+    --chart-2: 31 33% 48%;           /* bronze */
+    --chart-3: 153 40% 33%;          /* success */
+    --chart-4: 32 64% 40%;           /* warning */
+    --chart-5: 208 24% 43%;          /* info */
   }
 
+  /* The dark appearance is warm espresso, not blue-black: the same palette
+     turned down, so the theme toggle does not swap the identity. */
   .dark {
-    --background: 250 24% 7%;
-    --foreground: 250 24% 97%;
-    --card: 250 20% 10%;
-    --card-foreground: 250 24% 97%;
-    --popover: 250 20% 11%;
-    --popover-foreground: 250 24% 97%;
-    --primary: 258 92% 68%;
-    --primary-foreground: 256 60% 10%;
-    --secondary: 250 18% 16%;
-    --secondary-foreground: 250 22% 93%;
-    --muted: 250 18% 15%;
-    --muted-foreground: 250 14% 64%;
-    --accent: 258 40% 21%;
-    --accent-foreground: 258 80% 90%;
-    --destructive: 352 76% 58%;
+    --background: 22 22% 10%;
+    --foreground: 38 30% 94%;
+    --card: 22 20% 13%;
+    --card-foreground: 38 30% 94%;
+    --popover: 22 20% 14%;
+    --popover-foreground: 38 30% 94%;
+    --primary: 30 40% 58%;
+    --primary-foreground: 24 30% 10%;
+    --primary-hover: 30 42% 66%;
+    --secondary: 22 16% 19%;
+    --secondary-foreground: 38 26% 90%;
+    --muted: 22 14% 18%;
+    --muted-foreground: 33 16% 66%;
+    --accent: 30 18% 22%;
+    --accent-foreground: 38 40% 88%;
+    --surface-2: 22 16% 17%;
+    --destructive: 3 50% 58%;
     --destructive-foreground: 0 0% 100%;
-    --success: 158 62% 48%;
-    --warning: 30 92% 58%;
-    --info: 205 88% 64%;
-    --border: 250 18% 19%;
-    --input: 250 18% 21%;
-    --ring: 258 92% 68%;
-    --brand-2: 288 80% 68%;
-    --brand-3: 328 80% 68%;
+    --success: 153 40% 48%;
+    --warning: 32 62% 56%;
+    --info: 208 30% 62%;
+    --border: 24 14% 24%;
+    --input: 24 14% 26%;
+    --ring: 30 40% 58%;
+    --bronze: 31 38% 58%;
+    --brand-2: 31 38% 58%;
+    --brand-3: 33 30% 70%;
   }
 
   * {
@@ -147,6 +172,15 @@
   h4 {
     @apply font-semibold tracking-tight;
     text-wrap: balance;
+  }
+
+  /* The refined serif, for the one or two marketing headlines that carry the
+     brand voice. Interface text stays Inter: a serif on a table or a form
+     label would read as an editorial site, not a marketplace. */
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.01em;
   }
 
   /* Long listing titles and order references should not leave ragged gaps. */
@@ -182,12 +216,24 @@
     html {
       scroll-behavior: auto;
     }
+
+    /* Anything that moves for decoration stops. Motion that communicates state
+       (a spinner, a progress bar filling) is left alone: removing it would
+       take away information rather than movement. */
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      transition-delay: 0ms !important;
+    }
   }
 }
 
 @layer utilities {
   .animate-in {
-    animation-duration: 0.3s;
+    animation-duration: 0.2s;
     animation-fill-mode: both;
   }
 
@@ -219,78 +265,75 @@
     }
   }
 
-  /* Legacy alias. Three call sites still use `text-gradient`; it now resolves
-     to the brand ramp so there is one accent definition rather than two that
-     can drift apart. */
-  .text-gradient {
-    background-image: linear-gradient(
-      100deg,
-      hsl(var(--primary)) 0%,
-      hsl(var(--brand-2)) 55%,
-      hsl(var(--brand-3)) 100%
-    );
-    @apply bg-clip-text text-transparent;
+  /* Legacy aliases. `text-gradient` and `page-title-accent` now resolve to the
+     one flat mocha, so there is a single accent definition rather than several
+     that can drift apart. */
+  .text-gradient,
+  .page-title-accent {
+    color: hsl(var(--primary));
   }
 
   /* ---------------------------------------------------------------------
    * Brand
    *
-   * `.brand-gradient` is the one place the indigo -> violet -> fuchsia ramp is
-   * defined. It is used on the wordmark, the primary action, the hero wash and
-   * the featured card ring. Anything that needs "this is the brand" uses this
-   * class rather than picking a hue, so the ramp can be retuned in one place.
+   * `.brand-gradient` is the one place the brand fill is defined. It is used
+   * on the wordmark tile, the primary action and the active rail indicator.
+   * Anything that needs "this is the brand" uses this class rather than
+   * picking a hue, so it can be retuned in one place.
+   *
+   * It is a flat mocha, not a ramp: the old version swept indigo -> fuchsia,
+   * which is exactly the flashy look this palette replaces, and a shine is
+   * not what "formal" means here.
    * ------------------------------------------------------------------- */
 
   .brand-gradient {
     background-image: linear-gradient(
-      100deg,
+      180deg,
       hsl(var(--primary)) 0%,
-      hsl(var(--brand-2)) 52%,
-      hsl(var(--brand-3)) 100%
+      hsl(22 35% 28%) 100%
     );
   }
 
-  /* The same ramp as text. */
+  /* The same fill as text: a solid mocha, so a heading reads as one colour. */
   .brand-text {
-    background-image: linear-gradient(
-      100deg,
-      hsl(var(--primary)) 0%,
-      hsl(var(--brand-2)) 55%,
-      hsl(var(--brand-3)) 100%
-    );
-    @apply bg-clip-text text-transparent;
+    color: hsl(var(--primary));
   }
 
-  /* A soft tinted wash for a hero or a section header. Deliberately low
-     opacity: at full strength three hues behind text is unreadable. */
-  .brand-wash {
+  /* A solid bronze hairline, for the rule under a card or section head. */
+  .brand-rule {
+    background-image: none;
+    background-color: hsl(var(--bronze));
+  }
+
+  /* A soft warm wash for the hero: one mocha tone at low opacity, not three
+     competing hues behind the headline. */
+  .warm-wash {
     background-image:
       radial-gradient(
         120% 90% at 12% 0%,
-        hsl(var(--primary) / 0.16) 0%,
-        transparent 58%
-      ),
-      radial-gradient(
-        90% 80% at 88% 4%,
-        hsl(var(--brand-2) / 0.14) 0%,
+        hsl(var(--primary) / 0.1) 0%,
         transparent 60%
       ),
       radial-gradient(
-        70% 70% at 60% 100%,
-        hsl(var(--brand-3) / 0.1) 0%,
+        90% 80% at 88% 4%,
+        hsl(var(--bronze) / 0.1) 0%,
         transparent 62%
       );
   }
 
-  /* A 1px brand hairline for the top of a card or a section rule. */
-  .brand-rule {
-    background-image: linear-gradient(
-      90deg,
-      hsl(var(--primary)) 0%,
-      hsl(var(--brand-2)) 45%,
-      hsl(var(--brand-3)) 75%,
-      transparent 100%
-    );
+  /* Alias of the warm wash, kept so the homepage call site does not churn. */
+  .brand-wash {
+    background-image:
+      radial-gradient(
+        120% 90% at 12% 0%,
+        hsl(var(--primary) / 0.1) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        90% 80% at 88% 4%,
+        hsl(var(--bronze) / 0.1) 0%,
+        transparent 62%
+      );
   }
 
   /* ---------------------------------------------------------------------
@@ -373,16 +416,6 @@
      heading is not shouting on every screen. */
   .page-title {
     @apply text-2xl font-bold tracking-tight sm:text-3xl;
-  }
-
-  .page-title-accent {
-    background-image: linear-gradient(
-      100deg,
-      hsl(var(--primary)) 0%,
-      hsl(var(--brand-2)) 55%,
-      hsl(var(--brand-3)) 100%
-    );
-    @apply bg-clip-text text-transparent;
   }
 
   .page-sub {

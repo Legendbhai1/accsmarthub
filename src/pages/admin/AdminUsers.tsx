@@ -256,7 +256,7 @@ export default function AdminUsers() {
                         </span>
                       </div>
                       <div className="hidden items-center justify-center sm:flex">
-                        <Badge variant="outline" className="rounded-full border-border/70 text-xs font-medium uppercase tracking-wide">
+                        <Badge variant="outline" className="rounded-lg border-border/70 text-xs font-medium uppercase tracking-wide">
                           {normalizedRole}
                         </Badge>
                       </div>

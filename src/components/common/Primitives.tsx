@@ -40,7 +40,7 @@ export function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium capitalize",
+        "inline-flex items-center rounded-md border px-3 py-1 text-xs font-medium capitalize",
         styles[status] ?? "border-border bg-muted text-muted-foreground",
       )}
     >
@@ -65,7 +65,7 @@ export function StockBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
+        "inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold",
         stock === 0
           ? "bg-muted text-muted-foreground"
           : stock <= 3
@@ -91,7 +91,7 @@ export function QuantityStepper({
 }) {
   const clamp = (n: number) => Math.min(Math.max(1, n), Math.max(1, max));
   return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card/70 p-1 backdrop-blur-xl">
+    <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-card p-1">
       <button
         type="button"
         aria-label="Decrease quantity"
@@ -253,11 +253,10 @@ export function ConfirmDialog({
           {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             className={cn(
-              "rounded-full",
-              destructive
+                            destructive
                 ? "bg-destructive text-white hover:bg-destructive/90"
                 : "bg-primary text-primary-foreground hover:bg-primary/90",
             )}

@@ -316,7 +316,7 @@ export function DashShell({
             it; every other surface in the app is opaque. The brand hairline
             along the bottom edge is what ties the three workspaces together
             visually without tinting the bar itself. */}
-        <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
+        <header className="sticky top-0 z-30 border-b border-border bg-card">
           <span
             aria-hidden="true"
             className="brand-rule absolute inset-x-0 bottom-0 h-px opacity-60"

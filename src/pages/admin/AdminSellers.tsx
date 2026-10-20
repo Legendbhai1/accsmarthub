@@ -96,7 +96,7 @@ export default function AdminSellers() {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors ${
                 tab === t.key
                   ? "border-primary/50 bg-primary/15 text-primary"
                   : "border-border/70 text-muted-foreground hover:text-foreground"
@@ -171,7 +171,7 @@ export default function AdminSellers() {
                       </span>
                       <Badge
                         variant="outline"
-                        className={`rounded-full border-border/70 text-xs font-medium uppercase tracking-wide ${
+                        className={`rounded-lg border-border/70 text-xs font-medium uppercase tracking-wide ${
                           tab === "approved"
                             ? "border-success/30 text-success dark:text-success"
                             : tab === "rejected"
@@ -225,7 +225,7 @@ export default function AdminSellers() {
                     </div>
                     <Badge
                       variant="outline"
-                      className="rounded-full border-border/70 text-xs font-medium uppercase tracking-wide"
+                      className="rounded-lg border-border/70 text-xs font-medium uppercase tracking-wide"
                     >
                       {openStore.status}
                     </Badge>

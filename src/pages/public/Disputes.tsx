@@ -144,10 +144,10 @@ export default function Disputes() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button className="rounded-full" asChild>
+            <Button asChild>
               <Link to="/account/orders">Open your orders</Link>
             </Button>
-            <Button variant="outline" className="rounded-full" asChild>
+            <Button variant="outline" asChild>
               <Link to="/account/support">Contact support</Link>
             </Button>
           </div>

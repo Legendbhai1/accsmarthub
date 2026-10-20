@@ -132,7 +132,7 @@ export default function Checkout() {
               </div>
             </div>
             {soldOut ? (
-              <p className="mt-4 rounded-full bg-muted px-4 py-3 text-xs text-muted-foreground">
+              <p className="mt-4 rounded-lg bg-muted px-4 py-3 text-xs text-muted-foreground">
                 This listing has sold out.{" "}
                 <Link to="/marketplace" className="font-medium underline">
                   Find similar accounts

@@ -191,7 +191,7 @@ export default function ListingDetail() {
             <div className="flex size-24 items-center justify-center rounded-3xl border border-border/70 bg-muted/40">
               <BrandMark brand={listing.brand} colored className="size-12" />
             </div>
-            <Badge variant="secondary" className="rounded-full border-border/60 bg-muted/60 px-3 py-1 text-xs text-muted-foreground">
+            <Badge variant="secondary" className="rounded-md border-border/60 bg-muted/60 px-3 py-1 text-xs text-muted-foreground">
               {categoryName}
             </Badge>
           </div>

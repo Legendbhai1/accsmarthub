@@ -61,12 +61,12 @@ export function ListingCard({ listing, className }: ListingCardProps) {
             )}
           </div>
           {soldOut ? (
-            <span className="absolute left-2 top-2 rounded-full bg-foreground/85 px-2 py-0.5 text-[10px] font-bold text-background backdrop-blur-sm">
+            <span className="absolute left-2 top-2 rounded-md bg-foreground/90 px-2 py-0.5 text-[10px] font-bold text-background">
               Sold out
             </span>
           ) : (
             discounted && (
-              <span className="absolute left-2 top-2 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
+              <span className="absolute left-2 top-2 rounded-md bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
                 −{listing.discountPercent}%
               </span>
             )
