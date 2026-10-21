@@ -44,28 +44,41 @@ const FAQS = [
 export default function Faq() {
   return (
     <SiteLayout>
-      <div className="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Frequently asked questions
-        </h1>
-        <p className="mt-3 text-muted-foreground">
-          Everything buyers and sellers ask before their first transfer.
-        </p>
-        <div className="surface mt-8 px-6 py-2">
-          <Accordion type="single" collapsible className="w-full">
-            {FAQS.map((faq) => (
-              <AccordionItem key={faq.q} value={faq.q}>
-                <AccordionTrigger className="text-left text-sm font-medium sm:text-base">
-                  {faq.q}
-                </AccordionTrigger>
-                <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
-                  {faq.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+      <section
+        className="section-pop"
+        style={{ ["--pop" as string]: "var(--pop-green)" }}
+      >
+        <div className="mx-auto w-full max-w-3xl px-4 py-14 sm:px-6">
+          <span
+            aria-hidden="true"
+            className="brand-rule mb-2.5 block h-1 w-10 rounded-full"
+            style={{
+              ["--rule-from" as string]: "var(--pop-green)",
+              ["--rule-to" as string]: "var(--primary)",
+            }}
+          />
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Frequently asked questions
+          </h1>
+          <p className="mt-3 text-muted-foreground">
+            Everything buyers and sellers ask before their first transfer.
+          </p>
+          <div className="surface mt-8 px-6 py-2">
+            <Accordion type="single" collapsible className="w-full">
+              {FAQS.map((faq) => (
+                <AccordionItem key={faq.q} value={faq.q}>
+                  <AccordionTrigger className="text-left text-sm font-medium sm:text-base">
+                    {faq.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
+                    {faq.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
         </div>
-      </div>
+      </section>
     </SiteLayout>
   );
 }

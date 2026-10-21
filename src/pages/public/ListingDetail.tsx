@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { BrandMark } from "@/components/site/BrandMark";
+import { brandTint } from "@/lib/brands";
 
 import { ListingCard } from "@/components/common/ListingCard";
 import { LottieAnimation } from "@/components/common/LottieAnimation";
@@ -160,7 +161,10 @@ export default function ListingDetail() {
   const listingCreatedAt = ((listing as unknown as { createdAt?: string }).createdAt as string | undefined) ?? new Date().toISOString();
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
+    <div
+      className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6"
+      style={brandTint(listing.brand)}
+    >
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-muted-foreground">
         <Link to="/" className="transition-colors hover:text-foreground">
@@ -187,7 +191,7 @@ export default function ListingDetail() {
         {/* ------------------------------ Left ------------------------------ */}
         <div className="min-w-0">
           {/* Preview area */}
-          <div className="surface flex h-72 flex-col items-center justify-center gap-4 sm:h-96">
+          <div className="surface tint-card flex h-72 flex-col items-center justify-center gap-4 sm:h-96">
             <div className="flex size-24 items-center justify-center rounded-3xl border border-border/70 bg-muted/40">
               <BrandMark brand={listing.brand} colored className="size-12" />
             </div>
@@ -278,7 +282,7 @@ export default function ListingDetail() {
               ) : (
                 <ul className="max-w-2xl space-y-3">
                   {reviews.map((r) => (
-                    <li key={r.id} className="surface p-5">
+                    <li key={r.id} className="surface tint-card p-5">
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <span className="flex size-8 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
