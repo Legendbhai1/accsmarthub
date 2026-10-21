@@ -22,7 +22,24 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `set_config('app.trusted_write','on',true)` (transaction-local) before
   writing those columns. Read `can_moderate()` *before* setting the flag.
 - **Wallet ledger is append-only** (`wallet_ledger`). `apply_wallet()` is the
-  only writer and is deliberately not granted to `authenticated`.
+  only writer and is deliberately not granted to `authenticated`. Since `0019`
+  each movement names a **pool** — `spend` (money the account put in) or
+  `earn` (money it made selling) — and `wallets` carries the two balances as
+  `spendable_usd` + `earned_usd`, with `balance_usd` a generated total.
+- **Withdrawal terms differ by audience.** `request_payout()` pays a seller
+  from `earned_usd` at a $10 floor and 1%, and a buyer from `spendable_usd` at
+  a $20 floor and 1.5%, storing `pool`/`fee_rate`/`fee_usd`/`net_usd`. A
+  deposit therefore cannot be withdrawn as sale proceeds.
+- **Telegram is the support channel.** `src/lib/contact.ts` holds
+  `TELEGRAM_CHANNEL` (`t.me/accsmarthub`) and `TELEGRAM_SUPPORT`
+  (`t.me/AccsMartHubbot`); the footer and the support page both read it, so the
+  handle and the link cannot drift. They are external links, so the internal
+  route walker cannot see them — `tests/contact_links.test.ts` pins them.
+- **A category is one entry in `src/lib/db.ts`.** `SERVICE_CATEGORIES` and the
+  home-page `categories` list both feed the marketplace, category grid and
+  seller form by iteration, and `src/lib/brands.ts` supplies the glyph keyed by
+  the same slug. Google was added this way; adding a platform means adding it
+  to all three, not editing a component.
 - **Escrow model**: the buyer's wallet is debited at checkout; the seller's net
   is *locked* on the **seller's** wallet (`locked_usd`) as `escrow_hold` and
   released on completion. So `wallets.locked_usd` for a seller is escrow held
@@ -53,6 +70,13 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `0013_reconcile_marketplace.sql` remains the single, idempotent,
   order-independent migration that brings any environment to the state the code
   requires, and is safe to re-run.
+- `0014`–`0019` are ordinary forward migrations and are **not** reconciled by
+  `0013`. `0019_wallet_pools_and_withdrawals.sql` is the one that splits the
+  wallet into pools and rewrites `request_payout()`; a database that stops at
+  `0018` still serves every page but has a single-pool wallet, so the two
+  balance figures read the same number and a deposit can be withdrawn under the
+  seller's terms. `npm run check:schema` has a sentinel for it; apply it before
+  shipping the wallet or payout screens.
 - `src/convex/**` is dead code (no runtime imports). `tsconfig.app.json`
   excludes it; ESLint still lints it.
 - Widening a `check (kind in (...))` constraint means naming the *current* live
@@ -214,6 +238,27 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   meaning "brand", "pending" and "warning" at the same time. Use `bg-primary`,
   `text-warning`, `border-success/30` and so on; a star rating is the one
   deliberate exception (`fill-amber-400`), because a star is yellow.
+- **`wallet_ledger.kind` decides where a credit belongs, and 0019 gives that a
+  column.** `wallets` now carries the balance in two pools — `spendable_usd`
+  (deposits and refunds) and `earned_usd` (released escrow) — with
+  `balance_usd` a *generated* total over the two, so the balance a buyer tops
+  up and the balance a seller earns into are separate numbers and every
+  existing reader of `balance_usd` still works. `apply_wallet()` takes the pool
+  it moves money in, and `wallet_ledger` records it. Do not add a "spendable
+  balance" derived by subtracting trade credits from one number — that
+  subtraction was ambiguous; the split is the schema change that removes the
+  ambiguity.
+- **The two audiences withdraw on different terms, and the tier lives in one
+  module.** `request_payout()` gives a seller a $10 floor at 1% against
+  `earned_usd` and a buyer a $20 floor at 1.5% against `spendable_usd`, and
+  records `pool`, `fee_rate`, `fee_usd` and `net_usd` on the request.
+  `src/lib/withdrawalTiers.ts` is the client's single copy; `WithdrawalPanel`
+  renders it for both pages. `tests/withdrawal_tiers.test.ts` reads the SQL and
+  asserts the two agree — the same class of drift as the dispute vocabulary.
+- **The admin pays the net, not the gross.** The payout queue shows the amount
+  to send (`net_usd`) and the fee retained, and the confirm dialog names the
+  net. The dialog used to name the gross request, which overpays by the fee on
+  every payout now that a fee exists.
 - **Do not label the held-funds model "escrow".** The backend holds money in an
   internal `wallet_ledger` and has no licensed escrow provider, and there is no
   payout provider either (`0014_seller_payouts.sql` reserves a withdrawal and
@@ -270,15 +315,14 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   redefines `resolve_report`, which `0001` also defines, so presence alone
   proved nothing; the sentinel now checks for `0015`'s specific self-report
   guard.
-- **`wallet_ledger.kind` decides where a credit belongs.** `purchase`,
-  `escrow_hold` and `escrow_release` are trade money; `deposit` and
-  `adjustment` are top-ups; `refund` can be either. Because every kind shares
-  one `balance_usd` column, the balance a buyer tops up and the balance a
-  seller earns into are the *same number*. Do not add a "spendable balance"
-  derived by subtracting trade credits — that subtraction is ambiguous, since a
-  buyer's `escrow_release` refund would be wrongly deducted. Separating them
-  needs a schema change to `apply_wallet()` (a `purpose` column), which is a
-  financial migration and belongs behind explicit approval.
+- **`wallet_ledger.kind` decides where a credit belongs, and the pool column
+  says which balance it lands in.** `purchase`, `escrow_hold` and
+  `escrow_release` are trade money; `deposit` and `adjustment` are top-ups;
+  `refund` can be either. Since `0019` the two balances are separate columns —
+  see the pool entry above — so a reader that needs "what can this account
+  spend" asks for `spendable_usd` rather than deriving it from `balance_usd`.
+  Do not reintroduce a subtraction over one shared column: a buyer's
+  `escrow_release` refund would be wrongly deducted.
 
 - **A step list is a contract, and `STEPS` is its only copy.** The seller
   application now asks four questions — store, platforms, delivery & access,
