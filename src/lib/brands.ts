@@ -50,3 +50,79 @@ export function getBrand(key: string): Brand {
     }
   );
 }
+
+/**
+ * Whether a brand's official colour is effectively black.
+ *
+ * TikTok and X are both exactly `#000000`. Drawn literally that is a black
+ * tile, which is invisible against the dark canvas — the glyph is there, the
+ * user just cannot see it. These brands are rendered with the foreground and
+ * background tokens instead, so the tile inverts with the theme the way the
+ * real logos do: dark tile with a light glyph in light mode, light tile with a
+ * dark glyph in dark mode.
+ *
+ * The test is a luminance threshold rather than a name list so a brand added
+ * later with a near-black hex is handled without anyone remembering to come
+ * back here.
+ */
+export function isMonochromeBrand(hex: string): boolean {
+  const value = Number.parseInt(hex.replace("#", ""), 16);
+  if (!Number.isFinite(value)) return false;
+  const r = (value >> 16) & 0xff;
+  const g = (value >> 8) & 0xff;
+  const b = value & 0xff;
+  // Rec. 709 luma, 0..1.
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 < 0.12;
+}
+
+/**
+ * The custom properties a card sets to carry its brand colour: a faint wash, a
+ * matching hairline, and a readable ink. Set them inline as
+ * `style={{ ...brandTint(brand) }}`.
+ *
+ * Every value here has to be a *real colour*, because it is consumed inside
+ * `color-mix()` and as a plain `background`/`border-color`. The brand hexes are
+ * already colours; the theme tokens are bare HSL triples, so they get wrapped
+ * in `hsl()` — `var(--foreground)` on its own is the text `224 51% 8%`, which
+ * is not a colour and makes the whole declaration silently invalid.
+ *
+ * The wash is deliberately very light (9%). A saturated brand fill behind body
+ * copy is the thing this palette avoids; the tint is here to make a grid of
+ * category tiles read as *colourful* without any of it competing with the text
+ * on top.
+ *
+ * `--tint-ink` is the brand hue mixed 62% toward the theme's foreground, which
+ * makes it a readable label in *both* themes: on white it darkens toward the
+ * ink, in dark mode it lightens toward the near-white. Raw brand colours are
+ * not safe as text — Telegram's `#26A5E4` is 2.8:1 on white, and the official
+ * black of TikTok/X is 1.9:1 on the dark card.
+ *
+ * A monochrome brand has no hue to lend, so it tints with the theme ink
+ * instead of an invisible black.
+ */
+export function brandTint(brand: string): Record<string, string> {
+  const entry = getBrand(brand);
+  const base = isMonochromeBrand(entry.hex)
+    ? "hsl(var(--foreground))"
+    : `#${entry.hex}`;
+  return tintVars(base);
+}
+
+/**
+ * The same custom properties, but for a *theme token* rather than a brand hex —
+ * `tokenTint("--info")` gives a card the information hue. The token is a bare
+ * HSL triple, so it is wrapped in `hsl()`; passing it through raw would make
+ * every derived colour invalid. See `brandTint` for what the three values mean.
+ */
+export function tokenTint(token: string): Record<string, string> {
+  return tintVars(`hsl(var(${token}))`);
+}
+
+function tintVars(base: string): Record<string, string> {
+  return {
+    "--tint": base,
+    "--tint-wash": `color-mix(in srgb, ${base} var(--tint-wash-mix, 10%), transparent)`,
+    "--tint-line": `color-mix(in srgb, ${base} var(--tint-line-mix, 26%), transparent)`,
+    "--tint-ink": `color-mix(in srgb, ${base} var(--tint-ink-mix, 62%), hsl(var(--foreground)))`,
+  };
+}

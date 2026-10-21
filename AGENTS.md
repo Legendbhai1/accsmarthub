@@ -130,17 +130,47 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   (#0284C7) and means "information" only. If something needs to say "this is
   the brand" it uses `--primary`, the ramp, or `--bronze`.
 - **`--pop-*` exists so sections can differ.** `--pop-orange`, `--pop-cyan`,
-  `--pop-green` and `--pop-pink` are extra hues with no brand meaning. They are
-  reachable only through `.orb` and `.icon-tile`, which is how the hero, the
-  trust pillars and the commitment row get visual variety without each section
+  `--pop-green` and `--pop-pink` are extra hues with no brand meaning. They
+  reach the page through `.orb`, `.icon-tile`, the `.section-pop` band and a
+  `SectionHeading`'s `accent`, which is how the home sections, the trust
+  pillars and the commitment row get visual variety without each section
   inventing its own colour. Do not use a `--pop-*` hue for a button, a status
   or any text.
+- **A section can carry its own hue, and a card its own brand.** Three classes
+  do the colour work, all in `src/index.css` and all driven by custom
+  properties set inline:
+  - `.section-pop` tints a whole band with `--pop` (a bare HSL triple like
+    every token, so it is wrapped in `hsl()`). It is the "coloured zone"
+    treatment — a homepage reads as a sequence of zones rather than one long
+    white column.
+  - `.tint-card` gives a card a faint wash plus a matching hairline from
+    `--tint`/`--tint-wash`/`--tint-line`, so a grid of category tiles reads as
+    a spread of platforms. `.tint-chip` is the same wash as a small badge.
+  - `brandTint(brand)` and `tokenTint(token)` (in `src/lib/brands.ts`) emit
+    those properties. Use the first for anything keyed to a platform, the
+    second for anything keyed to a theme token (`tokenTint("--info")`).
+  The mix strengths are tokens (`--tint-wash-mix`, `--tint-line-mix`,
+  `--tint-ink-mix`) and dark mode raises them: a 10% hue is a clear tint on a
+  white card but is swallowed on a dark one, so the dark canvas uses 20/42/55.
+  `--tint-ink` is the hue mixed toward the theme ink, which is what keeps a
+  label readable in *both* themes — a raw brand hex is not safe as text.
+- **A pop/tint token is a bare HSL triple, so wrap it in `hsl()` before using
+  it as a colour.** This is the trap that made the coloured bands invisible
+  when they were first added: `color-mix(in srgb, var(--pop-cyan) 9%, ...)` is
+  invalid — `var(--pop-cyan)` resolves to the text `189 94% 43%`, which is not
+  a colour, so the whole declaration is dropped silently and the section
+  renders plain. `hsl(var(--pop-cyan))` is the fix, and it is the same
+  convention `.orb` and `.icon-tile` use. `tests/theme.test.ts` pins that no
+  `color-mix()` opens its colour argument with a bare `var(`, and that
+  `brandTint()`/`tokenTint()` only ever emit real colours.
 - **Colour is an accent, not a background.** The brand ramp belongs on the
   wordmark tile, the hero wash, the CTA panel, the promo banner, an active rail
   indicator and one icon tile — never as a saturated fill behind body copy or
-  on every card. `bg-primary` is a flat violet and `.brand-gradient` is
-  deliberately not used on the primary button, because a gradient on the main
-  action reads as glossy.
+  on every card. A `.section-pop` band and a `.tint-card` wash are the
+  *deliberate* exceptions: they are hue at 3–20%, chosen so the text on top
+  keeps its contrast, not saturated fills. `bg-primary` is a flat violet, and
+  `.brand-gradient` is deliberately not used on the primary button, because a
+  gradient on the main action reads as glossy.
 - **The animated gradients stop at magenta.** Amber and the `--pop-*` hues are
   lighter, so ending a *panning* ramp on one drops the contrast of the white
   text the CTA and promo panels carry. `.brand-gradient-animated` therefore

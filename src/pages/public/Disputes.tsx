@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { AlertTriangle, FileWarning, Gavel, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/common/Primitives";
+import { tokenTint } from "@/lib/brands";
 
 /**
  * /disputes — the public dispute-resolution policy.
@@ -14,21 +15,25 @@ import { SectionHeading } from "@/components/common/Primitives";
 const STEPS = [
   {
     icon: FileWarning,
+    tint: "--pop-orange",
     title: "1. Open it from your order",
     body: "Every order has a Report action. Tell us what went wrong and attach what you have — screenshots, the seller's messages, the analytics you were promised.",
   },
   {
     icon: Gavel,
+    tint: "--pop-cyan",
     title: "2. An admin reviews the evidence",
     body: "A human reviews both sides. The seller's store answers and delivery record are pulled automatically as part of the case.",
   },
   {
     icon: ShieldCheck,
+    tint: "--primary",
     title: "3. Funds stay locked until it is resolved",
     body: "Escrow is never released while a dispute is open. The buyer's held funds and the seller's payout are both frozen until a decision is recorded.",
   },
   {
     icon: ShieldCheck,
+    tint: "--pop-green",
     title: "4. You get a decision",
     body: "Refund the buyer in full, release the funds to the seller, or split the difference. The outcome and its reason are written to the order.",
   },
@@ -82,10 +87,14 @@ export default function Disputes() {
       <section className="mx-auto w-full max-w-4xl px-4 pb-12 sm:px-6">
         <SectionHeading title="How a dispute is handled" />
         <ol className="mt-6 space-y-3">
-          {STEPS.map(({ icon: Icon, title, body }) => (
-            <li key={title} className="surface flex gap-4 p-5">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary">
-                <Icon className="size-4 text-primary-foreground" />
+          {STEPS.map(({ icon: Icon, tint, title, body }) => (
+            <li
+              key={title}
+              style={tokenTint(tint)}
+              className="surface tint-card flex gap-4 p-5"
+            >
+              <span className="icon-tile size-10" style={{ ["--tile" as string]: `var(${tint})` }}>
+                <Icon className="size-4" />
               </span>
               <div>
                 <h3 className="text-sm font-semibold tracking-tight">{title}</h3>

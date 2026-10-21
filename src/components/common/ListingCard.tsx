@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/format";
 import { BrandMark } from "@/components/site/BrandMark";
+import { brandTint } from "@/lib/brands";
 import { publicAssetUrl } from "@/lib/supabaseMutations";
 import type { PublicListing } from "@/lib/supabaseQueries";
 
@@ -29,20 +30,24 @@ export function ListingCard({ listing, className }: ListingCardProps) {
 
   return (
     <article
+      style={brandTint(listing.brand)}
       className={cn(
         "group surface card-hover relative flex flex-col overflow-hidden p-3",
         className,
       )}
     >
       {/* The brand hairline only appears on hover, so a grid of cards stays
-          calm until the pointer is on one of them. */}
+          calm until the pointer is on one of them. It takes the card's own
+          brand tint, so a grid reads as a spread of platforms rather than one
+          repeated accent. */}
       <span
         aria-hidden="true"
-        className="brand-rule absolute inset-x-0 top-0 h-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        className="absolute inset-x-0 top-0 h-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        style={{ background: "var(--tint)" }}
       />
       <Link to={`/marketplace/${listing.id}`} className="flex flex-1 flex-col">
         <div className="relative">
-          <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-secondary to-accent">
+          <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg bg-[var(--tint-wash)]">
             {listing.imagePath ? (
               <img
                 src={publicAssetUrl("listing-assets", listing.imagePath)}

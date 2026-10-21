@@ -6,6 +6,7 @@ import { TopMenu } from "@/components/site/TopMenu";
 import { Pagination } from "@/components/common/Pagination";
 import { formatPrice } from "@/lib/format";
 import { categories } from "@/lib/db";
+import { brandTint } from "@/lib/brands";
 import { usePublicListings, useSavedListingIds, type PublicListing } from "@/lib/supabaseQueries";
 import { toggleSavedListing, publicAssetUrl } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
@@ -45,7 +46,10 @@ function AccountCard({
   return (
     // Translucent, not blurred: this grid can hold dozens of cards, and a
     // backdrop-filter per card is what makes a long list stutter on a phone.
-    <article className="group rounded-3xl border border-border/70 bg-card/70 p-2 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.5)]">
+    <article
+      style={brandTint(listing.brand)}
+      className="group rounded-3xl border border-border/70 bg-card/70 p-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.5)] hover:border-[var(--tint)]"
+    >
       <div className="relative">
         <Link
           to={`/marketplace/${listing.id}`}
@@ -65,7 +69,7 @@ function AccountCard({
               className="size-14 transition-transform duration-200 group-hover:scale-105"
             />
           )}
-          <span className="absolute bottom-2 left-2 rounded-md bg-card/90 px-2 py-0.5 text-[10px] font-bold text-foreground">
+          <span className="tint-chip absolute bottom-2 left-2 rounded-md px-2 py-0.5 text-[10px] font-bold">
             {listing.serviceCategory ?? listing.brand}
           </span>
           {listing.stock <= 3 && (
@@ -402,19 +406,26 @@ export default function Marketplace() {
                   key={c.slug}
                   type="button"
                   onClick={() => goCategory(activeCat ? null : c.slug)}
+                  style={brandTint(c.brand)}
                   className="flex w-14 shrink-0 flex-col items-center gap-1.5"
                 >
                   <span
                     className={cn(
                       "flex size-14 items-center justify-center rounded-xl border transition-all duration-150",
                       activeCat
-                        ? "border-transparent bg-card ring-2 ring-primary ring-offset-2 ring-offset-background"
-                        : "border-border/70 bg-card/70 hover:border-primary/40",
+                        ? "border-[var(--tint)] bg-[var(--tint-wash)] ring-2 ring-[var(--tint)] ring-offset-2 ring-offset-background"
+                        : "border-border/70 bg-card/70 hover:border-[var(--tint)]",
                     )}
                   >
                     <BrandMark brand={c.brand} colored className="size-6" />
                   </span>
-                  <span className={cn("text-[11px]", activeCat ? "font-semibold text-primary" : "text-foreground")}>
+                  <span
+                    className={cn(
+                      "text-[11px]",
+                      activeCat ? "font-semibold" : "text-foreground",
+                    )}
+                    style={activeCat ? { color: "var(--tint-ink)" } : undefined}
+                  >
                     {c.name}
                   </span>
                 </button>

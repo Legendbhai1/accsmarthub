@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SERVICE_CATEGORIES, categories } from "@/lib/db";
-import { getBrand } from "@/lib/brands";
+import { getBrand, isMonochromeBrand } from "@/lib/brands";
 
 const root = process.cwd();
 const read = (rel: string) => readFileSync(join(root, rel), "utf8");
@@ -65,5 +65,46 @@ describe("the buyer quick-nav sits below the header", () => {
     const bar = read("src/components/dash/BuyerQuickNav.tsx");
     expect(bar).not.toMatch(/MobileTabBar/);
     expect(bar).not.toMatch(/MobileChipNav/);
+  });
+});
+
+describe("black brand glyphs stay visible in dark mode", () => {
+  it("treats TikTok and X as monochrome, so they are not painted pure black", () => {
+    // Both ship `#000000` in simple-icons. Drawn literally the tile is
+    // invisible on the dark canvas — this is the reported bug.
+    expect(isMonochromeBrand(getBrand("tiktok").hex)).toBe(true);
+    expect(isMonochromeBrand(getBrand("x").hex)).toBe(true);
+  });
+
+  it("leaves the genuinely coloured brands alone", () => {
+    for (const brand of [
+      "instagram",
+      "youtube",
+      "facebook",
+      "twitch",
+      "pinterest",
+      "telegram",
+      "discord",
+      "google",
+      "linkedin",
+    ]) {
+      expect(isMonochromeBrand(getBrand(brand).hex), brand).toBe(false);
+    }
+  });
+
+  it("classifies by luminance, so a future near-black brand is caught too", () => {
+    expect(isMonochromeBrand("000000")).toBe(true);
+    expect(isMonochromeBrand("#0B0F1B")).toBe(true);
+    expect(isMonochromeBrand("6C7A92")).toBe(false);
+    expect(isMonochromeBrand("FFFFFF")).toBe(false);
+    // A non-hex value must not throw or be misread as black.
+    expect(isMonochromeBrand("")).toBe(false);
+    expect(isMonochromeBrand("zzz")).toBe(false);
+  });
+
+  it("the tile uses theme tokens rather than a literal black fill", () => {
+    const source = read("src/components/site/BrandMark.tsx");
+    expect(source).toMatch(/monochrome && "bg-foreground"/);
+    expect(source).toMatch(/text-background/);
   });
 });

@@ -100,23 +100,37 @@
     --accent: 269 100% 96%;          /* #F5EBFF */
     --accent-foreground: 262 60% 32%;
     --surface-2: 248 100% 98%;       /* #F8F7FF */
-    /* Status. Kept off the brand hue so a badge means what it says. */
-    --destructive: 347 83% 52%;      /* #EB1D4E */
+    /* Status. Kept off the brand hue so a badge means what it says, and each is
+       dark enough to clear 4.5:1 as small text on white — they are rendered as
+       `text-success` / `text-warning` / `text-info` on error and status lines,
+       so a lighter tint would fail AA at 11–13px. */
+    --destructive: 347 83% 45%;      /* #D31245 */
     --destructive-foreground: 0 0% 100%;
-    --success: 142 71% 37%;          /* #16A34A */
-    --warning: 26 90% 40%;           /* #B45309 */
-    --info: 200 98% 39%;             /* #0284C7 */
+    --success: 142 76% 30%;          /* #12793A */
+    --warning: 26 90% 34%;           /* #A44B08 */
+    --info: 200 98% 33%;             /* #026CA5 */
     --border: 220 20% 92%;           /* #E6E9F0 */
     --input: 220 20% 92%;
     --ring: 262 88% 60%;             /* violet focus ring */
     --bronze: 38 96% 51%;            /* #F59E0B — amber detail accent */
-    /* The brand ramp plus the four pop hues the colourful sections draw on. */
+    /* The brand ramp plus the four pop hues the colourful sections draw on.
+       These are decorative fills (a tile, an orb, a hairline), never text, so
+       they are tuned for vividness rather than for AA contrast on white. */
     --brand-2: 330 85% 58%;          /* #EE2C86 fuchsia */
     --brand-3: 38 96% 51%;           /* #F59E0B amber */
     --pop-pink: 330 85% 58%;         /* #EE2C86 */
     --pop-orange: 24 95% 55%;        /* #F97316 */
     --pop-cyan: 189 94% 43%;         /* #06B6D4 */
     --pop-green: 160 84% 39%;        /* #10B981 */
+    /* How strongly `brandTint()` mixes a brand hue into a card, as a
+       percentage. These are tokens rather than constants because the same
+       strength does not read the same way on both canvases: 10% over a white
+       card is a clear tint, but over a dark card the hue is swallowed and the
+       tile looks untinted. Dark mode raises the wash (and the hairline with
+       it) so the grid stays colourful there too. */
+    --tint-wash-mix: 10%;
+    --tint-line-mix: 26%;
+    --tint-ink-mix: 62%;
     /* 12px base. Tailwind's `rounded-lg`/`xl`/`2xl` land on 8/12/16px, which
        is the whole radius system — nothing here is a pill. */
     --radius: 0.75rem;
@@ -152,7 +166,11 @@
     --accent-foreground: 251 91% 92%;
     --surface-2: 226 30% 14%;        /* #191F32 */
     --destructive: 351 95% 71%;      /* #FB7185 */
-    --destructive-foreground: 0 0% 100%;
+    /* The dark destructive is a light rose so it reads as *text* on the dark
+       canvas (7:1). That is also why its foreground has to be dark ink rather
+       than white: a white label on this fill is 2.7:1. The pairing inverts
+       with the theme, exactly like the brand primary does. */
+    --destructive-foreground: 351 84% 12%; /* #38060E */
     --success: 142 69% 58%;          /* #4ADE80 */
     --warning: 43 96% 56%;           /* #FBBF24 */
     --info: 198 93% 60%;             /* #38BDF8 */
@@ -166,6 +184,13 @@
     --pop-orange: 27 96% 62%;        /* #FB923C */
     --pop-cyan: 187 92% 62%;         /* #22D3EE */
     --pop-green: 158 74% 55%;        /* #34D399 */
+    /* A hue mixed at 10% is invisible against a dark card — the tint has to be
+       roughly twice as strong to read at all. The ink is pulled a little
+       *toward* the hue (a lower mix) so the label keeps more of the brand
+       colour now that the wash is doing less of the work. */
+    --tint-wash-mix: 20%;
+    --tint-line-mix: 42%;
+    --tint-ink-mix: 55%;
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
     --shadow-md: 0 4px 14px -4px hsl(0 0% 0% / 0.5);
     --shadow-lg: 0 18px 40px -18px hsl(0 0% 0% / 0.6);
@@ -465,12 +490,15 @@
 
   /* A brand hairline, for the rule under a card or section head. The class name
      predates the current palette; the fill is the brand ramp now, so the rule
-     reads as the brand rather than as a separate amber line. */
+     reads as the brand rather than as a separate amber line. A section can
+     override the two stops with `--rule-from`/`--rule-to`, which are bare HSL
+     triples like the rest of the theme (`var(--pop-cyan)`), hence the `hsl()`
+     wrappers. */
   .brand-rule {
     background-image: linear-gradient(
       90deg,
-      hsl(var(--primary)) 0%,
-      hsl(var(--brand-2)) 100%
+      hsl(var(--rule-from, var(--primary))) 0%,
+      hsl(var(--rule-to, var(--brand-2))) 100%
     );
   }
 
@@ -594,6 +622,52 @@
       hsl(var(--tile) / 0.72) 100%
     );
     box-shadow: var(--shadow-md);
+  }
+
+  /* A card that carries its own brand colour as a faint wash plus a matching
+     hairline, so a grid of category tiles reads as colourful rather than as
+     eleven identical white boxes. `--tint*` is set inline by `brandTint()`.
+     The wash is light enough that the card's own text keeps full contrast, and
+     the brand colour shows up as the tile's ring on hover.
+
+     Used alongside `.surface` for the body and `.card-hover` for the lift.
+     The hover rule is doubled up so it outranks `.card-hover:hover`, which
+     would otherwise repaint the border the brand colour. */
+  .tint-card {
+    background-image: linear-gradient(
+      160deg,
+      var(--tint-wash, transparent) 0%,
+      transparent 62%
+    );
+    border-color: var(--tint-line, hsl(var(--border)));
+  }
+
+  .tint-card.tint-card:hover {
+    border-color: var(--tint, hsl(var(--primary)));
+  }
+
+  /* The same tint, but as a small badge or chip — a solid-enough wash to read
+     as "this belongs to <brand>" at 11px without shouting. The label uses
+     `--tint-ink` rather than the raw hue so it stays readable in both themes. */
+  .tint-chip {
+    background-color: var(--tint-wash, hsl(var(--muted)));
+    color: var(--tint-ink, hsl(var(--foreground)));
+    box-shadow: inset 0 0 0 1px var(--tint-line, hsl(var(--border)));
+  }
+
+  /* A whole section band tinted with one hue, so the homepage reads as a
+     sequence of coloured zones instead of one long white column. `--pop` is a
+     bare HSL triple like every other theme token (`var(--pop-cyan)`), so it is
+     wrapped in `hsl()` here — the same convention `.orb` and `.icon-tile` use.
+     The wash stays under 10%: enough to separate two sections at a glance,
+     faint enough that body copy on top keeps full contrast (muted-foreground is
+     5.1:1 on white and stays above 4.5:1 on the wash). */
+  .section-pop {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) 9%, transparent) 0%,
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) 3%, transparent) 100%
+    );
   }
 
   /* `.card` is an alias of `.surface` so the two names cannot drift apart. */

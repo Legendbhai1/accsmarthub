@@ -8,6 +8,7 @@ import { BrandMark } from "@/components/site/BrandMark";
 import { ListingCard } from "@/components/common/ListingCard";
 import { SectionHeading } from "@/components/common/Primitives";
 import { categories } from "@/lib/db";
+import { brandTint } from "@/lib/brands";
 import { usePublicListings } from "@/lib/supabaseQueries";
 
 const containerVariants = {
@@ -167,42 +168,50 @@ export default function Home() {
         whileInView="visible"
         viewport={{ once: true, margin: "-80px" }}
         variants={containerVariants}
-        className="mx-auto w-full max-w-7xl px-4 sm:px-6"
+        className="section-pop mt-16 py-12 sm:py-14"
+        style={{ ["--pop" as string]: "var(--pop-cyan)" }}
       >
-        <motion.div variants={cardVariants}>
-          <SectionHeading
-            title="Browse by platform"
-            subtitle="Each platform has a vetted roster of listings."
-          />
-        </motion.div>
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {categories.map((category) => (
-            <motion.div key={category.slug} variants={cardVariants}>
-              <Link
-                to={`/marketplace?category=${category.slug}`}
-                className="surface card-hover group flex flex-col p-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-              >
-                <BrandMark
-                  brand={category.brand}
-                  block
-                  className="size-11 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110"
-                />
-                <h3 className="mt-4 text-sm font-bold tracking-tight">
-                  {category.name}
-                </h3>
-                <p className="mt-2 text-xs font-medium text-muted-foreground">
-                  {countFor(category.brand) === 0
-                    ? "No live listings yet"
-                    : `${countFor(category.brand)} ${
-                        countFor(category.brand) === 1 ? "listing" : "listings"
-                      } available`}
-                </p>
-                <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                  Browse <ArrowRight className="size-3" />
-                </span>
-              </Link>
-            </motion.div>
-          ))}
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+          <motion.div variants={cardVariants}>
+            <SectionHeading
+              title="Browse by platform"
+              subtitle="Each platform has a vetted roster of listings."
+              accent={["var(--pop-cyan)", "var(--primary)"]}
+            />
+          </motion.div>
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {categories.map((category) => (
+              <motion.div key={category.slug} variants={cardVariants}>
+                <Link
+                  to={`/marketplace?category=${category.slug}`}
+                  style={brandTint(category.brand)}
+                  className="surface tint-card card-hover group flex flex-col p-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                >
+                  <BrandMark
+                    brand={category.brand}
+                    block
+                    className="size-11 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110"
+                  />
+                  <h3 className="mt-4 text-sm font-bold tracking-tight">
+                    {category.name}
+                  </h3>
+                  <p className="mt-2 text-xs font-medium text-muted-foreground">
+                    {countFor(category.brand) === 0
+                      ? "No live listings yet"
+                      : `${countFor(category.brand)} ${
+                          countFor(category.brand) === 1 ? "listing" : "listings"
+                        } available`}
+                  </p>
+                  <span
+                    className="mt-3 inline-flex items-center gap-1 text-xs font-semibold opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                    style={{ color: "var(--tint-ink)" }}
+                  >
+                    Browse <ArrowRight className="size-3" />
+                  </span>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </motion.section>
 
@@ -212,13 +221,15 @@ export default function Home() {
         whileInView="visible"
         viewport={{ once: true, margin: "-80px" }}
         variants={containerVariants}
-        className="mt-20"
+        className="section-pop py-12 sm:py-14"
+        style={{ ["--pop" as string]: "var(--pop-pink)" }}
       >
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
           <motion.div variants={cardVariants}>
             <SectionHeading
               title="Featured listings"
               subtitle="The newest accounts approved by our review team."
+              accent={["var(--pop-pink)", "var(--pop-orange)"]}
               action={
                 <Button variant="ghost" className="hidden sm:inline-flex" asChild>
                   <Link to="/marketplace">

@@ -10,41 +10,42 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SiteLayout } from "@/components/site/SiteLayout";
+import { tokenTint } from "@/lib/brands";
 
 const PILLARS = [
   {
     icon: UserCheck,
-    tint: "var(--primary)",
+    tint: "--primary",
     title: "Store and listing review",
     body: "Every store application is reviewed by an admin before its listings can go live, and each listing is moderated before it appears in the marketplace.",
   },
   {
     icon: Lock,
-    tint: "var(--brand-2)",
+    tint: "--brand-2",
     title: "Funds held in-platform",
     body: "Buyers' payments are held in AccsMartHub's internal ledger and released to the seller only after the buyer confirms the transfer, or the inspection window closes.",
   },
   {
     icon: FileCheck,
-    tint: "var(--info)",
+    tint: "--info",
     title: "Listed details on the order",
     body: "Each order stores the price, fee and commission that applied when it was placed, so the split is auditable after the fact.",
   },
   {
     icon: Gavel,
-    tint: "var(--bronze)",
+    tint: "--bronze",
     title: "Admin dispute review",
     body: "When something goes wrong, our admin team reviews evidence from both sides and refunds eligible orders from the order's held funds.",
   },
   {
     icon: ShieldCheck,
-    tint: "var(--success)",
+    tint: "--success",
     title: "A disclosed inspection window",
     body: "Every order carries a 14-day window from purchase for raising an issue, and the deadline is stored on the order so it cannot be moved afterwards.",
   },
   {
     icon: BadgeCheck,
-    tint: "var(--primary)",
+    tint: "--primary",
     title: "No invented track records",
     body: "We do not show seller ratings, sales totals or verification badges, because that data is not recorded yet. A listing is only visible here once it has passed moderation.",
   },
@@ -92,10 +93,14 @@ export default function Trust() {
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {PILLARS.map(({ icon: Icon, tint, title, body }) => (
-            <div key={title} className="surface p-6">
+            <div
+              key={title}
+              style={tokenTint(tint)}
+              className="surface tint-card p-6"
+            >
               <span
                 className="icon-tile size-10"
-                style={{ ["--tile" as string]: tint }}
+                style={{ ["--tile" as string]: `var(${tint})` }}
               >
                 <Icon className="size-5" />
               </span>

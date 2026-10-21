@@ -172,12 +172,21 @@ export function SectionHeading({
   subtitle,
   action,
   level = 2,
+  accent,
 }: {
   title: string;
   subtitle?: string;
   action?: ReactNode;
   /** `1` renders an `h1` with the page-title scale; `2` (default) an `h2`. */
   level?: 1 | 2;
+  /**
+   * Optional two-stop override for the tick before the title, as CSS colour
+   * values (e.g. `["var(--pop-cyan)", "var(--primary)"]`). Each home section
+   * passes its own pair so a page of section heads reads as a spectrum rather
+   * than as the same violet rule four times. Omit it and the rule falls back to
+   * the brand ramp.
+   */
+  accent?: [string, string];
 }) {
   const Heading = level === 1 ? "h1" : "h2";
   return (
@@ -189,6 +198,14 @@ export function SectionHeading({
         <span
           aria-hidden="true"
           className="brand-rule mb-2.5 block h-1 w-10 rounded-full"
+          style={
+            accent
+              ? {
+                  ["--rule-from" as string]: accent[0],
+                  ["--rule-to" as string]: accent[1],
+                }
+              : undefined
+          }
         />
         <Heading
           className={
@@ -264,7 +281,7 @@ export function ConfirmDialog({
           <AlertDialogAction
             className={cn(
                             destructive
-                ? "bg-destructive text-white hover:bg-destructive/90"
+                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 : "bg-primary text-primary-foreground hover:bg-primary/90",
             )}
             onClick={(e) => {
