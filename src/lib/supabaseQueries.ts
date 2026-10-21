@@ -137,6 +137,14 @@ export type PayoutRequest = {
   reviewedAt: string | null;
   reviewNote: string | null;
   paidReference: string | null;
+  /** Which pool the money came from: 'earn' for a seller, 'spend' for a buyer. */
+  pool: "spend" | "earn";
+  /** Platform fee retained, as a fraction of `amountUsd`. */
+  feeRate: number;
+  /** Fee retained, in USD. `amountUsd - feeUsd` is what was paid out. */
+  feeUsd: number;
+  /** Amount actually sent: `amountUsd - feeUsd`. */
+  netUsd: number;
   /** Only populated for admins, who can see whose request this is. */
   sellerId?: string;
 };
@@ -152,6 +160,10 @@ function mapPayout(r: Record<string, unknown>): PayoutRequest {
     reviewedAt: r.reviewed_at ? String(r.reviewed_at) : null,
     reviewNote: r.review_note ? String(r.review_note) : null,
     paidReference: r.paid_reference ? String(r.paid_reference) : null,
+    pool: (r.pool === "spend" ? "spend" : "earn") as PayoutRequest["pool"],
+    feeRate: Number(r.fee_rate ?? 0),
+    feeUsd: Number(r.fee_usd ?? 0),
+    netUsd: Number(r.net_usd ?? 0),
     sellerId: r.seller_id ? String(r.seller_id) : undefined,
   };
 }

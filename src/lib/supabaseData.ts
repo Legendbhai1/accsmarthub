@@ -29,11 +29,23 @@ export type Profile = {
   store_name: string | null;
 };
 
-export type Wallet = { balance_usd: number; locked_usd: number };
+/**
+ * The `wallets` row, as the client reads it. `balance_usd` is a generated
+ * total over the two pools (migration 0019); the pools are what a withdrawal
+ * is actually limited by, so both are carried here rather than derived.
+ */
+export type Wallet = {
+  balance_usd: number;
+  spendable_usd: number;
+  earned_usd: number;
+  locked_usd: number;
+};
 
 export type LedgerRow = {
   id: number;
   kind: string;
+  /** Which pool moved: 'spend' for deposits/purchases, 'earn' for sales. */
+  purpose: string;
   balance_delta: number;
   locked_delta: number;
   balance_after: number;
@@ -347,7 +359,7 @@ export const readWallet = async () => {
   return unwrap(
     supabase
       .from("wallets")
-      .select("balance_usd, locked_usd")
+      .select("balance_usd, spendable_usd, earned_usd, locked_usd")
       .eq("user_id", id)
       .maybeSingle(),
   );

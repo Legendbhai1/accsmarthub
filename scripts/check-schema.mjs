@@ -215,6 +215,27 @@ const SENTINELS = [
     probe: `select position('rejected' in pg_get_functiondef(
               'public.guard_store_moderation()'::regprocedure)) > 0`,
   },
+  {
+    file: "0019_wallet_pools_and_withdrawals.sql",
+    what: "split wallet pools + per-audience withdrawal tiers",
+    // Presence alone would prove nothing: `wallets` and `request_payout` both
+    // exist without 0019. What only 0019 creates is the pool split, so the
+    // probe asserts the generated column, the two pool columns, and that
+    // request_payout actually reads them. A database that skipped 0019 would
+    // still pass a `to_regclass('public.wallets')` check while silently
+    // letting a deposit be withdrawn as sale proceeds.
+    probe: `select exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'wallets'
+                and column_name = 'spendable_usd')
+              and exists (select 1 from information_schema.columns
+                where table_schema = 'public' and table_name = 'wallets'
+                  and column_name = 'earned_usd')
+              and exists (select 1 from information_schema.columns
+                where table_schema = 'public' and table_name = 'wallets'
+                  and column_name = 'balance_usd' and is_generated = 'ALWAYS')
+              and position('earned_usd' in pg_get_functiondef(
+                    'public.request_payout(numeric,text,text,text)'::regprocedure)) > 0`,
+  },
 ];
 
 async function runQuery(query) {

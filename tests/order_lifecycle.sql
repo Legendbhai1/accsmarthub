@@ -104,12 +104,16 @@ insert into public.profiles (id, email, name, is_admin) values
 on conflict (id) do update set is_admin = excluded.is_admin;
 select set_config('app.trusted_write', 'off', false);
 
-insert into public.wallets (user_id, balance_usd) values
+-- 0019 split `balance_usd` into a generated total over `spendable_usd` and
+-- `earned_usd`, so a fixture must seed the pool the money belongs to rather
+-- than the total. These are deposits the accounts put in, which is the
+-- spendable pool.
+insert into public.wallets (user_id, spendable_usd) values
   ('11111111-1111-1111-1111-111111111111', 1000),
   ('22222222-2222-2222-2222-222222222222', 0),
   ('33333333-3333-3333-3333-333333333333', 0),
   ('44444444-4444-4444-4444-444444444444', 0)
-on conflict (user_id) do update set balance_usd = excluded.balance_usd;
+on conflict (user_id) do update set spendable_usd = excluded.spendable_usd;
 
 insert into public.stores (id, user_id, store_name, slug, status, contact_policy)
 values ('aaaaaaaa-0000-0000-0000-000000000001',
@@ -656,8 +660,9 @@ begin
     true);
   -- There is no UPDATE policy on wallets, so this statement matches zero rows
   -- rather than raising. The assertion below proves the value did not move.
+  -- `spendable_usd` is the pool under test now that `balance_usd` is generated.
   perform public.test_expect_ok('7f a direct wallet update is silently a no-op',
-    $q$update public.wallets set balance_usd = 999999 where user_id = '11111111-1111-1111-1111-111111111111'$q$);
+    $q$update public.wallets set spendable_usd = 999999 where user_id = '11111111-1111-1111-1111-111111111111'$q$);
   perform public.test_expect('7g a client cannot forge an order event',
     $q$insert into public.order_events (order_no, event) values ('AMH-X', 'forged')$q$,
     true);

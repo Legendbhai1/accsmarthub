@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { LifeBuoy, MessageSquarePlus } from "lucide-react";
+import { ExternalLink, LifeBuoy, MessageSquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { buyerNav } from "@/components/dash/navs";
+import { BrandMark } from "@/components/site/BrandMark";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
+import { TELEGRAM_LINKS } from "@/lib/contact";
 import { useSession } from "@/lib/session";
 import { supabase } from "@/lib/supabase";
 import { friendlyError } from "@/lib/supabaseData";
@@ -115,6 +117,40 @@ export default function BuyerSupport() {
   return (
     <DashLayout title="Support" nav={buyerNav}>
       <div className="space-y-5">
+        {/* The two out-of-app ways to reach us, ahead of the ticket form.
+            Both are Telegram: the channel is where updates are posted, and
+            the bot is a direct line to support. */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {TELEGRAM_LINKS.map((link) => (
+            <a
+              key={link.url}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="surface card-hover flex items-start gap-3 p-4"
+            >
+              <span
+                className="icon-tile size-9"
+                style={{ ["--tile" as string]: "var(--pop-cyan)" }}
+              >
+                <BrandMark brand="telegram" className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1.5 text-sm font-semibold">
+                  {link.label}
+                  <ExternalLink className="size-3.5 text-muted-foreground" />
+                </span>
+                <span className="mt-0.5 block font-mono text-xs text-primary">
+                  {link.handle}
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                  {link.description}
+                </span>
+              </span>
+            </a>
+          ))}
+        </div>
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
             Our team reviews every request. Replies appear here.

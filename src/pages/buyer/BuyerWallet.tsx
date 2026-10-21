@@ -23,8 +23,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { buyerNav } from "@/components/dash/navs";
+import { WithdrawalPanel } from "@/components/dash/WithdrawalPanel";
 import { StatCard } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
+import { BUYER_WITHDRAWAL } from "@/lib/withdrawalTiers";
 import { readDeposits, readLedger, type Deposit, type LedgerRow } from "@/lib/supabaseData";
 import { verifyDeposit, createDeposit, type DepositConfigError, type DepositUnreachableError } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
@@ -39,7 +41,13 @@ type DepositState =
 const PENDING_TRACK_KEY = "accsmarthub.pendingDeposit.v1";
 
 export default function BuyerWallet() {
-  const { user } = useSession();
+  const { user, refresh } = useSession();
+
+  // The two pools, and their total. The withdrawal panel reads `spendable`
+  // only; `earned` is shown so a buyer who also sells can see the split.
+  const spendable = user?.spendableBalance ?? 0;
+  const earned = user?.earnedBalance ?? 0;
+  const totalBalance = spendable + earned;
 
   const [depositState, setDepositState] = useState<DepositState>({ phase: "idle" });
   /** Why no payment page can be created right now; `null` hides the notice. */
@@ -163,8 +171,19 @@ export default function BuyerWallet() {
   return (
     <DashLayout title="Wallet" nav={buyerNav}>
       <div className="space-y-6">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <StatCard label="Available balance" value={formatPrice(user?.balance ?? 0)} icon={Wallet} hint="Usable at checkout" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Spendable balance"
+            value={formatPrice(user?.spendableBalance ?? 0)}
+            icon={Wallet}
+            hint="Deposited funds — usable at checkout"
+          />
+          <StatCard
+            label="Earnings balance"
+            value={formatPrice(user?.earnedBalance ?? 0)}
+            icon={CircleDollarSign}
+            hint="Sale proceeds from your listings"
+          />
           <StatCard
             label="Held in escrow"
             value={formatPrice(user?.lockedBalance ?? 0)}
@@ -172,6 +191,54 @@ export default function BuyerWallet() {
             hint="Released to the seller on your confirmation"
           />
         </div>
+
+        {/* Two pools, two rules. The bar below shows the total so the split is
+            legible at a glance; the withdrawal panel reads only the spendable
+            pool, which is what a buyer is allowed to withdraw. */}
+        <div className="surface p-6">
+          <h3 className="font-semibold">How your balance is split</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Deposits and sale proceeds are tracked separately. Deposits are
+            spendable at checkout and withdrawable above {formatPrice(BUYER_WITHDRAWAL.minimum)};
+            sale proceeds follow the seller rules.
+          </p>
+          <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-muted">
+            <span
+              className="bg-primary"
+              style={{
+                width: `${totalBalance > 0 ? (spendable / totalBalance) * 100 : 0}%`,
+              }}
+            />
+            <span
+              className="bg-bronze"
+              style={{
+                width: `${totalBalance > 0 ? (earned / totalBalance) * 100 : 0}%`,
+              }}
+            />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs">
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-primary" />
+              <span className="text-muted-foreground">Spendable</span>
+              <span className="font-semibold tabular-nums">{formatPrice(spendable)}</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-2.5 rounded-full bg-bronze" />
+              <span className="text-muted-foreground">Earnings</span>
+              <span className="font-semibold tabular-nums">{formatPrice(earned)}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Withdrawing deposits: $20 floor, 1.5% fee. A seller's sale proceeds
+            are withdrawn from Seller Studio on the lower seller tier. */}
+        <WithdrawalPanel
+          tier={BUYER_WITHDRAWAL}
+          available={spendable}
+          title="Withdraw deposited funds"
+          description="Request a withdrawal of the money you deposited. The amount is held while our team reviews it, then paid out to the account you nominate."
+          onDone={refresh}
+        />
 
         <div className="surface p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">

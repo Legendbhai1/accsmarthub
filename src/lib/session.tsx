@@ -38,8 +38,19 @@ export type SessionUser = {
   name: string;
   email: string;
   role: Role;
-  /** Available spendable wallet balance (USD). */
+  /** Total balance (USD): `spendableBalance + earnedBalance`. */
   balance: number;
+  /**
+   * Money this account put in — crypto deposits and refunds. This is what
+   * checkout spends, and what a non-seller may withdraw.
+   */
+  spendableBalance: number;
+  /**
+   * Money this account made selling — escrow released to it. This is what an
+   * approved seller withdraws. Separate from `spendableBalance` so a deposit
+   * is never withdrawable as sale proceeds (migration 0019).
+   */
+  earnedBalance: number;
   /** Escrow held on the seller's behalf, shown separately. */
   lockedBalance: number;
   sellerStatus: SellerStatus;
@@ -171,6 +182,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         email: profile.email ?? "",
         role,
         balance: Number(wallet?.balance_usd ?? 0),
+        spendableBalance: Number(wallet?.spendable_usd ?? 0),
+        earnedBalance: Number(wallet?.earned_usd ?? 0),
         lockedBalance: Number(wallet?.locked_usd ?? 0),
         sellerStatus,
         emailVerified,

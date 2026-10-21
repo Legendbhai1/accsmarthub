@@ -54,6 +54,10 @@ export default function AdminPayments() {
     id: string;
     kind: "paid" | "rejected";
     amount: number;
+    /** What actually goes out: `amount` minus the platform withdrawal fee. */
+    net: number;
+    fee: number;
+    pool: "spend" | "earn";
   } | null>(null);
   const [note, setNote] = useState("");
   const [reference, setReference] = useState("");
@@ -231,11 +235,14 @@ export default function AdminPayments() {
                       <div className="flex flex-wrap items-center gap-3">
                         <div className="min-w-0 flex-1">
                           <span className="block text-sm font-medium">
-                            {formatPrice(p.amountUsd)} · {p.method}
+                            {formatPrice(p.netUsd)} to send · {p.method}
                           </span>
                           <span className="block truncate text-xs text-muted-foreground">
-                            {p.destination} · requested{" "}
-                            {new Date(p.requestedAt).toLocaleDateString()}
+                            {p.pool === "earn" ? "Sale proceeds" : "Deposited funds"}
+                            {" · "}
+                            {formatPrice(p.amountUsd)} requested,{" "}
+                            {formatPrice(p.feeUsd)} fee · {p.destination} ·
+                            requested {new Date(p.requestedAt).toLocaleDateString()}
                           </span>
                           {p.reviewNote && (
                             <span className="mt-1 block text-xs text-muted-foreground">
@@ -250,7 +257,14 @@ export default function AdminPayments() {
                               size="sm"
                               className="rounded-xl"
                               onClick={() => {
-                                setDecision({ id: p.id, kind: "paid", amount: p.amountUsd });
+                                setDecision({
+                                  id: p.id,
+                                  kind: "paid",
+                                  amount: p.amountUsd,
+                                  net: p.netUsd,
+                                  fee: p.feeUsd,
+                                  pool: p.pool,
+                                });
                                 setNote("");
                                 setReference("");
                               }}
@@ -262,7 +276,14 @@ export default function AdminPayments() {
                               variant="outline"
                               className="rounded-xl"
                               onClick={() => {
-                                setDecision({ id: p.id, kind: "rejected", amount: p.amountUsd });
+                                setDecision({
+                                  id: p.id,
+                                  kind: "rejected",
+                                  amount: p.amountUsd,
+                                  net: p.netUsd,
+                                  fee: p.feeUsd,
+                                  pool: p.pool,
+                                });
                                 setNote("");
                                 setReference("");
                               }}
@@ -382,8 +403,10 @@ export default function AdminPayments() {
             </DialogTitle>
             <DialogDescription>
               {decision?.kind === "paid"
-                ? `Confirm you have sent ${formatPrice(decision?.amount ?? 0)} to the seller. This releases the hold.`
-                : `Return ${formatPrice(decision?.amount ?? 0)} to the seller's balance.`}
+                ? `Confirm you have sent ${formatPrice(decision?.net ?? 0)} to the seller (${formatPrice(decision?.amount ?? 0)} requested, ${formatPrice(decision?.fee ?? 0)} platform fee retained). This releases the hold.`
+                : `Return ${formatPrice(decision?.amount ?? 0)} of ${
+                    decision?.pool === "earn" ? "sale proceeds" : "deposited funds"
+                  } to the seller's balance.`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">

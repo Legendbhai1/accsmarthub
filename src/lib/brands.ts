@@ -1,6 +1,7 @@
 import {
   siDiscord,
   siFacebook,
+  siGoogle,
   siInstagram,
   siPinterest,
   siTelegram,
@@ -37,6 +38,7 @@ const BRANDS: Record<string, Brand> = {
   pinterest: { title: siPinterest.title, hex: siPinterest.hex, path: siPinterest.path },
   telegram: { title: siTelegram.title, hex: siTelegram.hex, path: siTelegram.path },
   discord: { title: siDiscord.title, hex: siDiscord.hex, path: siDiscord.path },
+  google: { title: siGoogle.title, hex: siGoogle.hex, path: siGoogle.path },
 };
 
 export function getBrand(key: string): Brand {

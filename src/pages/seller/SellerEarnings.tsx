@@ -1,41 +1,15 @@
-import { useState } from "react";
 import { Percent, Wallet } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SellerLayout } from "@/components/dash/SellerLayout";
+import { WithdrawalPanel } from "@/components/dash/WithdrawalPanel";
 import { EmptyState, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { useEarningsSummary, useMyPayouts } from "@/lib/supabaseQueries";
-import { requestPayout } from "@/lib/supabaseMutations";
-import { toast } from "sonner";
+import { SELLER_WITHDRAWAL } from "@/lib/withdrawalTiers";
 
 /** Earnings — payouts and available balance for the seller. */
 export default function SellerEarnings() {
-  const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("Bank transfer");
-  const [destination, setDestination] = useState("");
-  const [open, setOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-
-  const { user } = useSession();
+  const { user, refresh } = useSession();
   const summaryQuery = useEarningsSummary();
   const payoutsQuery = useMyPayouts();
   const loading = summaryQuery.loading;
@@ -44,49 +18,14 @@ export default function SellerEarnings() {
   const commission = summaryQuery.data?.commissionUsd ?? 0;
   const escrow = summaryQuery.data?.escrowUsd ?? 0;
 
-  // The wallet balance is what the server actually checks, and it already
-  // excludes escrow still in flight and anything an open payout has reserved.
-  // Deriving "available" from order history instead would count escrow twice.
-  const available = user?.balance ?? 0;
+  // A seller withdraws their EARNINGS, not their total balance. A deposit is
+  // not sale proceeds and is not withdrawable here (migration 0019) — so the
+  // figure below reads `earnedBalance`, and the server enforces the same pool.
+  const earned = user?.earnedBalance ?? 0;
   const pendingPayouts = (payoutsQuery.data ?? [])
     .filter((p) => p.status === "requested" || p.status === "approved")
     .reduce((s, p) => s + p.amountUsd, 0);
-  const withdrawable = Math.max(0, available - pendingPayouts);
-
-  const request = async () => {
-    const value = Number(amount);
-    if (!value || value <= 0) {
-      toast.error("Enter a valid amount.");
-      return;
-    }
-    if (value > withdrawable) {
-      toast.error("Amount exceeds your available balance.", {
-        description: `${formatPrice(withdrawable)} is available after any pending withdrawals.`,
-      });
-      return;
-    }
-    if (destination.trim().length < 3) {
-      toast.error("Enter where the payout should be sent.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await requestPayout({ amount: value, method, destination: destination.trim() });
-      setAmount("");
-      setDestination("");
-      setOpen(false);
-      await Promise.all([payoutsQuery.refresh(), summaryQuery.refresh()]);
-      toast.success("Withdrawal requested", {
-        description: "The amount is held while our team reviews it.",
-      });
-    } catch (err) {
-      toast.error("Could not request the withdrawal", {
-        description: err instanceof Error ? err.message : "Please try again.",
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const withdrawable = Math.max(0, earned - pendingPayouts);
 
   return (
     <SellerLayout>
@@ -114,7 +53,11 @@ export default function SellerEarnings() {
             label="Available to withdraw"
             value={loading ? "—" : formatPrice(withdrawable)}
             icon={Wallet}
-            hint={pendingPayouts > 0 ? `${formatPrice(pendingPayouts)} held for review` : "After the 10% fee"}
+            hint={
+              pendingPayouts > 0
+                ? `${formatPrice(pendingPayouts)} held for review`
+                : `Sale proceeds, ${formatPrice(SELLER_WITHDRAWAL.minimum)} minimum`
+            }
           />
           <StatCard
             label="In escrow"
@@ -140,7 +83,7 @@ export default function SellerEarnings() {
             <div className="inset-well rounded-xl px-4 py-3">
               <dt className="text-xs text-muted-foreground">You receive</dt>
               <dd className="text-lg font-bold tabular-nums text-success">
-                {formatPrice(available)}
+                {formatPrice(Math.max(0, completed - commission))}
               </dd>
             </div>
           </dl>
@@ -150,84 +93,18 @@ export default function SellerEarnings() {
           </p>
         </div>
 
-        <div className="card">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="font-semibold">Withdraw funds</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Request a withdrawal and our team settles it. The amount is held
-                from the moment you request it.
-              </p>
-            </div>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button className="rounded-xl" disabled={withdrawable <= 0}>
-                  Request withdrawal
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="card border-border/70 sm:max-w-sm">
-                <DialogHeader>
-                  <DialogTitle>Request withdrawal</DialogTitle>
-                  <DialogDescription>
-                    Available to withdraw: {formatPrice(withdrawable)}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="withdraw-amount">Amount (USD)</Label>
-                    <Input
-                      id="withdraw-amount"
-                      type="number"
-                      min={1}
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="inset-well rounded-xl border-border/60"
-                      placeholder="1000"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Method</Label>
-                    <Select value={method} onValueChange={setMethod}>
-                      <SelectTrigger className="inset-well rounded-xl border-border/60">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Bank transfer">Bank transfer</SelectItem>
-                        <SelectItem value="USDT (TRC-20)">USDT (TRC-20)</SelectItem>
-                        <SelectItem value="Payoneer">Payoneer</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="withdraw-destination">
-                      {method === "USDT (TRC-20)" ? "Wallet address" : "Account details"}
-                    </Label>
-                    <Input
-                      id="withdraw-destination"
-                      value={destination}
-                      onChange={(e) => setDestination(e.target.value)}
-                      className="inset-well rounded-xl border-border/60"
-                      placeholder={
-                        method === "USDT (TRC-20)" ? "TRC-20 address" : "Account or email"
-                      }
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Only our review team sees this.
-                    </p>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="ghost" className="rounded-xl" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button className="rounded-xl" onClick={request} disabled={submitting}>
-                    {submitting ? "Requesting…" : `Request ${amount ? formatPrice(Number(amount)) : ""}`}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
+        {/* Sale proceeds are withdrawn on the seller tier: $10 minimum, 1%
+            fee, from the earnings pool. A deposit sitting in the same wallet
+            is not visible here and cannot be withdrawn through this form. */}
+        <WithdrawalPanel
+          tier={SELLER_WITHDRAWAL}
+          available={withdrawable}
+          title="Withdraw sale proceeds"
+          description="Request a withdrawal of your earnings and our team settles it. The amount is held from the moment you request it."
+          onDone={async () => {
+            await Promise.all([payoutsQuery.refresh(), summaryQuery.refresh(), refresh()]);
+          }}
+        />
 
         <div className="card overflow-hidden">
           <div className="seller-table-head hidden grid-cols-[1fr_8rem_9rem] gap-4 border-b border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
@@ -257,6 +134,9 @@ export default function SellerEarnings() {
                     </span>
                     <span className="seller-order-meta text-xs text-muted-foreground">
                       Requested {new Date(p.requestedAt).toLocaleDateString()}
+                      {p.feeUsd > 0
+                        ? ` — fee ${formatPrice(p.feeUsd)}, you receive ${formatPrice(p.netUsd)}`
+                        : ""}
                       {p.reviewNote ? ` — ${p.reviewNote}` : ""}
                     </span>
                   </span>

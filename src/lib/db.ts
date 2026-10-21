@@ -176,6 +176,7 @@ export const SERVICE_CATEGORIES = [
   { slug: "facebook", name: "Facebook", brand: "facebook" },
   { slug: "linkedin", name: "LinkedIn", brand: "linkedin" },
   { slug: "discord", name: "Discord", brand: "discord" },
+  { slug: "google", name: "Google", brand: "google" },
   { slug: "telegram", name: "Telegram", brand: "telegram" },
   { slug: "twitch", name: "Twitch", brand: "twitch" },
   { slug: "pinterest", name: "Pinterest", brand: "pinterest" },
@@ -200,6 +201,7 @@ export const categories: Category[] = [
   { slug: "pinterest", name: "Pinterest", brand: "pinterest", description: "Traffic accounts in lifestyle niches.", listingCount: 0 },
   { slug: "telegram", name: "Telegram", brand: "telegram", description: "Channels with engaged subscriber bases.", listingCount: 0 },
   { slug: "discord", name: "Discord", brand: "discord", description: "Established communities and servers.", listingCount: 0 },
+  { slug: "google", name: "Google", brand: "google", description: "Google accounts, Ads and Workspace access.", listingCount: 0 },
 ];
 
 /* --------------------------- selectors (read-only) --------------------------- */

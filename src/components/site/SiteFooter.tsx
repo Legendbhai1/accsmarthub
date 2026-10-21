@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { Logo } from "@/components/site/Logo";
 import { BrandMark } from "@/components/site/BrandMark";
+import { TELEGRAM_CHANNEL } from "@/lib/contact";
 
 const COLUMNS: { title: string; links: { label: string; to: string }[] }[] = [
   {
@@ -54,13 +55,15 @@ export function SiteFooter() {
             </p>
             <div className="mt-5 flex items-center gap-2">
               {[
-                { brand: "x", label: "AccsMartHub on X" },
-                { brand: "youtube", label: "AccsMartHub on YouTube" },
-                { brand: "telegram", label: "AccsMartHub on Telegram" },
-              ].map(({ brand, label }) => (
+                { brand: "x", label: "AccsMartHub on X", href: "https://x.com/accsmarthub" },
+                { brand: "youtube", label: "AccsMartHub on YouTube", href: "https://youtube.com/@accsmarthub" },
+                { brand: "telegram", label: TELEGRAM_CHANNEL.label, href: TELEGRAM_CHANNEL.url },
+              ].map(({ brand, label, href }) => (
                 <a
                   key={brand}
-                  href="#"
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
                   className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:text-primary hover:shadow-md"
                 >
@@ -68,6 +71,19 @@ export function SiteFooter() {
                 </a>
               ))}
             </div>
+            <p className="mt-4 text-sm">
+              <a
+                href={TELEGRAM_CHANNEL.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                Join our Telegram channel
+              </a>{" "}
+              <span className="text-muted-foreground">
+                for updates and announcements.
+              </span>
+            </p>
           </div>
 
           {COLUMNS.map((col) => (

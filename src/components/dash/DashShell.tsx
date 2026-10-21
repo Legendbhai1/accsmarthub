@@ -6,6 +6,7 @@ import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/site/Logo";
 import { TopMenu } from "@/components/site/TopMenu";
+import { BuyerQuickNav } from "@/components/dash/BuyerQuickNav";
 import {
   Sheet,
   SheetContent,
@@ -368,6 +369,11 @@ export function DashShell({
           </div>
           {here === "buyer" && <BuyerBalanceBar />}
         </header>
+
+        {/* The buyer's category strip, directly under the header. Rendered
+            outside the sticky header so it scrolls away with the page instead
+            of permanently eating 40px of a phone viewport. */}
+        {here === "buyer" && <BuyerQuickNav />}
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <div className="mx-auto w-full max-w-6xl">

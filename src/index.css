@@ -606,6 +606,18 @@
     @apply rounded-lg border border-border/60 bg-muted/50;
   }
 
+  /* A horizontal strip that scrolls without showing a scrollbar — the buyer
+     quick-nav is one row on a phone, and a visible bar under a single row of
+     chips reads as broken layout. Keyboard and touch scrolling still work. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* A product card that lifts and glows on hover. */
   .card-hover {
     transition:
