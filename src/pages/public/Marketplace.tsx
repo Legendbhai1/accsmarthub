@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Bell, Heart, LayoutGrid, Search, X } from "lucide-react";
+import { Bell, Heart, LayoutGrid, Search, User, X } from "lucide-react";
 import { BrandMark } from "@/components/site/BrandMark";
 import { TopMenu } from "@/components/site/TopMenu";
 import { Pagination } from "@/components/common/Pagination";
@@ -293,6 +293,18 @@ export default function Marketplace() {
             >
               <Bell className="size-4" />
               <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-destructive" />
+            </Link>
+            {/* The person icon. Signed-in shoppers land on their profile;
+                signed-out visitors are sent to sign in first. It used to be
+                missing here entirely, so there was no one-tap route to the
+                account page from the marketplace header. */}
+            <Link
+              to={user ? "/account/profile" : "/auth?next=/marketplace"}
+              aria-label={user ? "Your profile" : "Sign in"}
+              title={user ? "Your profile" : "Sign in"}
+              className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors duration-150 hover:bg-accent"
+            >
+              <User className="size-4" />
             </Link>
             {/* Three-line menu: become a seller / dark-light switch. */}
             <TopMenu />

@@ -1,11 +1,20 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
-import { ExternalLink, LogOut, Menu, Plus, ShoppingBag, Store } from "lucide-react";
+import {
+  ExternalLink,
+  LogOut,
+  Menu,
+  Plus,
+  ShoppingBag,
+  Store,
+  User,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/site/Logo";
 import { TopMenu } from "@/components/site/TopMenu";
+import { MobileTabBar } from "@/components/site/MobileTabBar";
 import { BuyerQuickNav } from "@/components/dash/BuyerQuickNav";
 import {
   Sheet,
@@ -14,6 +23,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  profileHrefForWorkspace,
   workspaceForPath,
   workspaceLinks,
   type NavItem,
@@ -66,9 +76,9 @@ function RailLink({
 
 /**
  * The rail contents, shared by the desktop sidebar and the mobile drawer so
- * the two cannot drift apart. This is the *only* navigation the buyer, seller
- * and admin shells render — the public Home / Marketplace / Categories /
- * Account tab bar belongs to `PublicLayout` and is never mounted here.
+ * the two cannot drift apart. This is the *only* navigation the seller and
+ * admin shells render; the buyer workspace additionally mounts the public
+ * `MobileTabBar` below `md`, gated on the workspace.
  */
 function RailBody({
   sections,
@@ -240,6 +250,33 @@ function WorkspaceSwitcher({ links }: { links: Workspace[] }) {
 }
 
 /**
+ * The header's person icon — a one-tap route to the account profile.
+ *
+ * The dashboard header had no profile control at all: the only way to reach
+ * `/account/profile` was to open the hamburger quick menu or the mobile
+ * drawer, so the icon a user reaches for on a phone was simply missing. It is
+ * a plain `Link` to the workspace's profile page (see
+ * `profileHrefForWorkspace`), always visible and always clickable.
+ */
+function ProfileIcon() {
+  const location = useLocation();
+  const to = profileHrefForWorkspace(workspaceForPath(location.pathname));
+
+  return (
+    <Button
+      asChild
+      variant="ghost"
+      size="icon"
+      className="rounded-full text-muted-foreground hover:text-foreground"
+    >
+      <Link to={to} aria-label="Your profile" title="Your profile">
+        <User className="size-5" aria-hidden="true" />
+      </Link>
+    </Button>
+  );
+}
+
+/**
  * The one dashboard shell.
  *
  * Buyer, seller and admin all render this, differing only in the nav sections
@@ -248,9 +285,11 @@ function WorkspaceSwitcher({ links }: { links: Workspace[] }) {
  * workspaces had three different headers, three different mobile patterns and
  * — the actual bug — the *public* bottom tab bar mounted inside two of them.
  *
- * Mobile navigation is a drawer behind the header button. There is no bottom
- * bar here at all, so nothing can overlap page content and no public tab can
- * leak in.
+ * Mobile navigation is a drawer behind the header button, plus — for the
+ * buyer workspace only — the public `MobileTabBar` below `md`. Gating the bar
+ * on `workspaceForPath() === "buyer"` is what keeps Seller Studio and the
+ * admin console free of the public Home / Marketplace / Categories / Account
+ * tabs while restoring them for `/account`.
  */
 export function DashShell({
   nav,
@@ -364,6 +403,7 @@ export function DashShell({
                 </span>
               )}
               <WorkspaceSwitcher links={secondary} />
+              <ProfileIcon />
               <TopMenu />
             </div>
           </div>
@@ -375,7 +415,17 @@ export function DashShell({
             of permanently eating 40px of a phone viewport. */}
         {here === "buyer" && <BuyerQuickNav />}
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        {/* `pb-24` reserves room for the fixed bottom tab bar on small
+            screens so it never covers the last row of content, a form button
+            or the page end; `md:pb-0` drops it because the bar is `md:hidden`.
+            Only the buyer workspace mounts the bar, so the padding is applied
+            to that workspace alone. */}
+        <main
+          className={cn(
+            "flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8",
+            here === "buyer" && "pb-24 md:pb-0",
+          )}
+        >
           <div className="mx-auto w-full max-w-6xl">
             {/* The one `h1` for the page, at every width, with the optional
                 primary action beside it. */}
@@ -390,6 +440,11 @@ export function DashShell({
           </div>
         </main>
       </div>
+
+      {/* The public bottom tab bar, re-used rather than copied, and mounted
+          for the buyer account workspace only. Seller Studio and the admin
+          console do not render it; their navigation is the drawer. */}
+      {here === "buyer" && <MobileTabBar />}
     </div>
   );
 }

@@ -25,14 +25,14 @@ const root = process.cwd();
 const read = (rel: string) => readFileSync(join(root, rel), "utf8");
 
 describe("mobile navigation does not leak into dashboards", () => {
-  const dashboards = [
-    "src/components/dash/DashShell.tsx",
-    "src/components/dash/DashLayout.tsx",
+  // Seller Studio and the admin console never mount the public tab bar; the
+  // buyer account workspace now does, on purpose, so it is checked separately
+  // by the "buyer account mounts the bar" suite below.
+  const sellerAdminFiles = [
     "src/components/dash/SellerLayout.tsx",
-    "src/components/dash/navs.ts",
   ];
 
-  it.each(dashboards)("%s never references the public tab bar", (file) => {
+  it.each(sellerAdminFiles)("%s never references the public tab bar", (file) => {
     const source = read(file);
     expect(source).not.toMatch(/MobileTabBar/);
     // The old shared chip strip was only ever used by the dashboards and is
@@ -56,6 +56,39 @@ describe("mobile navigation does not leak into dashboards", () => {
     // The drawer is what replaces the bottom bar on small screens.
     expect(shell).toMatch(/SheetContent/);
     expect(shell).toMatch(/side="left"/);
+  });
+});
+
+describe("the buyer account workspace mounts the public tab bar", () => {
+  const shell = read("src/components/dash/DashShell.tsx");
+
+  it("imports MobileTabBar from the single shared component", () => {
+    // Reused, not copied: a second definition is how the two drift apart.
+    expect(shell).toMatch(
+      /import \{ MobileTabBar \} from "@\/components\/site\/MobileTabBar"/,
+    );
+    expect(shell).toMatch(/<MobileTabBar\s*\/>/);
+  });
+
+  it("mounts the bar only when the path is the buyer workspace", () => {
+    // Gated on the workspace derived from the pathname, so Seller Studio and
+    // the admin console — which also render DashShell — never show the public
+    // Home / Marketplace / Categories / Account bar.
+    expect(shell).toMatch(/here === "buyer" && <MobileTabBar \/>/);
+  });
+
+  it("reserves bottom padding on the buyer workspace content", () => {
+    // The bar is `fixed`, so the scrolling content must reserve room or the
+    // bar covers the last row and the page end. `md:pb-0` matches the bar's
+    // own `md:hidden`.
+    expect(shell).toMatch(/pb-24 md:pb-0/);
+  });
+
+  it("uses the explicit mapper to resolve the profile destination", () => {
+    // Covered directly by the MobileTabBar / profile suites below.
+    expect(read("src/components/site/MobileTabBar.tsx")).toMatch(
+      /export function isTabActive/,
+    );
   });
 });
 

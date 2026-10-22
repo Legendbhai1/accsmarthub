@@ -242,18 +242,31 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   that does not resolve to a declared route. When you add a route, add it to
   `src/routes.tsx`; when you link to one, the test will tell you if you
   mistyped it.
-- **One shell per audience, and the public bottom bar belongs to the public
-  shell only.** `MobileTabBar` is mounted by `PublicLayout` and `SiteLayout`
-  and nothing else. It used to be rendered from four places — including both
+- **One shell per audience, and the public bottom bar belongs to the buyer
+  shell.** `MobileTabBar` (`src/components/site/`) is mounted by
+  `PublicLayout`, by `SiteLayout`, and by `DashShell` **for the buyer workspace
+  only** (`workspaceForPath(pathname) === "buyer"`, i.e. `/account` and its
+  sub-pages). It used to be rendered from four places — including both
   dashboard layouts — which is how the public Home / Marketplace / Categories /
-  Account tabs appeared inside Seller Studio on top of the studio's own nav.
-  Buyer, seller and admin all render `DashShell` (`src/components/dash/`),
-  which uses a desktop rail plus a mobile drawer and has no bottom bar at all.
-  `tests/navigation.test.ts` asserts the dashboards never reference the bar.
-- **A `fixed` bottom bar needs its scroll container to reserve room.** The
-  public shell sets `pb-24 md:pb-0` on `<main>`; without it the bar covers the
-  last row of content and the footer. If you add a fixed element, reserve the
-  space where the scrolling content lives rather than padding the element.
+  Account tabs appeared inside Seller Studio on top of the studio's own nav;
+  the buyer workspace then had *no* bottom bar at all, which is the other half
+  of the bug (its navigation was only reachable through the drawer). Seller
+  Studio and the admin console still never mount it — both render `DashShell`
+  (`src/components/dash/`) too, so the mount is gated on the workspace, not on
+  "is this a dashboard". `tests/navigation.test.ts` asserts that gate and that
+  `SellerLayout` never references the bar.
+- **The header person icon is a per-workspace link, resolved by a mapper.** The
+  dashboard header renders `ProfileIcon`, which resolves its destination with
+  `profileHrefForWorkspace(workspaceForPath(pathname))` (`src/components/dash/navs.ts`):
+  Seller Studio → `/seller/profile`, everything else → `/account/profile`. The
+  marketplace's own inline header carries the same link. Keep the destination in
+  the mapper rather than inlining a path in the JSX, so the icon cannot point at
+  a route that does not exist for that workspace.
+- **A `fixed` bottom bar needs its scroll container to reserve room.** Both the
+  public shell (`PublicLayout`/`SiteLayout`) and `DashShell`'s buyer workspace
+  set `pb-24 md:pb-0` on `<main>`; without it the bar covers the last row of
+  content and the footer. If you add a fixed element, reserve the space where
+  the scrolling content lives rather than padding the element.
 - **Tailwind v4 renamed `bg-gradient-to-*` to `bg-linear-to-*`.** The old
   names still work, but a class referenced in TSX with *no* definition at all
   fails silently: `text-gradient` was used by the wordmark, the hero headline
