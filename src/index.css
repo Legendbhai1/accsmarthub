@@ -42,7 +42,7 @@
   --color-chart-5: hsl(var(--chart-5));
   /* The brand ramp. `--pop-*` are the extra hues a colourful storefront needs
      for per-section variety (a category tile, a badge, a stat) so every block
-     does not reach for the same violet. */
+     does not reach for the same blue. */
   --color-brand-2: hsl(var(--brand-2));
   --color-brand-3: hsl(var(--brand-3));
   --color-pop-pink: hsl(var(--pop-pink));
@@ -69,129 +69,139 @@
 
 @layer base {
   /*
-   * Vibrant commerce: a saturated brand ramp on a clean white canvas.
+   * Colourful commerce: a saturated, many-hue storefront on a cool white
+   * canvas.
    *
    * The canvas is white (#FFFFFF), the card is white lifted by a soft shadow so
    * it reads as a raised surface rather than a bordered box, and the text is a
-   * deep ink (#0B1020). The brand is a violet -> fuchsia -> amber ramp, with
-   * four extra pop hues (pink, orange, cyan, green) so different sections of
-   * the storefront carry different colour instead of one hue everywhere.
+   * deep navy ink (#0F1729). The brand is a blue -> rose ramp — the pair a
+   * general marketplace uses to read as "shop" rather than "SaaS" — and four
+   * pop hues (pink, orange, cyan, green) give each section of the storefront
+   * its own colour instead of one hue everywhere.
    *
    * Status keeps its own green / amber / red / sky so a badge means what it
    * says and never borrows the brand hue.
    */
   :root {
-    /* White canvas, deep ink. */
+    /* White canvas, deep navy ink. */
     --background: 0 0% 100%;         /* #FFFFFF */
-    --foreground: 224 51% 8%;        /* #0B1020 */
+    --foreground: 222 47% 11%;       /* #0F1729 */
     --card: 0 0% 100%;               /* #FFFFFF */
-    --card-foreground: 224 51% 8%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 51% 8%;
-    /* The action colour: a vivid violet, with its pressed shade beside it. */
-    --primary: 262 88% 60%;          /* #7C3AED */
+    --popover-foreground: 222 47% 11%;
+    /* The action colour: a vivid commerce blue, with its pressed shade beside
+       it. Tuned to 48% lightness rather than the stock 53% so white button
+       text clears 4.5:1 (6.16:1) and the hue still reads as a bright blue. */
+    --primary: 221 83% 48%;          /* #1555E0 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 263 80% 51%;    /* #6D28D9 */
-    /* Tinted secondary surfaces — a soft lavender wash. */
-    --secondary: 251 100% 96%;       /* #F1ECFF */
-    --secondary-foreground: 262 60% 32%;
-    --muted: 220 33% 97%;            /* #F6F8FC */
-    --muted-foreground: 220 18% 41%; /* #545C70 — dark enough to clear 4.5:1
-                                        on the 18% section wash below. */
-    --accent: 269 100% 96%;          /* #F5EBFF */
-    --accent-foreground: 262 60% 32%;
-    --surface-2: 248 100% 98%;       /* #F8F7FF */
+    --primary-hover: 224 76% 40%;    /* #1842B4 */
+    /* Tinted secondary surfaces — a soft blue wash. */
+    --secondary: 214 95% 95%;        /* #E6F1FE */
+    --secondary-foreground: 224 76% 32%; /* #143590 */
+    --muted: 214 33% 97%;            /* #F5F7FA */
+    --muted-foreground: 217 20% 36%; /* #49586E — a soft slate that still clears
+                                        4.5:1 on white and on the 24% section
+                                        wash below. */
+    --accent: 214 95% 95%;           /* #E6F1FE */
+    --accent-foreground: 224 76% 32%;
+    --surface-2: 214 60% 98%;        /* #F7F9FD */
     /* Status. Kept off the brand hue so a badge means what it says, and each is
-       dark enough to clear 4.5:1 as small text on white — they are rendered as
-       `text-success` / `text-warning` / `text-info` on error and status lines,
-       so a lighter tint would fail AA at 11–13px. */
-    --destructive: 347 83% 45%;      /* #D31245 */
+       dark enough to clear 4.5:1 as small text on white *and* on its own 12%
+       chip wash — they are rendered as `text-success` / `text-warning` /
+       `text-info` on error and status lines, so a lighter tint would fail AA at
+       11–13px. */
+    --destructive: 0 74% 42%;        /* #BA1C1C */
     --destructive-foreground: 0 0% 100%;
-    --success: 142 76% 30%;          /* #12793A */
-    --warning: 26 90% 34%;           /* #A44B08 */
-    --info: 200 98% 33%;             /* #026CA5 */
-    --border: 220 20% 92%;           /* #E6E9F0 */
-    --input: 220 20% 92%;
-    --ring: 262 88% 60%;             /* violet focus ring */
-    --bronze: 38 96% 51%;            /* #F59E0B — amber detail accent */
+    --success: 158 84% 26%;          /* #0B7A51 */
+    --warning: 26 90% 34%;           /* #A54C09 */
+    --info: 199 89% 32%;             /* #096C9A */
+    --border: 214 24% 91%;           /* #E3E7EE */
+    --input: 214 24% 91%;
+    --ring: 221 83% 48%;             /* blue focus ring */
+    --bronze: 32 95% 44%;            /* #DB7706 — a vivid amber detail accent */
     /* The brand ramp plus the four pop hues the colourful sections draw on.
-       These are decorative fills (a tile, an orb, a hairline), never text, so
-       they are tuned for vividness rather than for AA contrast on white. */
-    --brand-2: 330 85% 58%;          /* #EE2C86 fuchsia */
-    --brand-3: 38 96% 51%;           /* #F59E0B amber */
-    --pop-pink: 330 85% 58%;         /* #EE2C86 */
-    --pop-orange: 24 95% 55%;        /* #F97316 */
-    --pop-cyan: 189 94% 43%;         /* #06B6D4 */
-    --pop-green: 160 84% 39%;        /* #10B981 */
+       These are the *vivid* set: they are used as bands, icon tiles and orbs,
+       never as raw text, so they are tuned for colour rather than for AA as
+       type. The label on a tinted chip is `--tint-ink`, the hue mixed toward
+       the ink, which is what keeps it readable on both canvases. The one
+       exception is `--brand-2`, which also fills the brand gradient behind
+       white text, so it stays dark enough for that. */
+    --brand-2: 333 78% 46%;          /* #D11A6C rose */
+    --brand-3: 32 95% 38%;           /* #BD6705 amber */
+    --pop-pink: 333 78% 46%;         /* #D11A6C */
+    --pop-orange: 24 95% 46%;        /* #E55F06 */
+    --pop-cyan: 189 94% 35%;         /* #0590A8 */
+    --pop-green: 160 84% 34%;        /* #0EA06F */
     /* How strongly `brandTint()` mixes a brand hue into a card, as a
        percentage. These are tokens rather than constants because the same
-       strength does not read the same way on both canvases: 14% over a white
+       strength does not read the same way on both canvases: 18% over a white
        card is a clear tint, but over a dark card the hue is swallowed and the
        tile looks untinted. Dark mode raises the wash (and the hairline with
        it) so the grid stays colourful there too.
-       `--muted-foreground` was darkened to #545C70 alongside these, because at
-       18% a saturated hue lifts the band enough that the old grey fell just
-       under 4.5:1 on the violet band. */
-    --tint-wash-mix: 14%;
-    --tint-line-mix: 40%;
+       `--muted-foreground` was retuned to #49586E alongside these, because at
+       18% a saturated hue lifts the card enough that a lighter grey falls
+       under 4.5:1 on the rose and crimson tiles. */
+    --tint-wash-mix: 18%;
+    --tint-line-mix: 44%;
     --tint-ink-mix: 62%;
     /* 12px base. Tailwind's `rounded-lg`/`xl`/`2xl` land on 8/12/16px, which
        is the whole radius system — nothing here is a pill. */
     --radius: 0.75rem;
-    --chart-1: 262 88% 60%;          /* violet */
-    --chart-2: 330 85% 58%;          /* fuchsia */
-    --chart-3: 142 71% 37%;          /* green */
-    --chart-4: 38 96% 51%;           /* amber */
-    --chart-5: 189 94% 43%;          /* cyan */
+    --chart-1: 221 83% 48%;          /* blue */
+    --chart-2: 333 71% 42%;          /* rose */
+    --chart-3: 160 84% 30%;          /* green */
+    --chart-4: 32 95% 40%;           /* amber */
+    --chart-5: 192 91% 32%;          /* cyan */
     /* A soft ambient shadow ramp. Cards lift off the white canvas with these
        rather than a hard border, which is what makes the surface read modern. */
-    --shadow-sm: 0 1px 2px 0 hsl(224 51% 8% / 0.05);
-    --shadow-md: 0 4px 14px -4px hsl(224 51% 8% / 0.1);
-    --shadow-lg: 0 18px 40px -18px hsl(224 51% 8% / 0.22);
+    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
+    --shadow-md: 0 4px 14px -4px hsl(222 47% 11% / 0.1);
+    --shadow-lg: 0 18px 40px -18px hsl(222 47% 11% / 0.22);
   }
 
-  /* The dark appearance is a deep indigo, not blue-black: the same saturated
+  /* The dark appearance is a deep navy, not blue-black: the same saturated
      identity turned down, with the primary lightened so it still reads. */
   .dark {
-    --background: 228 40% 7%;        /* #0B0F1B */
-    --foreground: 225 45% 96%;       /* #EEF1FA */
-    --card: 226 33% 11%;             /* #131829 */
-    --card-foreground: 225 45% 96%;
-    --popover: 226 33% 13%;          /* #161C30 */
-    --popover-foreground: 225 45% 96%;
-    --primary: 258 92% 76%;          /* #A78BFA */
-    --primary-foreground: 258 60% 12%;
-    --primary-hover: 255 95% 85%;    /* #C4B5FD */
-    --secondary: 228 30% 17%;        /* #1E2540 */
-    --secondary-foreground: 251 91% 92%;
-    --muted: 226 28% 15%;            /* #1B2135 */
-    --muted-foreground: 223 20% 70%; /* #A2ABC2 */
-    --accent: 228 30% 20%;           /* #232B4A */
-    --accent-foreground: 251 91% 92%;
-    --surface-2: 226 30% 14%;        /* #191F32 */
-    --destructive: 351 95% 71%;      /* #FB7185 */
-    /* The dark destructive is a light rose so it reads as *text* on the dark
-       canvas (7:1). That is also why its foreground has to be dark ink rather
-       than white: a white label on this fill is 2.7:1. The pairing inverts
+    --background: 222 47% 9%;        /* #0C1322 */
+    --foreground: 213 40% 96%;       /* #F1F4F9 */
+    --card: 221 39% 13%;             /* #141C2C */
+    --card-foreground: 213 40% 96%;
+    --popover: 221 39% 15%;          /* #171F31 */
+    --popover-foreground: 213 40% 96%;
+    --primary: 217 91% 72%;          /* #77A8F9 */
+    --primary-foreground: 222 47% 11%;
+    --primary-hover: 213 94% 80%;    /* #9CC7FC */
+    --secondary: 221 33% 19%;        /* #202A41 */
+    --secondary-foreground: 217 91% 90%;
+    --muted: 221 30% 16%;            /* #1C2436 */
+    --muted-foreground: 215 20% 70%; /* #A3B0C2 */
+    --accent: 221 33% 22%;           /* #252F49 */
+    --accent-foreground: 217 91% 90%;
+    --surface-2: 221 33% 15%;        /* #1A2233 */
+    --destructive: 0 91% 71%;        /* #F87272 */
+    /* The dark destructive is a light red so it reads as *text* on the dark
+       canvas (6.2:1). That is also why its foreground has to be dark ink rather
+       than white: a white label on this fill is 2.5:1. The pairing inverts
        with the theme, exactly like the brand primary does. */
-    --destructive-foreground: 351 84% 12%; /* #38060E */
-    --success: 142 69% 58%;          /* #4ADE80 */
-    --warning: 43 96% 56%;           /* #FBBF24 */
-    --info: 198 93% 60%;             /* #38BDF8 */
-    --border: 227 26% 20%;           /* #262D45 */
-    --input: 227 28% 23%;            /* #2A3355 */
-    --ring: 258 92% 76%;             /* #A78BFA */
-    --bronze: 43 96% 56%;            /* #FBBF24 */
-    --brand-2: 329 86% 70%;          /* #F472B6 */
-    --brand-3: 43 96% 56%;           /* #FBBF24 */
-    --pop-pink: 329 86% 70%;         /* #F472B6 */
-    --pop-orange: 27 96% 62%;        /* #FB923C */
-    --pop-cyan: 187 92% 62%;         /* #22D3EE */
-    --pop-green: 158 74% 55%;        /* #34D399 */
-    /* A hue mixed at 10% is invisible against a dark card — the tint has to be
-       roughly twice as strong to read at all. The ink is pulled a little
-       *toward* the hue (a lower mix) so the label keeps more of the brand
-       colour now that the wash is doing less of the work. */
+    --destructive-foreground: 0 84% 12%; /* #380606 */
+    --success: 152 69% 58%;          /* #4ADE99 */
+    --warning: 43 96% 56%;           /* #FBBD23 */
+    --info: 198 93% 60%;             /* #3ABFF8 */
+    --border: 221 28% 21%;           /* #272F45 */
+    --input: 221 30% 24%;            /* #2B3650 */
+    --ring: 217 91% 72%;             /* #77A8F9 */
+    --bronze: 43 96% 56%;            /* #FBBD23 */
+    --brand-2: 330 86% 70%;          /* #F471B2 */
+    --brand-3: 43 96% 56%;           /* #FBBD23 */
+    --pop-pink: 330 86% 70%;         /* #F471B2 */
+    --pop-orange: 27 96% 62%;        /* #FB9541 */
+    --pop-cyan: 187 92% 62%;         /* #45E2F7 */
+    --pop-green: 158 74% 55%;        /* #37E1A3 */
+    /* The same 18% wash that is a clear tint on a white card reads as almost
+       nothing against a dark one, so it is a shade stronger here. The ink is
+       pulled a little *toward* the hue (a lower mix) so the label keeps more
+       of the brand colour now that the wash is doing less of the work. */
     --tint-wash-mix: 20%;
     --tint-line-mix: 46%;
     --tint-ink-mix: 55%;
@@ -456,8 +466,8 @@
    * Anything that needs "this is the brand" uses this class rather than
    * picking a hue, so it can be retuned in one place.
    *
-   * It sweeps violet -> fuchsia at 135°, which is what gives the storefront its
-   * colour identity. It stops at fuchsia on purpose: amber is a lighter hue, so
+   * It sweeps blue -> rose at 135°, which is what gives the storefront its
+   * colour identity. It stops at rose on purpose: amber is a lighter hue, so
    * ending the ramp on it would drop the contrast of the white text these
    * panels carry. Amber still appears in the hero wash and as the bronze
    * hairline, where nothing sits on top of it.
@@ -472,7 +482,7 @@
   }
 
   /* The same sweep, but wide enough to pan — for a large hero or CTA panel
-     where a static fill would look flat. It stays inside violet -> fuchsia so
+     where a static fill would look flat. It stays inside blue -> rose so
      the white text these panels carry keeps its contrast; the extra pop hues
      reach the page through the orbs and the icon tiles instead. */
   .brand-gradient-animated {
@@ -672,14 +682,14 @@
      The band runs from a stronger wash at the top to a light one at the
      bottom, so two adjacent sections read as different colours at a glance
      rather than as one continuous tint. It is a *band*, not a fill: body copy
-     sits on the light end and `--muted-foreground` (#545C70) clears 4.5:1 on
-     the strongest wash at 18% — both the strength and that ratio are pinned by
+     sits on the light end and `--muted-foreground` (#49586E) clears 4.5:1 on
+     the strongest wash at 24% — both the strength and that ratio are pinned by
      tests/theme.test.ts. */
   .section-pop {
     background-image: linear-gradient(
       180deg,
-      color-mix(in srgb, hsl(var(--pop, var(--primary))) 18%, transparent) 0%,
-      color-mix(in srgb, hsl(var(--pop, var(--primary))) 5%, transparent) 100%
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) 24%, transparent) 0%,
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) 6%, transparent) 100%
     );
   }
 

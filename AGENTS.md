@@ -113,8 +113,8 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   shadow (`--shadow-*`), not from a tinted page or a heavy border. The values
   are recorded in `src/index.css`'s `:root` block with their hex comments.
   Anything that needs a colour uses a token (`bg-card`, `text-muted-foreground`,
-  `bg-primary-hover`, `text-bronze`) — the previous mocha/cream theme was
-  removed rather than left beside a second system. Re-check computed styles in
+  `bg-primary-hover`, `text-bronze`) — earlier palettes were removed rather
+  than left beside a second system. Re-check computed styles in
   a browser after changing tokens; a token can be correct in CSS and still be
   overridden by a literal class in TSX.
 - **Type is Sora over Plus Jakarta Sans.** `--font-display` is Sora and is used
@@ -123,11 +123,11 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   imported at the top of `src/index.css` — a `font-display` class with no
   matching family silently falls back to the body font, so check the computed
   `font-family` if a heading looks wrong.
-- **The brand is violet, with magenta and amber as its two supporting hues.**
-  `--primary` is a vivid violet (#7C3AED), `--brand-2` magenta (#DB2777) and
-  `--brand-3` amber (#F59E0B); `.brand-gradient` sweeps violet -> magenta and
-  `.text-gradient` sweeps the same pair as text. `--info` is a real sky blue
-  (#0284C7) and means "information" only. If something needs to say "this is
+- **The brand is blue, with rose and amber as its two supporting hues.**
+  `--primary` is a vivid commerce blue (#1555E0), `--brand-2` rose (#D11A6C) and
+  `--brand-3` amber (#BD6705); `.brand-gradient` sweeps blue -> rose and
+  `.text-gradient` sweeps the same ramp as text. `--info` is a real sky blue
+  (#096C9A) and means "information" only. If something needs to say "this is
   the brand" it uses `--primary`, the ramp, or `--bronze`.
 - **`--pop-*` exists so sections can differ.** `--pop-orange`, `--pop-cyan`,
   `--pop-green` and `--pop-pink` are extra hues with no brand meaning. They
@@ -150,14 +150,14 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
     those properties. Use the first for anything keyed to a platform, the
     second for anything keyed to a theme token (`tokenTint("--info")`).
   The mix strengths are tokens (`--tint-wash-mix`, `--tint-line-mix`,
-  `--tint-ink-mix`) and dark mode raises them: a 10% hue is a clear tint on a
-  white card but is swallowed on a dark one, so the dark canvas uses 20/42/55.
+  `--tint-ink-mix`) and dark mode raises them: an 18% hue is a clear tint on a
+  white card but is swallowed on a dark one, so the dark canvas uses 20/46/55.
   `--tint-ink` is the hue mixed toward the theme ink, which is what keeps a
   label readable in *both* themes — a raw brand hex is not safe as text.
 - **A pop/tint token is a bare HSL triple, so wrap it in `hsl()` before using
   it as a colour.** This is the trap that made the coloured bands invisible
   when they were first added: `color-mix(in srgb, var(--pop-cyan) 9%, ...)` is
-  invalid — `var(--pop-cyan)` resolves to the text `189 94% 43%`, which is not
+  invalid — `var(--pop-cyan)` resolves to the text `189 94% 35%`, which is not
   a colour, so the whole declaration is dropped silently and the section
   renders plain. `hsl(var(--pop-cyan))` is the fix, and it is the same
   convention `.orb` and `.icon-tile` use. `tests/theme.test.ts` pins that no
@@ -167,14 +167,14 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   wordmark tile, the hero wash, the CTA panel, the promo banner, an active rail
   indicator and one icon tile — never as a saturated fill behind body copy or
   on every card. A `.section-pop` band and a `.tint-card` wash are the
-  *deliberate* exceptions: they are hue at 3–20%, chosen so the text on top
-  keeps its contrast, not saturated fills. `bg-primary` is a flat violet, and
+  *deliberate* exceptions: they are hue at 6–24%, chosen so the text on top
+  keeps its contrast, not saturated fills. `bg-primary` is a flat blue, and
   `.brand-gradient` is deliberately not used on the primary button, because a
   gradient on the main action reads as glossy.
-- **The animated gradients stop at magenta.** Amber and the `--pop-*` hues are
+- **The animated gradients stop at rose.** Amber and the `--pop-*` hues are
   lighter, so ending a *panning* ramp on one drops the contrast of the white
   text the CTA and promo panels carry. `.brand-gradient-animated` therefore
-  pans violet -> magenta -> violet; the extra hues reach the page through the
+  pans blue -> rose -> blue; the extra hues reach the page through the
   orbs and the icon tiles, where nothing sits on top of them.
 - **One radius system: 8 / 12 / 16px, and no pills.** `--radius` is 12px, so
   `rounded-lg` = 12, `rounded-xl` = 16, `rounded-2xl` = 20. Buttons, chips,
@@ -186,9 +186,9 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `DashShell`'s header are `bg-card/85 backdrop-blur-xl`, because rows really
   do scroll under them. Every other surface is opaque: a translucent panel over
   the brand wash turns muddy. Do not copy the blur onto a card.
-- **Dark mode is deep indigo, not blue-black.** `.dark` is the same saturated
-  identity turned down: a near-black indigo canvas, and the primary becomes a
-  lighter violet so it still reads on the dark surface. Do not "fix" dark mode
+- **Dark mode is deep navy, not blue-black.** `.dark` is the same saturated
+  identity turned down: a near-black navy canvas, and the primary becomes a
+  lighter blue so it still reads on the dark surface. Do not "fix" dark mode
   by making it neutral slate or pure black.
 - **Motion is 140–240ms and reduced-motion is honoured.** Hover/focus is
   150ms, entrances 200ms, drawers 200ms. `src/index.css` drops decorative
@@ -261,8 +261,8 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   all three accents rendered as plain text. If a class looks like it should do
   something and does not, grep the built CSS for it before assuming a
   specificity problem.
-- **Colour belongs to a token, not to a literal.** The palette is violet plus
-  the magenta/amber brand ramp, with status kept separate (`--success`,
+- **Colour belongs to a token, not to a literal.** The palette is blue plus
+  the blue/rose brand ramp, with status kept separate (`--success`,
   `--warning`, `--info`, `--destructive`). Hardcoded `amber`/`emerald`/`sky`/hex
   values had spread across ~50 files, which is how a saturated amber ended up
   meaning "brand", "pending" and "warning" at the same time. Use `bg-primary`,

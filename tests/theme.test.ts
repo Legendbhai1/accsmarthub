@@ -102,7 +102,7 @@ describe("tokenTint() wraps a theme token the same way", () => {
  * The storefront's colour is a *band*, not a fill: a section is tinted with a
  * hue at a low mix so the text on top keeps its contrast. Raising the wash is
  * the whole point of a "colourful" pass, but it is also the one change that can
- * quietly make `text-muted-foreground` fail AA on a violet section. These pin
+ * quietly make `text-muted-foreground` fail AA on a saturated section. These pin
  * the strength *and* the contrast it implies, so a future bump has to bring a
  * darker grey with it.
  */
@@ -126,11 +126,11 @@ describe("the section band is colourful without dropping contrast", () => {
   const overWhite = (rgb: number[], alpha: number) =>
     rgb.map((v) => Math.round(alpha * v + (1 - alpha) * 255));
 
-  it("paints the band at 18% down to 5%, wrapped in hsl()", () => {
+  it("paints the band at 24% down to 6%, wrapped in hsl()", () => {
     const band = css.slice(css.indexOf(".section-pop"), css.indexOf(".section-pop") + 400);
     expect(band).toMatch(/hsl\(var\(--pop/);
-    expect(band).toMatch(/18%/);
-    expect(band).toMatch(/5%/);
+    expect(band).toMatch(/24%/);
+    expect(band).toMatch(/6%/);
   });
 
   it("keeps muted-foreground at 4.5:1 on the strongest band of every hue", () => {
@@ -141,25 +141,25 @@ describe("the section band is colourful without dropping contrast", () => {
       return hslToRgb(Number(m![1]), Number(m![2]), Number(m![3]));
     };
     const muted = token("muted-foreground");
-    // The 18% band is the top of the gradient and the darkest point body copy
+    // The 24% band is the top of the gradient and the darkest point body copy
     // can sit on.
     for (const hue of ["primary", "brand-2", "pop-cyan", "pop-orange", "pop-green"]) {
-      const bg = overWhite(token(hue), 0.18);
+      const bg = overWhite(token(hue), 0.24);
       expect(
         contrast(muted, bg),
-        `muted-foreground on the 18% --${hue} band`,
+        `muted-foreground on the 24% --${hue} band`,
       ).toBeGreaterThanOrEqual(4.5);
     }
   });
 
   it("keeps the tint wash strength in one token per theme", () => {
     // Both canvases name the mix, and dark is stronger than light — a hue at
-    // 14% is a clear tint on white but is swallowed on the dark card.
+    // 18% is a clear tint on white but is swallowed on the dark card.
     const light = css.match(/--tint-wash-mix:\s*([\d.]+)%/g) ?? [];
     expect(light).toHaveLength(2);
     const values = light.map((s) => Number(s.match(/([\d.]+)%/)![1]));
-    expect(Math.min(...values)).toBe(14);
-    expect(Math.max(...values)).toBeGreaterThan(14);
+    expect(Math.min(...values)).toBe(18);
+    expect(Math.max(...values)).toBeGreaterThan(18);
   });
 
   it("paints the tint card as a flat wash, not a fade to white", () => {
@@ -182,8 +182,8 @@ describe("the section band is colourful without dropping contrast", () => {
     for (const hex of ["E4405F", "FF0000", "1877F2", "9146FF", "BD081C", "26A5E4", "5865F2", "4285F4", "0A66C2"]) {
       const rgb = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
       expect(
-        contrast(muted, overWhite(rgb, 0.14)),
-        `muted-foreground on the 14% #${hex} card`,
+        contrast(muted, overWhite(rgb, 0.18)),
+        `muted-foreground on the 18% #${hex} card`,
       ).toBeGreaterThanOrEqual(4.5);
     }
   });
