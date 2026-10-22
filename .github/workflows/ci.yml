@@ -1,0 +1,96 @@
+name: CI
+
+# The repository had no CI at all: `tsc`, `eslint`, `vitest` and the SQL
+# suites only ever ran on a developer's machine, so a "green check" on a PR was
+# the Vercel build status alone. That is how the missing 0018 sentinel and the
+# orphaned SQL suites went unnoticed. This workflow is the gate.
+#
+# The database job needs a real PostgreSQL. The SQL suites apply the migrations
+# to a throwaway cluster, so no Supabase project, token or secret is involved —
+# which also means the job is safe to run on a fork PR.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege: none of these jobs write to the repository.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: TypeScript, lint, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc -b
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+  database:
+    name: Database tests (PostgreSQL ${{ matrix.postgres }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 17 is what the migration checks are written against; 15 is the oldest
+        # the project claims to support, so drift there is caught early.
+        postgres: [15, 17]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL ${{ matrix.postgres }}
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-${{ matrix.postgres }} postgresql-contrib-${{ matrix.postgres }}
+
+      - name: Start the cluster
+        run: |
+          sudo pg_ctlcluster ${{ matrix.postgres }} main start
+          sudo -u postgres psql -c "alter user postgres password 'postgres';"
+
+      # The suites connect through `sudo -u postgres` (peer auth on the local
+      # socket), so no password or secret is needed here.
+      - name: Migrations apply in order
+        run: bash tests/verify-migrations.sh
+
+      - name: Behavioural SQL suites
+        env:
+          # settlement.sql's concurrency case (7a) needs a second connection to
+          # prove two simultaneous webhook callbacks credit exactly once.
+          # Without this it reports SKIPPED — the one assertion most worth
+          # running. The harness already created this database.
+          ACCSMART_PGOPTIONS: "-c settlement_test.dsn=postgresql://postgres:postgres@localhost:5432/accsmarthub_tests"
+        run: |
+          bash tests/run-db-tests.sh tests/listing_creation.sql
+          bash tests/run-db-tests.sh tests/order_lifecycle.sql
+          bash tests/run-db-tests.sh tests/store_application_lifecycle.sql
+          bash tests/run-db-tests.sh tests/store_application_guards.sql
+          bash tests/run-db-tests.sh tests/settlement.sql
+          bash tests/run-db-tests.sh tests/wallet_pools.sql
+          bash tests/run-db-tests.sh tests/notify_authorization.sql

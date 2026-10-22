@@ -384,3 +384,28 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   chevron that sat beside the hamburger was a *second* control reading as an
   identical menu button; it was removed, not restyled.
 
+
+- **A `SECURITY DEFINER` function that takes the recipient as an argument must
+  not be granted to `authenticated`.** `public.notify(uuid, text, text, text,
+  text)` inserted straight into `notifications` with no check on the caller, so
+  any signed-in user could forge a notification into any other user's inbox —
+  a phishing vector that also bypassed the table's `auth.uid() = user_id` RLS
+  policy. `0020` revokes execute from `PUBLIC`/`anon`/`authenticated` and leaves
+  it with `service_role`; the function body is unchanged, so the fix is
+  reviewable as a pure privilege change. The right discriminator inside a
+  definer is `current_user` (the owner, not `authenticated`), *not*
+  `auth.uid()`, which stays the original JWT subject.
+  `tests/notify_authorization.sql` pins both halves: a client call is refused,
+  and a real user-triggered flow (`mark_order_delivered`) still writes the row.
+- **`has_function_privilege` is the only sentinel that catches a grant.** A
+  `to_regprocedure`/`to_regclass` probe for a function that an earlier migration
+  also defines proves nothing; for a privilege fix the *only* thing that changes
+  is the grant, so the probe must assert it directly. `scripts/check-schema.mjs`
+  now has a sentinel for every migration `0001`–`0020`, including `0018`, which
+  previously had none while `0018` was the fix for the dead cart oversell guard.
+- **CI is the gate now.** `.github/workflows/ci.yml` runs `tsc -b`, `eslint`,
+  `vitest`, `vite build`, and — against a real PostgreSQL 15 and 17 — the
+  migration chain plus every behavioural SQL suite. The database job uses a
+  throwaway local cluster, so no Supabase token or secret is involved and it is
+  safe on fork PRs. `settlement.sql`'s concurrency case is given a
+  `settlement_test.dsn` so it runs rather than reporting SKIPPED.

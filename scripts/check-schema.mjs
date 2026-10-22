@@ -216,6 +216,36 @@ const SENTINELS = [
               'public.guard_store_moderation()'::regprocedure)) > 0`,
   },
   {
+    file: "0018_cart_checkout_stock_guard.sql",
+    what: "cart checkout re-reads and locks availability before decrementing",
+    // 0018 replaces `checkout` so the cart branch guards on a freshly locked
+    // `v_available`, not on `v_listing.stock` — which is NULL on the cart path,
+    // making the old guard dead code that let a cart oversell. Presence of the
+    // function proves nothing (0009 defines it too), so the probe asserts the
+    // fixed body: `v_available` present and the dead `v_listing.stock`
+    // comparison gone.
+    probe: `select position('v_available' in pg_get_functiondef(
+                    'public.checkout(uuid,uuid[],integer,text)'::regprocedure)) > 0
+              and position('v_listing.stock' in pg_get_functiondef(
+                    'public.checkout(uuid,uuid[],integer,text)'::regprocedure)) = 0`,
+  },
+  {
+    file: "0020_notify_lockdown.sql",
+    what: "notify() is not executable by authenticated/anon",
+    // notify() is SECURITY DEFINER and takes the recipient as an argument, so
+    // granting execute to `authenticated` let any signed-in user forge a
+    // notification into any other user's inbox. Presence of the function is
+    // useless as a probe (0013 creates it); what 0020 changes is the grant, so
+    // the probe asserts the privilege is gone. A database that skipped 0020
+    // would still return true for `to_regprocedure`, hence has_function_privilege.
+    probe: `select not has_function_privilege(
+                    'authenticated',
+                    'public.notify(uuid,text,text,text,text)', 'EXECUTE')
+              and not has_function_privilege(
+                    'anon',
+                    'public.notify(uuid,text,text,text,text)', 'EXECUTE')`,
+  },
+  {
     file: "0019_wallet_pools_and_withdrawals.sql",
     what: "split wallet pools + per-audience withdrawal tiers",
     // Presence alone would prove nothing: `wallets` and `request_payout` both

@@ -1,10 +1,22 @@
-# Production migration plan — 0007 through 0017
+# Production migration plan — 0007 through 0020
 
 **Status: NOT APPLIED. Nothing in this document has been run against production.**
 
 Production project ref: `fbalfkvimlfmcpsfzrvn`.
 Read-only review only, per the standing directive. Every command below is listed
 for approval; none has been executed.
+
+> **Range note.** This plan originally covered `0007`–`0017`. Migrations
+> `0018`–`0020` were added afterwards and are included below:
+>
+> | Migration | What it changes |
+> | --- | --- |
+> | `0018_cart_checkout_stock_guard.sql` | Replaces `checkout()` so the cart branch guards on a freshly locked `v_available` instead of the always-NULL `v_listing.stock`. Before this, a cart checkout could oversell. |
+> | `0019_wallet_pools_and_withdrawals.sql` | Splits `wallets.balance_usd` into `spendable_usd` + `earned_usd` and adds per-audience withdrawal tiers. |
+> | `0020_notify_lockdown.sql` | Revokes `execute` on `public.notify(uuid,text,text,text,text)` from `PUBLIC`/`anon`/`authenticated`; leaves it with `service_role`. Without it, any signed-in user can forge a notification into any other user's inbox. |
+>
+> `scripts/check-schema.mjs` carries a sentinel for every one of `0001`–`0020`,
+> including `0018` (which previously had none) and `0020`.
 
 ---
 
@@ -43,7 +55,7 @@ Apply in filename order. The migrations are individually idempotent, but the
 order still matters for two reasons: `0013` reconciles objects that `0007`–`0012`
 also define, and `0017` **deliberately reverses** a policy that `0008` changes.
 
-### 2.1 Recommended: apply 0007–0017 in one pass
+### 2.1 Recommended: apply 0007–0020 in one pass
 
 Because production never ran `0008`, the `listings` policy is currently `0001`'s.
 `0017` drops and recreates that policy explicitly. Applying the whole range in
@@ -63,7 +75,10 @@ SUPABASE_ACCESS_TOKEN=sbp_... SUPABASE_PROJECT_REF=fbalfkvimlfmcpsfzrvn \
     supabase/migrations/0014_seller_payouts.sql \
     supabase/migrations/0015_support_request_safety.sql \
     supabase/migrations/0016_saved_listings.sql \
-    supabase/migrations/0017_store_applications.sql
+    supabase/migrations/0017_store_applications.sql \
+    supabase/migrations/0018_cart_checkout_stock_guard.sql \
+    supabase/migrations/0019_wallet_pools_and_withdrawals.sql \
+    supabase/migrations/0020_notify_lockdown.sql
 
 # Then, once the plan reads correctly, add --apply.
 ```
