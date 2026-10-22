@@ -14,6 +14,8 @@ import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { supabase } from "@/lib/supabase";
+import { adminSetAdmin } from "@/lib/supabaseMutations";
+import { toast } from "sonner";
 
 type AdminUserRow = {
   id: string;
@@ -140,6 +142,26 @@ export default function AdminUsers() {
   useEffect(() => {
     void load(page, roleFilter, debouncedSearch);
   }, [load, page, roleFilter, debouncedSearch, refreshKey]);
+
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const toggleAdmin = async (u: AdminUserRow) => {
+    const makeAdmin = u.role !== "admin";
+    setBusyId(u.id);
+    try {
+      await adminSetAdmin(u.id, makeAdmin);
+      toast.success(makeAdmin ? "Admin access granted" : "Admin access revoked", {
+        description: u.email ?? u.name ?? u.id,
+      });
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      toast.error("Could not change admin access", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hasFilters = roleFilter !== "all" || debouncedSearch !== "";
@@ -282,6 +304,14 @@ export default function AdminUsers() {
                           variant="outline"
                           size="sm"
                           className="rounded-lg"
+                          aria-label={
+                            u.role === "admin"
+                              ? `Revoke admin access for ${u.email ?? u.name ?? "this user"}`
+                              : `Grant admin access to ${u.email ?? u.name ?? "this user"}`
+                          }
+                          title={u.role === "admin" ? "Revoke admin access" : "Grant admin access"}
+                          disabled={busyId === u.id}
+                          onClick={() => void toggleAdmin(u)}
                         >
                           <Shield className="size-3.5" />
                         </Button>
@@ -290,8 +320,15 @@ export default function AdminUsers() {
                           variant="ghost"
                           size="sm"
                           className="rounded-lg"
+                          asChild
                         >
-                          <AlertTriangle className="size-3.5" />
+                          <a
+                            href={`mailto:${u.email ?? ""}`}
+                            aria-label={`Email ${u.email ?? u.name ?? "this user"}`}
+                            title="Email this user"
+                          >
+                            <AlertTriangle className="size-3.5" />
+                          </a>
                         </Button>
                       </div>
                     </div>

@@ -1028,6 +1028,37 @@ export async function resolvePayout(input: ResolvePayoutInput): Promise<void> {
 }
 
 /**
+ * Grant or revoke administrator access for a user. `admin_set_admin()` refuses
+ * to let an admin remove their own access, and writes the change to
+ * `admin_audit`; the UI is only the trigger.
+ */
+export async function adminSetAdmin(userId: string, makeAdmin: boolean): Promise<void> {
+  const { error } = await supabase.rpc("admin_set_admin", {
+    p_user: userId,
+    p_make_admin: makeAdmin,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/**
+ * Admin refunds an in-escrow order in full. The order number is the handle the
+ * refund RPC takes; `refund_order()` itself enforces the admin check, requires
+ * a reason, and only refunds an order that is still in escrow.
+ */
+export type RefundOrderInput = {
+  orderNo: string;
+  note: string;
+};
+export async function refundOrder(input: RefundOrderInput): Promise<void> {
+  const { error } = await supabase.rpc("refund_order", {
+    p_order_no: input.orderNo,
+    p_note: input.note,
+    p_idempotency_key: `admin-refund:${input.orderNo}`,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/**
  * Save or unsave a listing for the signed-in user. RLS pins `user_id` to the
  * caller, so the id cannot be spoofed; a repeat save is absorbed by the
  * primary key rather than raising.

@@ -1,78 +1,71 @@
-import { useState } from "react";
-import { Tag, Plus, Search, MoreHorizontal, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Tag, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
+import { BrandMark } from "@/components/site/BrandMark";
 import { supabase } from "@/lib/supabase";
+import { categories } from "@/lib/db";
 
-type CategoryRow = {
-  id: string;
-  name: string;
-  slug: string;
-  parent_id: string | null;
-  created_at: string;
-};
+type Counts = { active: number; pending: number; total: number };
 
 export default function AdminCategories() {
   const [q, setQ] = useState("");
-  const [rows, setRows] = useState<CategoryRow[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [counts, setCounts] = useState<Record<string, Counts>>({});
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  // Promise chain rather than an async function: the mount effect must not
+  // call setState synchronously, or React reports a cascading render.
+  const load = useCallback(() => {
+    return Promise.resolve(supabase.from("listings").select("brand, status"))
+      .then(({ data, error: fetchError }) => {
+        if (fetchError) throw new Error(fetchError.message);
+
+        const next: Record<string, Counts> = {};
+        for (const row of data ?? []) {
+          const brand = row.brand as string;
+          const bucket = (next[brand] ??= { active: 0, pending: 0, total: 0 });
+          bucket.total += 1;
+          if (row.status === "active") bucket.active += 1;
+          if (row.status === "pending") bucket.pending += 1;
+        }
+        setCounts(next);
+        setError(null);
+      })
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : "Unknown error"),
+      )
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  // Load on mount; the previous version only fetched from the Refresh button.
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const refresh = () => {
     setIsLoading(true);
-    setError(null);
-    try {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("id, name, slug, parent_id, created_at")
-        .order("name");
-
-      if (error) throw new Error(error.message);
-      setRows(data ?? []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setIsLoading(false);
-    }
+    void load();
   };
 
-  const loadOnce = () => {
-    let ran = false;
-    load().then(() => {
-      if (!ran) ran = true;
-    });
-  };
-
-  const filtered =
-    q.trim()
-      ? rows.filter((r) =>
-          r.name.toLowerCase().includes(q.trim().toLowerCase()) ||
-          r.slug.toLowerCase().includes(q.trim().toLowerCase())
-        )
-      : rows;
-
-  const create = async (name: string) => {
-    const slug = name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-    const { error } = await supabase.from("categories").insert({
-      name,
-      slug,
-    });
-    if (error) throw new Error(error.message);
-    loadOnce();
-  };
+  const filtered = q.trim()
+    ? categories.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q.trim().toLowerCase()) ||
+          c.slug.toLowerCase().includes(q.trim().toLowerCase()),
+      )
+    : categories;
 
   return (
     <DashLayout title="Categories" nav={adminNav}>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Manage the marketplace categories. New categories are searchable
-          immediately and can be nested under an existing parent.
+          The platform directory. Categories are the ecosystems a listing can
+          belong to; the counts below are live listings per category, so an
+          empty one shows a storefront gap rather than a made-up total.
         </p>
 
         <div className="flex flex-wrap gap-3">
@@ -85,125 +78,58 @@ export default function AdminCategories() {
               className="pl-9"
             />
           </div>
-          <NewCategoryForm onCreate={create} />
-          <Button className="rounded-xl" onClick={loadOnce}>
+          <Button className="rounded-xl" onClick={refresh} disabled={isLoading}>
             <Tag className="size-4 mr-2" />
             Refresh
           </Button>
         </div>
 
         {error && (
-          <div className="rounded-xl border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             Could not load categories: {error}
           </div>
         )}
 
         {isLoading ? (
-          <EmptyState
-            title="Loading categories…"
-            description="Fetching the category tree."
-          />
+          <EmptyState title="Loading categories…" description="Counting live listings." />
         ) : filtered.length === 0 ? (
           <EmptyState
-            title={q.trim() ? "No categories found" : "No categories yet"}
-            description={
-              q.trim()
-                ? "Try a different search term."
-                : "Add a category to organize listings."
-            }
+            title="No categories found"
+            description="Try a different search term."
           />
         ) : (
           <div className="surface overflow-hidden">
-            <div className="hidden grid-cols-[1fr_1fr_6rem_6rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
-              <span>Category</span>
-              <span>Slug</span>
-              <span className="text-right">Created</span>
-              <span className="text-right">Actions</span>
-            </div>
             <ul className="divide-y divide-border/60">
-              {filtered.map((r) => (
-                <li
-                  key={r.id}
-                  className="px-6 py-4 transition-colors hover:bg-accent/30"
-                >
-                  <div className="flex flex-wrap items-center gap-3">
+              {filtered.map((c) => {
+                const stat = counts[c.brand] ?? { active: 0, pending: 0, total: 0 };
+                return (
+                  <li
+                    key={c.slug}
+                    className="flex flex-wrap items-center gap-3 px-6 py-4 transition-colors hover:bg-accent/30"
+                  >
+                    <BrandMark brand={c.brand} block className="size-9 shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">
-                        {r.name}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {r.id.slice(0, 8)}…
-                      </span>
+                      <span className="block truncate text-sm font-medium">{c.name}</span>
+                      <span className="block text-xs text-muted-foreground">{c.slug}</span>
                     </div>
-                    <span className="text-sm text-muted-foreground">
-                      {r.slug}
+                    <span className="w-24 text-right text-sm tabular-nums">
+                      <span className="font-semibold text-success">{stat.active}</span>
+                      <span className="text-xs text-muted-foreground"> live</span>
                     </span>
-                    <span className="w-20 text-right text-xs text-muted-foreground">
-                      {new Date(r.created_at).toLocaleDateString()}
+                    <span className="w-24 text-right text-sm tabular-nums text-warning">
+                      {stat.pending}
+                      <span className="text-xs text-muted-foreground"> pending</span>
                     </span>
-                    <div className="flex flex-col w-20 gap-1.5">
-                      <Button variant="ghost" size="sm" className="rounded-lg">
-                        <MoreHorizontal className="size-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="rounded-lg text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </li>
-              ))}
+                    <span className="w-20 text-right text-xs text-muted-foreground tabular-nums">
+                      {stat.total} total
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
       </div>
     </DashLayout>
-  );
-}
-
-function NewCategoryForm({
-  onCreate,
-}: {
-  onCreate: (name: string) => Promise<void>;
-}) {
-  const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setBusy(true);
-    setErr(null);
-    try {
-      await onCreate(name.trim());
-      setName("");
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not create category");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <form onSubmit={submit} className="flex items-center gap-2">
-      <Input
-        placeholder="New category name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="min-w-[180px]"
-        disabled={busy}
-      />
-      <Button type="submit" className="rounded-xl" disabled={busy || !name.trim()}>
-        <Plus className="size-4 mr-2" />
-        Add
-      </Button>
-      {err && (
-        <span className="text-xs text-destructive">{err}</span>
-      )}
-    </form>
   );
 }

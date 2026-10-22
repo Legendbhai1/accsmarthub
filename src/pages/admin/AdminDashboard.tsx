@@ -15,49 +15,49 @@ const cards = [
     label: "Gross volume",
     key: "grossVolumeUsd" as const,
     icon: BarChart3,
-    row: { span: "col-span-2 sm:col-span-1" },
+    money: true,
   },
   {
     label: "Commission",
     key: "commissionUsd" as const,
     icon: Receipt,
-    row: { span: "col-span-2 sm:col-span-1" },
+    money: true,
   },
   {
     label: "Escrow held",
     key: "escrowHeldUsd" as const,
     icon: Wallet,
-    row: { span: "col-span-2 sm:col-span-1" },
+    money: true,
   },
   {
     label: "Users",
     key: "userCount" as const,
     icon: Users,
-    row: { span: "col-span-2 sm:col-span-1" },
+    money: false,
   },
   {
     label: "Approved stores",
     key: "approvedStoreCount" as const,
     icon: Store,
-    row: { span: "col-span-2 sm:col-span-1" },
+    money: false,
   },
   {
     label: "Active listings",
     key: "activeListingCount" as const,
     icon: Package,
-    row: { span: "col-span-2 sm:col-span-1" },
+    money: false,
   },
   {
     label: "Open reports",
     key: "openReportCount" as const,
     icon: AlertTriangle,
-    row: { span: "col-span-2 sm:col-span-1" },
+    money: false,
   },
   {
     label: "Open disputes",
     key: "openDisputeCount" as const,
     icon: AlertTriangle,
-    row: { span: "col-span-2 sm:col-span-1" },
+    money: false,
   },
 ];
 
@@ -76,22 +76,22 @@ export default function AdminDashboard() {
         </p>
 
         {stats ? (
-          <div className="grid gap-4">
-            {cards.map(({ label, key, icon: Icon, row }) => (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {cards.map(({ label, key, icon: Icon, money }) => (
               <div
                 key={label}
-                className={`rounded-2xl border-border/70 bg-card p-5 text-card-foreground shadow-sm ${row.span}`}
+                className="rounded-2xl border border-border/70 bg-card p-5 text-card-foreground shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                       {label}
                     </p>
                     <p className="mt-1 text-2xl font-bold tracking-tight tabular-nums">
-                      {formatPrice(stats[key])}
+                      {money ? formatPrice(stats[key]) : stats[key].toLocaleString()}
                     </p>
                   </div>
-                  <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Icon className="size-4.5" />
                   </div>
                 </div>
@@ -103,6 +103,11 @@ export default function AdminDashboard() {
                 {key === "openReportCount" && (
                   <p className="mt-2 text-xs text-muted-foreground">
                     Off-platform contact and policy reports awaiting review.
+                  </p>
+                )}
+                {key === "openDisputeCount" && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Disputes still awaiting an admin decision.
                   </p>
                 )}
               </div>
@@ -119,13 +124,12 @@ export default function AdminDashboard() {
 
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-base font-semibold">Open issues</h2>
-          <a
-            href="#"
+          <Link
+            to="/admin/disputes"
             className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-            onClick={(e) => e.preventDefault()}
           >
             View all
-          </a>
+          </Link>
         </div>
 
         {disputes.length === 0 ? (

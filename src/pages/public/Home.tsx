@@ -36,9 +36,12 @@ export default function Home() {
   // and carries live stock, so the landing page cannot advertise inventory
   // that cannot be bought.
   const featured = listings.slice(0, 8);
-  // Real per-category counts of live inventory, never a seeded headline.
+  // Real per-category counts of live inventory, never a seeded headline. The
+  // count is taken over *all* live listings, not just the eight on screen —
+  // counting the featured slice made a category with a ninth listing look
+  // empty.
   const countFor = (brand: string) =>
-    featured.filter((l) => l.brand === brand).length;
+    listings.filter((l) => l.brand === brand).length;
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
