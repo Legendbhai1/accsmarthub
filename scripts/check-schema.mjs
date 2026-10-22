@@ -236,6 +236,36 @@ const SENTINELS = [
               and position('earned_usd' in pg_get_functiondef(
                     'public.request_payout(numeric,text,text,text)'::regprocedure)) > 0`,
   },
+  {
+    file: "0020_admin_listing_moderation.sql",
+    what: "listing moderation columns, history and admin edit function",
+    // Presence alone would prove nothing: `set_listing_status` exists without
+    // 0020 too. The columns, the history table and the new admin edit
+    // function only exist after 0020, so the probe names all three.
+    probe: `select exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'listings'
+                and column_name = 'moderation_note')
+              and exists (select 1 from information_schema.columns
+                where table_schema = 'public' and table_name = 'listings'
+                  and column_name = 'moderated_by')
+              and to_regclass('public.listing_reviews') is not null
+              and to_regprocedure(
+                    'public.admin_update_listing(uuid,text,text,text,numeric,boolean,text)'
+                  ) is not null`,
+  },
+  {
+    file: "0021_security_hardening.sql",
+    what: "trusted-write lock, tightened grants, listing DELETE policy",
+    // 0021 is a grants/policy migration, so a `to_regclass` proves nothing.
+    // The probe asserts the two facts only 0021 establishes: the DELETE
+    // policy on `listings` (the seller's Delete button) and that `anon` can
+    // no longer execute the session-only `checkout` RPC.
+    probe: `select exists (select 1 from pg_policies
+              where schemaname = 'public' and tablename = 'listings'
+                and cmd = 'DELETE')
+              and not has_function_privilege(
+                    'anon', 'public.checkout(uuid,uuid[],integer,text)', 'execute')`,
+  },
 ];
 
 async function runQuery(query) {

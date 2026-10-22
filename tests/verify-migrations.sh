@@ -175,6 +175,51 @@ check s5 "the reason constraint is present" \
 check s5 "the normalisation function is not client-callable" \
   "select not has_function_privilege('authenticated','public.normalize_dispute_reasons()','execute')"
 
+# ---------------------------------------------------------------- scenario 6
+# The full chain, from a pristine database, through the two hardening
+# migrations. 0020 adds listing moderation (columns, history, admin edit) and
+# 0021 closes the trusted-write bypass, the over-broad grants and the missing
+# listing DELETE policy. A fresh apply is the only way to prove the whole
+# series still runs in order.
+echo "SCENARIO 6  full chain 0001-0021 on a fresh database"
+reset_db s6
+apply s6 "$root/tests/bootstrap.sql" || status=1
+for f in 0001_core 0002_storage 0003_disputes 0004_payments \
+         0005_deposit_settlement 0006_deposit_currency_fix \
+         0007_email_and_store_policy 0008_listing_first_publishing \
+         0009_buying_to_delivery_lifecycle 0010_admin_users_edge_function \
+         0011_dispute_rls_fix 0012_dispute_resolution_consistency \
+         0013_reconcile_marketplace 0014_seller_payouts \
+         0015_support_request_safety 0016_saved_listings \
+         0017_store_applications 0018_cart_checkout_stock_guard \
+         0019_wallet_pools_and_withdrawals \
+         0020_admin_listing_moderation 0021_security_hardening; do
+  apply s6 "$(mig "$f.sql")" || status=1
+done
+
+check s6 "listings gained the moderation columns" \
+  "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='listings' and column_name='moderation_note') and exists(select 1 from information_schema.columns where table_schema='public' and table_name='listings' and column_name='moderated_by')"
+check s6 "listing_reviews history exists" \
+  "select to_regclass('public.listing_reviews') is not null"
+check s6 "admin_update_listing exists" \
+  "select to_regprocedure('public.admin_update_listing(uuid,text,text,text,numeric,boolean,text)') is not null"
+check s6 "listing moderation records the moderator and a reason" \
+  "select position('moderated_by' in pg_get_functiondef('public.set_listing_status(uuid,text,text)'::regprocedure)) > 0 and position('A rejection reason is required' in pg_get_functiondef('public.set_listing_status(uuid,text,text)'::regprocedure)) > 0"
+check s6 "no legacy two-argument set_listing_status survives" \
+  "select count(*) = 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='set_listing_status'"
+check s6 "sellers can delete their own listing" \
+  "select exists(select 1 from pg_policies where schemaname='public' and tablename='listings' and cmd='DELETE')"
+check s6 "a client cannot grant itself a trusted write" \
+  "select position('current_user not in' in pg_get_functiondef('public.is_trusted_write()'::regprocedure)) > 0"
+check s6 "truncate is revoked from client roles" \
+  "select not has_table_privilege('authenticated','public.wallets','truncate') and not has_table_privilege('anon','public.wallets','truncate')"
+check s6 "notify is no longer client-callable" \
+  "select not has_function_privilege('authenticated','public.notify(uuid,text,text,text,text)','execute')"
+check s6 "anon can no longer reach the checkout RPC" \
+  "select not has_function_privilege('anon','public.checkout(uuid,uuid[],integer,text)','execute')"
+check s6 "authenticated can still reach the checkout RPC" \
+  "select has_function_privilege('authenticated','public.checkout(uuid,uuid[],integer,text)','execute')"
+
 # ------------------------------------------------------- required objects
 echo "SCENARIO 4  required objects present in both scenarios"
 

@@ -579,12 +579,43 @@ export async function reviewStore(input: ReviewStoreInput) {
 export type SetListingStatusInput = {
   listingId: string;
   status: string;
+  /**
+   * Why the listing was moderated. Required by the database when moving a
+   * listing to `paused` (a rejection), optional otherwise. The seller sees it
+   * verbatim, so it is written as the message they should read.
+   */
+  note?: string;
 };
 
 export async function setListingStatus(input: SetListingStatusInput) {
   const { error } = await supabase.rpc("set_listing_status", {
     p_listing_id: input.listingId,
     p_status: input.status,
+    p_note: input.note ?? null,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+export type AdminUpdateListingInput = {
+  listingId: string;
+  title: string;
+  brand: string;
+  summary?: string | null;
+  priceUsd: number;
+  hidden?: boolean;
+  note?: string | null;
+};
+
+/** Correct a listing's content as an administrator, leaving a reason. */
+export async function adminUpdateListing(input: AdminUpdateListingInput) {
+  const { error } = await supabase.rpc("admin_update_listing", {
+    p_listing_id: input.listingId,
+    p_title: input.title,
+    p_brand: input.brand,
+    p_summary: input.summary ?? null,
+    p_price_usd: input.priceUsd,
+    p_hidden: input.hidden ?? null,
+    p_note: input.note ?? null,
   });
   if (error) throw new Error(friendlyError(error));
 }
