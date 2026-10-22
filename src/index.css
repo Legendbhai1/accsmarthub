@@ -96,7 +96,8 @@
     --secondary: 251 100% 96%;       /* #F1ECFF */
     --secondary-foreground: 262 60% 32%;
     --muted: 220 33% 97%;            /* #F6F8FC */
-    --muted-foreground: 220 12% 45%; /* #656D80 */
+    --muted-foreground: 220 18% 41%; /* #545C70 — dark enough to clear 4.5:1
+                                        on the 18% section wash below. */
     --accent: 269 100% 96%;          /* #F5EBFF */
     --accent-foreground: 262 60% 32%;
     --surface-2: 248 100% 98%;       /* #F8F7FF */
@@ -124,12 +125,15 @@
     --pop-green: 160 84% 39%;        /* #10B981 */
     /* How strongly `brandTint()` mixes a brand hue into a card, as a
        percentage. These are tokens rather than constants because the same
-       strength does not read the same way on both canvases: 10% over a white
+       strength does not read the same way on both canvases: 14% over a white
        card is a clear tint, but over a dark card the hue is swallowed and the
        tile looks untinted. Dark mode raises the wash (and the hairline with
-       it) so the grid stays colourful there too. */
-    --tint-wash-mix: 10%;
-    --tint-line-mix: 26%;
+       it) so the grid stays colourful there too.
+       `--muted-foreground` was darkened to #545C70 alongside these, because at
+       18% a saturated hue lifts the band enough that the old grey fell just
+       under 4.5:1 on the violet band. */
+    --tint-wash-mix: 14%;
+    --tint-line-mix: 40%;
     --tint-ink-mix: 62%;
     /* 12px base. Tailwind's `rounded-lg`/`xl`/`2xl` land on 8/12/16px, which
        is the whole radius system — nothing here is a pill. */
@@ -189,7 +193,7 @@
        *toward* the hue (a lower mix) so the label keeps more of the brand
        colour now that the wash is doing less of the work. */
     --tint-wash-mix: 20%;
-    --tint-line-mix: 42%;
+    --tint-line-mix: 46%;
     --tint-ink-mix: 55%;
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
     --shadow-md: 0 4px 14px -4px hsl(0 0% 0% / 0.5);
@@ -624,20 +628,26 @@
     box-shadow: var(--shadow-md);
   }
 
-  /* A card that carries its own brand colour as a faint wash plus a matching
+  /* A card that carries its own brand colour as a wash plus a matching
      hairline, so a grid of category tiles reads as colourful rather than as
      eleven identical white boxes. `--tint*` is set inline by `brandTint()`.
      The wash is light enough that the card's own text keeps full contrast, and
      the brand colour shows up as the tile's ring on hover.
+
+     The wash is flat, not a fade: an earlier version reached `transparent` at
+     62% of the diagonal, which left most of every tile white and made the grid
+     read as a white grid with coloured corners. It is painted as a
+     `background-image` with two identical stops on purpose — an image always
+     paints above `background-color`, so the tint lands over the `bg-card`
+     utility without a specificity fight.
 
      Used alongside `.surface` for the body and `.card-hover` for the lift.
      The hover rule is doubled up so it outranks `.card-hover:hover`, which
      would otherwise repaint the border the brand colour. */
   .tint-card {
     background-image: linear-gradient(
-      160deg,
-      var(--tint-wash, transparent) 0%,
-      transparent 62%
+      var(--tint-wash, transparent),
+      var(--tint-wash, transparent)
     );
     border-color: var(--tint-line, hsl(var(--border)));
   }
@@ -659,14 +669,17 @@
      sequence of coloured zones instead of one long white column. `--pop` is a
      bare HSL triple like every other theme token (`var(--pop-cyan)`), so it is
      wrapped in `hsl()` here — the same convention `.orb` and `.icon-tile` use.
-     The wash stays under 10%: enough to separate two sections at a glance,
-     faint enough that body copy on top keeps full contrast (muted-foreground is
-     5.1:1 on white and stays above 4.5:1 on the wash). */
+     The band runs from a stronger wash at the top to a light one at the
+     bottom, so two adjacent sections read as different colours at a glance
+     rather than as one continuous tint. It is a *band*, not a fill: body copy
+     sits on the light end and `--muted-foreground` (#545C70) clears 4.5:1 on
+     the strongest wash at 18% — both the strength and that ratio are pinned by
+     tests/theme.test.ts. */
   .section-pop {
     background-image: linear-gradient(
       180deg,
-      color-mix(in srgb, hsl(var(--pop, var(--primary))) 9%, transparent) 0%,
-      color-mix(in srgb, hsl(var(--pop, var(--primary))) 3%, transparent) 100%
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) 18%, transparent) 0%,
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) 5%, transparent) 100%
     );
   }
 

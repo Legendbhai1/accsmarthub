@@ -97,3 +97,94 @@ describe("tokenTint() wraps a theme token the same way", () => {
     }
   });
 });
+
+/**
+ * The storefront's colour is a *band*, not a fill: a section is tinted with a
+ * hue at a low mix so the text on top keeps its contrast. Raising the wash is
+ * the whole point of a "colourful" pass, but it is also the one change that can
+ * quietly make `text-muted-foreground` fail AA on a violet section. These pin
+ * the strength *and* the contrast it implies, so a future bump has to bring a
+ * darker grey with it.
+ */
+describe("the section band is colourful without dropping contrast", () => {
+  const srgb = (c: number) =>
+    c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  const luminance = ([r, g, b]: number[]) =>
+    0.2126 * srgb(r / 255) + 0.7152 * srgb(g / 255) + 0.0722 * srgb(b / 255);
+  const contrast = (a: number[], b: number[]) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  /** `hsl()` as the browser resolves it, for a bare `H S% L%` triple. */
+  const hslToRgb = (h: number, s: number, l: number): number[] => {
+    const k = (n: number) => (n + h / 30) % 12;
+    const a = (s / 100) * Math.min(l / 100, 1 - l / 100);
+    const f = (n: number) =>
+      l / 100 - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [f(0), f(8), f(4)].map((v) => Math.round(v * 255));
+  };
+  const overWhite = (rgb: number[], alpha: number) =>
+    rgb.map((v) => Math.round(alpha * v + (1 - alpha) * 255));
+
+  it("paints the band at 18% down to 5%, wrapped in hsl()", () => {
+    const band = css.slice(css.indexOf(".section-pop"), css.indexOf(".section-pop") + 400);
+    expect(band).toMatch(/hsl\(var\(--pop/);
+    expect(band).toMatch(/18%/);
+    expect(band).toMatch(/5%/);
+  });
+
+  it("keeps muted-foreground at 4.5:1 on the strongest band of every hue", () => {
+    // The theme's own triples, not a copy: if either token moves, this fails.
+    const token = (name: string) => {
+      const m = css.match(new RegExp(`--${name}:\\s*([\\d.]+)\\s+([\\d.]+)%\\s+([\\d.]+)%`));
+      expect(m, `--${name} should be a bare HSL triple`).not.toBeNull();
+      return hslToRgb(Number(m![1]), Number(m![2]), Number(m![3]));
+    };
+    const muted = token("muted-foreground");
+    // The 18% band is the top of the gradient and the darkest point body copy
+    // can sit on.
+    for (const hue of ["primary", "brand-2", "pop-cyan", "pop-orange", "pop-green"]) {
+      const bg = overWhite(token(hue), 0.18);
+      expect(
+        contrast(muted, bg),
+        `muted-foreground on the 18% --${hue} band`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("keeps the tint wash strength in one token per theme", () => {
+    // Both canvases name the mix, and dark is stronger than light — a hue at
+    // 14% is a clear tint on white but is swallowed on the dark card.
+    const light = css.match(/--tint-wash-mix:\s*([\d.]+)%/g) ?? [];
+    expect(light).toHaveLength(2);
+    const values = light.map((s) => Number(s.match(/([\d.]+)%/)![1]));
+    expect(Math.min(...values)).toBe(14);
+    expect(Math.max(...values)).toBeGreaterThan(14);
+  });
+
+  it("paints the tint card as a flat wash, not a fade to white", () => {
+    // A gradient that reached `transparent` partway left most of every tile
+    // white, so the category grid read as white boxes with coloured corners.
+    const card = css.slice(css.indexOf(".tint-card"), css.indexOf(".tint-card") + 300);
+    expect(card).toMatch(/var\(--tint-wash, transparent\)/);
+    expect(card).not.toMatch(/transparent\s+\d+%/);
+  });
+
+  it("keeps muted-foreground readable on every brand-tinted card", () => {
+    // The tile grid washes each card with its platform's own hex, and those
+    // hexes are not the theme's — YouTube's red and Pinterest's crimson are
+    // far more saturated than any `--pop-*` token. Same 4.5:1 floor.
+    const token = (name: string) => {
+      const m = css.match(new RegExp(`--${name}:\\s*([\\d.]+)\\s+([\\d.]+)%\\s+([\\d.]+)%`));
+      return hslToRgb(Number(m![1]), Number(m![2]), Number(m![3]));
+    };
+    const muted = token("muted-foreground");
+    for (const hex of ["E4405F", "FF0000", "1877F2", "9146FF", "BD081C", "26A5E4", "5865F2", "4285F4", "0A66C2"]) {
+      const rgb = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+      expect(
+        contrast(muted, overWhite(rgb, 0.14)),
+        `muted-foreground on the 14% #${hex} card`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});

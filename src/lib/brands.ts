@@ -86,10 +86,12 @@ export function isMonochromeBrand(hex: string): boolean {
  * in `hsl()` — `var(--foreground)` on its own is the text `224 51% 8%`, which
  * is not a colour and makes the whole declaration silently invalid.
  *
- * The wash is deliberately very light (9%). A saturated brand fill behind body
- * copy is the thing this palette avoids; the tint is here to make a grid of
- * category tiles read as *colourful* without any of it competing with the text
- * on top.
+ * The wash is deliberately light (14% in light mode, 20% in dark). A saturated
+ * brand fill behind body copy is the thing this palette avoids; the tint is
+ * here to make a grid of category tiles read as *colourful* without any of it
+ * competing with the text on top. The strength lives in the
+ * `--tint-wash-mix`/`--tint-line-mix`/`--tint-ink-mix` tokens so both themes
+ * can differ, and the fallbacks below mirror the light-mode values.
  *
  * `--tint-ink` is the brand hue mixed 62% toward the theme's foreground, which
  * makes it a readable label in *both* themes: on white it darkens toward the
@@ -121,8 +123,8 @@ export function tokenTint(token: string): Record<string, string> {
 function tintVars(base: string): Record<string, string> {
   return {
     "--tint": base,
-    "--tint-wash": `color-mix(in srgb, ${base} var(--tint-wash-mix, 10%), transparent)`,
-    "--tint-line": `color-mix(in srgb, ${base} var(--tint-line-mix, 26%), transparent)`,
+    "--tint-wash": `color-mix(in srgb, ${base} var(--tint-wash-mix, 14%), transparent)`,
+    "--tint-line": `color-mix(in srgb, ${base} var(--tint-line-mix, 40%), transparent)`,
     "--tint-ink": `color-mix(in srgb, ${base} var(--tint-ink-mix, 62%), hsl(var(--foreground)))`,
   };
 }
