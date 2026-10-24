@@ -312,6 +312,19 @@ const SENTINELS = [
                     'public.resolve_order_request(uuid,text,text)'::regprocedure
                   ) like '%2000 characters%'`,
   },
+  {
+    file: "0026_admin_credit_audit.sql",
+    what: "audited, self-refusing, capped wallet adjustment",
+    // The probe names 0026's own strings: the self-credit refusal and the
+    // ceiling. 0004's body has neither, so this is false on any database
+    // that stopped before 0026 — including one that has 0025.
+    probe: `select pg_get_functiondef(
+                    'public.admin_credit_wallet(uuid,numeric,text)'::regprocedure
+                  ) like '%You cannot adjust your own wallet%'
+              and pg_get_functiondef(
+                    'public.admin_credit_wallet(uuid,numeric,text)'::regprocedure
+                  ) like '%wallet.adjustment%'`,
+  },
 ];
 
 async function runQuery(query) {
