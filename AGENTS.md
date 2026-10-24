@@ -162,6 +162,16 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   *strongest* band and on a brand-tinted card in either theme, which is what
   lets the bands be this saturated. `tests/theme.test.ts` recomputes that ratio
   from the tokens for both themes, so raising a band means raising the ink.
+- **The dark ink is lighter than the light ink is dark, and that is not a
+  mistake to "fix".** Dark `--muted-foreground` is `215 20% 76%`, not the 70%
+  it looks like it should be: a 28% wash lifts a near-black card far more than
+  it lifts a white one, so the *same* wash needs a *lighter* ink to stay
+  readable. At 70% the dark 28% brand tint fell to 3.82:1 on the `--pop-cyan`
+  tile — under AA — while every platform brand hex still passed, because the
+  brand-hex suite did not cover the theme tokens that `Trust.tsx`
+  (`--primary/--brand-2/--bronze/--info/--success`) and `Disputes.tsx`
+  (`--pop-*`) feed into `tint-card`. `tests/theme.test.ts` now measures those
+  too; if you add a token to a tint card, add it to that list.
 - **`.empty-panel` is the empty state, and on a new marketplace it is the
   largest surface on the page.** An unbranded white panel with one grey glyph
   is what made the storefront read as unfinished. It carries a soft multi-hue

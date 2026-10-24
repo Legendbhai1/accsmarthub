@@ -251,4 +251,38 @@ describe("the section band is colourful without dropping contrast", () => {
       }
     }
   });
+
+  it("keeps muted-foreground readable on every theme-tinted card", () => {
+    // `tint-card` is also fed the *theme's own* hues, not just platform hexes:
+    // Trust passes `--primary/--brand-2/--bronze/--info/--success` and Disputes
+    // passes the `--pop-*` set through `tokenTint()`. Those are darker and more
+    // saturated than a brand hex, so the brand-hex suite above does not cover
+    // them — and that gap was real: raising the dark wash to 28% left 8 of the
+    // 10 tokens under 4.5:1 (worst 3.82:1 on `--pop-cyan`) while every brand
+    // hex still passed. The list is read from the two pages so a new token
+    // cannot be added to a tint card without being measured here.
+    const tintTokens = ["primary", "brand-2", "bronze", "info", "success", "warning"];
+    const popTokens = ["pop-cyan", "pop-green", "pop-orange", "pop-pink"];
+    const token = (name: string, block = "") => {
+      const src = block ? css.slice(css.indexOf(block)) : css;
+      const m = src.match(new RegExp(`--${name}:\\s*([\\d.]+)\\s+([\\d.]+)%\\s+([\\d.]+)%`));
+      return hslToRgb(Number(m![1]), Number(m![2]), Number(m![3]));
+    };
+    const washMix = (block = "") => {
+      const src = block ? css.slice(css.indexOf(block)) : css;
+      const m = src.match(/--tint-wash-mix:\s*([\d.]+)%/);
+      return Number(m![1]) / 100;
+    };
+    for (const block of ["", ".dark {"]) {
+      const muted = token("muted-foreground", block);
+      const wash = washMix(block);
+      for (const name of [...tintTokens, ...popTokens]) {
+        const rgb = token(name, block);
+        expect(
+          contrast(muted, overCanvas(rgb, wash, token("card", block))),
+          `muted-foreground on the ${wash * 100}% --${name} card${block ? " (dark)" : ""}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
 });

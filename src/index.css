@@ -182,7 +182,15 @@
     --secondary: 221 33% 19%;        /* #202A41 */
     --secondary-foreground: 217 91% 90%;
     --muted: 221 30% 16%;            /* #1C2436 */
-    --muted-foreground: 215 20% 70%; /* #A3B0C2 */
+    --muted-foreground: 215 20% 76%; /* #B6C0CE — lighter than the light
+                                        theme's ink is dark, because the same
+                                        wash lifts a near-black card far more
+                                        than it lifts a white one. At 70% the
+                                        28% brand tint fell to 3.82:1 on the
+                                        pop-cyan tile; 76% clears 4.5:1 on
+                                        every tint token *and* on the 24%
+                                        band, which is the tighter of the two
+                                        (see tests/theme.test.ts). */
     --accent: 221 33% 22%;           /* #252F49 */
     --accent-foreground: 217 91% 90%;
     --surface-2: 221 33% 15%;        /* #1A2233 */
