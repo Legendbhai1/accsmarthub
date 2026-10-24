@@ -175,6 +175,17 @@ export function workspaceForPath(pathname: string): WorkspaceKey | null {
 }
 
 /**
+ * Where the dashboard header's person icon points, per workspace.
+ *
+ * `/account/profile` is the shared account page and is reachable by every
+ * role (the buyer layout accepts buyer, seller and admin), so it is the
+ * fallback. Seller Studio has its own profile page under its own shell.
+ */
+export function profileHrefForWorkspace(key: WorkspaceKey | null): string {
+  return key === "seller" ? "/seller/profile" : "/account/profile";
+}
+
+/**
  * The workspace switcher.
  *
  * Only links the signed-in role can actually open are offered, so a buyer is

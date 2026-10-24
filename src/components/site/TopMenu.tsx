@@ -1,5 +1,4 @@
-import { useNavigate } from "react-router";
-import { Moon, Store, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,17 +7,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 /**
- * The three-line menu at the top of the app.
+ * The three-line quick menu.
  *
- * Two options only, as specified: become a seller, and switch between dark
- * and light appearance. It is rendered at the top of every shell (public site
- * header, marketplace app header, dashboards) so the two actions are always
- * one tap away regardless of where you are.
+ * One option: switch between dark and light appearance. The "Start selling" /
+ * "Seller dashboard" entry was removed — the seller workspace is reached from
+ * the profile menu and the workspace switcher, and duplicating it here put a
+ * seller shortcut in front of every visitor on the storefront. Seller routes
+ * and functionality are untouched; only this menu changed.
+ *
+ * It is rendered at the top of every shell (public site header, marketplace
+ * app header, dashboards) so appearance is always one tap away.
  */
 export function TopMenu({
   /** `onDark` is for surfaces that stay near-black in both themes. */
@@ -28,17 +30,9 @@ export function TopMenu({
   className?: string;
   align?: "start" | "center" | "end";
 }) {
-  const navigate = useNavigate();
-  const { user } = useSession();
   const { theme, toggleTheme } = useTheme();
 
   const isDark = theme === "dark";
-  const isSeller = user?.role === "seller" || user?.role === "admin";
-
-  // The studio is open to every confirmed account: a listing can be created
-  // without a store profile, so this no longer routes sellers-to-be through
-  // the store application first.
-  const goToSeller = () => navigate("/seller");
 
   return (
     <DropdownMenu>
@@ -67,11 +61,6 @@ export function TopMenu({
           Quick menu
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-
-        <DropdownMenuItem onSelect={goToSeller}>
-          <Store className="size-4" />
-          {isSeller ? "Seller dashboard" : "Start selling"}
-        </DropdownMenuItem>
 
         <DropdownMenuItem
           onSelect={(event) => {

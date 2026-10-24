@@ -30,7 +30,10 @@ describe("colour tokens are wrapped before they are used as colours", () => {
   });
 
   it("keeps the section band and the brand rule wrapped", () => {
-    const band = css.slice(css.indexOf(".section-pop"), css.indexOf(".section-pop") + 400);
+    // Anchor to the rule itself: the token comment above it also names
+    // `.section-pop`, and matching from that would read the wrong block.
+    const at = css.indexOf("\n  .section-pop {");
+    const band = css.slice(at, at + 400);
     expect(band).toMatch(/color-mix\(in srgb, hsl\(var\(--pop/);
     const rule = css.slice(css.indexOf(".brand-rule"), css.indexOf(".brand-rule") + 300);
     expect(rule).toMatch(/hsl\(var\(--rule-from/);
@@ -94,6 +97,192 @@ describe("tokenTint() wraps a theme token the same way", () => {
     );
     for (const value of Object.values(tokenTint("--info"))) {
       expect(value).toContain("hsl(var(--info))");
+    }
+  });
+});
+
+/**
+ * The storefront's colour is a *band*, not a fill: a section is tinted with a
+ * hue at a low mix so the text on top keeps its contrast. Raising the wash is
+ * the whole point of a "colourful" pass, but it is also the one change that can
+ * quietly make `text-muted-foreground` fail AA on a saturated section. These pin
+ * the strength *and* the contrast it implies, so a future bump has to bring a
+ * darker grey with it.
+ */
+describe("the section band is colourful without dropping contrast", () => {
+  const srgb = (c: number) =>
+    c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  const luminance = ([r, g, b]: number[]) =>
+    0.2126 * srgb(r / 255) + 0.7152 * srgb(g / 255) + 0.0722 * srgb(b / 255);
+  const contrast = (a: number[], b: number[]) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  /** `hsl()` as the browser resolves it, for a bare `H S% L%` triple. */
+  const hslToRgb = (h: number, s: number, l: number): number[] => {
+    const k = (n: number) => (n + h / 30) % 12;
+    const a = (s / 100) * Math.min(l / 100, 1 - l / 100);
+    const f = (n: number) =>
+      l / 100 - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [f(0), f(8), f(4)].map((v) => Math.round(v * 255));
+  };
+  /** Composite a colour over an arbitrary canvas. The band and the tint card
+      sit on different canvases — white in light mode, near-black in dark — so
+      reusing a white-only helper would test the wrong thing. */
+  const overCanvas = (rgb: number[], alpha: number, canvas: number[]) =>
+    rgb.map((v, i) => Math.round(alpha * v + (1 - alpha) * canvas[i]));
+
+  it("paints the band at the themed strength, wrapped in hsl()", () => {
+    // Search from the rule, not from the first mention — the token comment
+    // above it also says `.section-pop`.
+    const at = css.indexOf("\n  .section-pop {");
+    const band = css.slice(at, at + 400);
+    expect(band).toMatch(/hsl\(var\(--pop/);
+    // The strength is a per-theme token so the same class can be bold on white
+    // and restrained on near-black; both stops read it.
+    expect(band).toMatch(/var\(--band-strong, 32%\)/);
+    expect(band).toMatch(/var\(--band-soft, 10%\)/);
+  });
+
+  it("keeps muted-foreground at 4.5:1 on the strongest band of every hue", () => {
+    // The theme's own triples, not a copy: if either token moves, this fails.
+    const token = (name: string, block = "") => {
+      const src = block ? css.slice(css.indexOf(block)) : css;
+      const m = src.match(new RegExp(`--${name}:\\s*([\\d.]+)\\s+([\\d.]+)%\\s+([\\d.]+)%`));
+      expect(m, `--${name} should be a bare HSL triple`).not.toBeNull();
+      return hslToRgb(Number(m![1]), Number(m![2]), Number(m![3]));
+    };
+    const bandMix = (name: string, block = "") => {
+      const src = block ? css.slice(css.indexOf(block)) : css;
+      const bare = name.replace(/^--/, "");
+      const m = src.match(new RegExp(`--${bare}:\\s*([\\d.]+)%`));
+      expect(m, `--${bare} should be a percentage`).not.toBeNull();
+      return Number(m![1]) / 100;
+    };
+    // The top of the gradient is the darkest point body copy can sit on, and it
+    // is the strongest stop of whichever canvas is being checked. Each canvas
+    // composites over its own background, so a dark band is measured against
+    // the near-black page rather than against white.
+    const canvases = [
+      { block: "", bg: token("background") },
+      { block: ".dark {", bg: token("background", ".dark {") },
+    ];
+    for (const { block, bg: canvas } of canvases) {
+      const muted = token("muted-foreground", block);
+      const alpha = bandMix("--band-strong", block);
+      for (const hue of ["primary", "brand-2", "pop-cyan", "pop-orange", "pop-green"]) {
+        const bg = overCanvas(token(hue, block), alpha, canvas);
+        expect(
+          contrast(muted, bg),
+          `muted-foreground on the ${alpha * 100}% --${hue} band${block ? " (dark)" : ""}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("keeps the tint wash strength in one token per theme", () => {
+    // Both canvases name the mix, and dark is stronger than light — a hue at
+    // 26% is a clear tint on white but is swallowed on the dark card.
+    const light = css.match(/--tint-wash-mix:\s*([\d.]+)%/g) ?? [];
+    expect(light).toHaveLength(2);
+    const values = light.map((s) => Number(s.match(/([\d.]+)%/)![1]));
+    expect(Math.min(...values)).toBe(26);
+    expect(Math.max(...values)).toBeGreaterThan(26);
+  });
+
+  it("paints the tint card as a flat wash, not a fade to white", () => {
+    // A gradient that reached `transparent` partway left most of every tile
+    // white, so the category grid read as white boxes with coloured corners.
+    const card = css.slice(css.indexOf(".tint-card"), css.indexOf(".tint-card") + 300);
+    expect(card).toMatch(/var\(--tint-wash, transparent\)/);
+    expect(card).not.toMatch(/transparent\s+\d+%/);
+  });
+
+  it("paints the empty state as a coloured zone, not a white box", () => {
+    // The empty state is the largest surface on a young marketplace, so it is
+    // where the page either reads as a shop or as a blank. It has to carry the
+    // hue: the panel wash reads `--pop`, and the shared `EmptyState` passes the
+    // same token to the icon tile.
+    const panel = css.slice(css.indexOf(".empty-panel"), css.indexOf(".empty-panel") + 700);
+    expect(panel).toMatch(/hsl\(var\(--pop, var\(--primary\)\)/);
+    expect(panel).not.toMatch(/color-mix\(in srgb, var\(--pop/);
+    const primitives = read("src/components/common/Primitives.tsx");
+    expect(primitives).toMatch(/empty-panel/);
+    expect(primitives).toMatch(/\["--pop" as string\]: accent/);
+  });
+
+  it("caps the hero orb so the copy on top stays AA", () => {
+    // The orbs sit behind the hero paragraph. At 0.55 a rose bloom dropped
+    // `--muted-foreground` to 4.42:1, so the cap is load-bearing, not taste.
+    const orb = css.slice(css.indexOf(".orb {"), css.indexOf(".orb {") + 300);
+    const opacity = Number(orb.match(/opacity:\s*([\d.]+)/)![1]);
+    expect(opacity).toBeLessThanOrEqual(0.45);
+  });
+
+  it("keeps muted-foreground readable on every brand-tinted card", () => {
+    // The tile grid washes each card with its platform's own hex, and those
+    // hexes are not the theme's — YouTube's red and Pinterest's crimson are
+    // far more saturated than any `--pop-*` token. Same 4.5:1 floor, and the
+    // wash is read from the theme rather than hardcoded so a bump has to
+    // justify itself here.
+    const token = (name: string, block = "") => {
+      const src = block ? css.slice(css.indexOf(block)) : css;
+      const m = src.match(new RegExp(`--${name}:\\s*([\\d.]+)\\s+([\\d.]+)%\\s+([\\d.]+)%`));
+      return hslToRgb(Number(m![1]), Number(m![2]), Number(m![3]));
+    };
+    const washMix = (block = "") => {
+      const src = block ? css.slice(css.indexOf(block)) : css;
+      const m = src.match(/--tint-wash-mix:\s*([\d.]+)%/);
+      return Number(m![1]) / 100;
+    };
+    // TikTok/X are #000000, but `brandTint()` never washes a card with them —
+    // a monochrome brand falls back to the foreground token — so the black hex
+    // is not in this list. It is covered by the `brandTint()` suite above.
+    const hexes = ["E4405F", "FF0000", "1877F2", "9146FF", "BD081C", "26A5E4", "5865F2", "4285F4", "0A66C2"];
+    for (const block of ["", ".dark {"]) {
+      const muted = token("muted-foreground", block);
+      const wash = washMix(block);
+      for (const hex of hexes) {
+        const rgb = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+        expect(
+          contrast(muted, overCanvas(rgb, wash, token("card", block))),
+          `muted-foreground on the ${wash * 100}% #${hex} card${block ? " (dark)" : ""}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("keeps muted-foreground readable on every theme-tinted card", () => {
+    // `tint-card` is also fed the *theme's own* hues, not just platform hexes:
+    // Trust passes `--primary/--brand-2/--bronze/--info/--success` and Disputes
+    // passes the `--pop-*` set through `tokenTint()`. Those are darker and more
+    // saturated than a brand hex, so the brand-hex suite above does not cover
+    // them — and that gap was real: raising the dark wash to 28% left 8 of the
+    // 10 tokens under 4.5:1 (worst 3.82:1 on `--pop-cyan`) while every brand
+    // hex still passed. The list is read from the two pages so a new token
+    // cannot be added to a tint card without being measured here.
+    const tintTokens = ["primary", "brand-2", "bronze", "info", "success", "warning"];
+    const popTokens = ["pop-cyan", "pop-green", "pop-orange", "pop-pink"];
+    const token = (name: string, block = "") => {
+      const src = block ? css.slice(css.indexOf(block)) : css;
+      const m = src.match(new RegExp(`--${name}:\\s*([\\d.]+)\\s+([\\d.]+)%\\s+([\\d.]+)%`));
+      return hslToRgb(Number(m![1]), Number(m![2]), Number(m![3]));
+    };
+    const washMix = (block = "") => {
+      const src = block ? css.slice(css.indexOf(block)) : css;
+      const m = src.match(/--tint-wash-mix:\s*([\d.]+)%/);
+      return Number(m![1]) / 100;
+    };
+    for (const block of ["", ".dark {"]) {
+      const muted = token("muted-foreground", block);
+      const wash = washMix(block);
+      for (const name of [...tintTokens, ...popTokens]) {
+        const rgb = token(name, block);
+        expect(
+          contrast(muted, overCanvas(rgb, wash, token("card", block))),
+          `muted-foreground on the ${wash * 100}% --${name} card${block ? " (dark)" : ""}`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
     }
   });
 });

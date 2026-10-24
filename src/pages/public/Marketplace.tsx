@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Bell, Heart, LayoutGrid, Search, X } from "lucide-react";
+import { Bell, Heart, LayoutGrid, PackageOpen, Search, SearchX, User, X } from "lucide-react";
 import { BrandMark } from "@/components/site/BrandMark";
 import { TopMenu } from "@/components/site/TopMenu";
 import { Pagination } from "@/components/common/Pagination";
@@ -294,6 +294,18 @@ export default function Marketplace() {
               <Bell className="size-4" />
               <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-destructive" />
             </Link>
+            {/* The person icon. Signed-in shoppers land on their profile;
+                signed-out visitors are sent to sign in first. It used to be
+                missing here entirely, so there was no one-tap route to the
+                account page from the marketplace header. */}
+            <Link
+              to={user ? "/account/profile" : "/auth?next=/marketplace"}
+              aria-label={user ? "Your profile" : "Sign in"}
+              title={user ? "Your profile" : "Sign in"}
+              className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors duration-150 hover:bg-accent"
+            >
+              <User className="size-4" />
+            </Link>
             {/* Three-line menu: become a seller / dark-light switch. */}
             <TopMenu />
           </div>
@@ -517,13 +529,43 @@ export default function Marketplace() {
               <p className="mt-1 text-xs text-muted-foreground">{error}</p>
             </div>
           ) : items.length === 0 ? (
-            <div className="mt-10 rounded-2xl border border-border px-6 py-12 text-center">
-              <p className="text-sm text-muted-foreground">
+            <div
+              className="empty-panel mt-10 px-6 py-14 text-center"
+              style={{
+                ["--pop" as string]: search || category || minPrice || maxPrice
+                  ? "var(--pop-cyan)"
+                  : "var(--pop-orange)",
+              }}
+            >
+              <span
+                aria-hidden="true"
+                className="brand-rule absolute inset-x-0 top-0 h-px opacity-80"
+              />
+              <span
+                className="icon-tile mx-auto size-14"
+                style={{
+                  ["--tile" as string]: search || category || minPrice || maxPrice
+                    ? "var(--pop-cyan)"
+                    : "var(--pop-orange)",
+                }}
+              >
+                {search || category || minPrice || maxPrice ? (
+                  <SearchX className="size-6" />
+                ) : (
+                  <PackageOpen className="size-6" />
+                )}
+              </span>
+              <p className="mt-4 text-base font-semibold">
                 {loading
                   ? "Loading accounts…"
                   : search || category || minPrice || maxPrice
                     ? "No accounts match this search yet."
-                    : "No accounts are listed right now. Check back soon."}
+                    : "No accounts are listed right now."}
+              </p>
+              <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
+                {search || category || minPrice || maxPrice
+                  ? "Try a different platform, a wider price range, or clear the filters."
+                  : "New listings go live once an admin approves them. Check back soon."}
               </p>
               {(search || category || minPrice || maxPrice) && (
                 <button
@@ -533,7 +575,7 @@ export default function Marketplace() {
                     setPage(1);
                     navigate("/marketplace", { replace: true });
                   }}
-                  className="mt-4 rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground"
+                  className="mt-5 rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground transition-colors duration-150 hover:bg-primary-hover"
                 >
                   View all accounts
                 </button>

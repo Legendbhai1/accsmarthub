@@ -113,8 +113,8 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   shadow (`--shadow-*`), not from a tinted page or a heavy border. The values
   are recorded in `src/index.css`'s `:root` block with their hex comments.
   Anything that needs a colour uses a token (`bg-card`, `text-muted-foreground`,
-  `bg-primary-hover`, `text-bronze`) — the previous mocha/cream theme was
-  removed rather than left beside a second system. Re-check computed styles in
+  `bg-primary-hover`, `text-bronze`) — earlier palettes were removed rather
+  than left beside a second system. Re-check computed styles in
   a browser after changing tokens; a token can be correct in CSS and still be
   overridden by a literal class in TSX.
 - **Type is Sora over Plus Jakarta Sans.** `--font-display` is Sora and is used
@@ -123,11 +123,11 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   imported at the top of `src/index.css` — a `font-display` class with no
   matching family silently falls back to the body font, so check the computed
   `font-family` if a heading looks wrong.
-- **The brand is violet, with magenta and amber as its two supporting hues.**
-  `--primary` is a vivid violet (#7C3AED), `--brand-2` magenta (#DB2777) and
-  `--brand-3` amber (#F59E0B); `.brand-gradient` sweeps violet -> magenta and
-  `.text-gradient` sweeps the same pair as text. `--info` is a real sky blue
-  (#0284C7) and means "information" only. If something needs to say "this is
+- **The brand is blue, with rose and amber as its two supporting hues.**
+  `--primary` is a vivid commerce blue (#1555E0), `--brand-2` rose (#D11A6C) and
+  `--brand-3` amber (#BD6705); `.brand-gradient` sweeps blue -> rose and
+  `.text-gradient` sweeps the same ramp as text. `--info` is a real sky blue
+  (#096C9A) and means "information" only. If something needs to say "this is
   the brand" it uses `--primary`, the ramp, or `--bronze`.
 - **`--pop-*` exists so sections can differ.** `--pop-orange`, `--pop-cyan`,
   `--pop-green` and `--pop-pink` are extra hues with no brand meaning. They
@@ -150,14 +150,42 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
     those properties. Use the first for anything keyed to a platform, the
     second for anything keyed to a theme token (`tokenTint("--info")`).
   The mix strengths are tokens (`--tint-wash-mix`, `--tint-line-mix`,
-  `--tint-ink-mix`) and dark mode raises them: a 10% hue is a clear tint on a
-  white card but is swallowed on a dark one, so the dark canvas uses 20/42/55.
+  `--tint-ink-mix`) and dark mode raises them: a 26% hue is a clear tint on a
+  white card but is swallowed on a dark one, so the dark canvas uses 28/54/55.
   `--tint-ink` is the hue mixed toward the theme ink, which is what keeps a
   label readable in *both* themes — a raw brand hex is not safe as text.
+- **`.section-pop` strength is a per-theme token too.** `--band-strong` /
+  `--band-soft` set the top and bottom stop of the band (32%/10% on white,
+  24%/8% on dark). The same mix does not land the same way on a white canvas
+  and a near-black one, so they are not hardcoded in the rule. `--muted-foreground`
+  is tuned alongside them: it is a slate dark enough to clear 4.5:1 on the
+  *strongest* band and on a brand-tinted card in either theme, which is what
+  lets the bands be this saturated. `tests/theme.test.ts` recomputes that ratio
+  from the tokens for both themes, so raising a band means raising the ink.
+- **The dark ink is lighter than the light ink is dark, and that is not a
+  mistake to "fix".** Dark `--muted-foreground` is `215 20% 76%`, not the 70%
+  it looks like it should be: a 28% wash lifts a near-black card far more than
+  it lifts a white one, so the *same* wash needs a *lighter* ink to stay
+  readable. At 70% the dark 28% brand tint fell to 3.82:1 on the `--pop-cyan`
+  tile — under AA — while every platform brand hex still passed, because the
+  brand-hex suite did not cover the theme tokens that `Trust.tsx`
+  (`--primary/--brand-2/--bronze/--info/--success`) and `Disputes.tsx`
+  (`--pop-*`) feed into `tint-card`. `tests/theme.test.ts` now measures those
+  too; if you add a token to a tint card, add it to that list.
+- **`.empty-panel` is the empty state, and on a new marketplace it is the
+  largest surface on the page.** An unbranded white panel with one grey glyph
+  is what made the storefront read as unfinished. It carries a soft multi-hue
+  wash (the hero's, at a low alpha) plus a `--pop` icon tile, so "nothing here
+  yet" is a coloured zone rather than a blank. `EmptyState` takes an `accent`
+  and an `icon`; pass a `--pop-*` token for the hue.
+- **The orbs are capped at 0.45 opacity on purpose.** They sit behind the hero
+  copy, and at 0.55 a rose bloom under the centred paragraph dropped
+  `--muted-foreground` to 4.42:1. Do not raise it without re-measuring the
+  rendered hero.
 - **A pop/tint token is a bare HSL triple, so wrap it in `hsl()` before using
   it as a colour.** This is the trap that made the coloured bands invisible
   when they were first added: `color-mix(in srgb, var(--pop-cyan) 9%, ...)` is
-  invalid — `var(--pop-cyan)` resolves to the text `189 94% 43%`, which is not
+  invalid — `var(--pop-cyan)` resolves to the text `189 94% 35%`, which is not
   a colour, so the whole declaration is dropped silently and the section
   renders plain. `hsl(var(--pop-cyan))` is the fix, and it is the same
   convention `.orb` and `.icon-tile` use. `tests/theme.test.ts` pins that no
@@ -166,15 +194,15 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
 - **Colour is an accent, not a background.** The brand ramp belongs on the
   wordmark tile, the hero wash, the CTA panel, the promo banner, an active rail
   indicator and one icon tile — never as a saturated fill behind body copy or
-  on every card. A `.section-pop` band and a `.tint-card` wash are the
-  *deliberate* exceptions: they are hue at 3–20%, chosen so the text on top
-  keeps its contrast, not saturated fills. `bg-primary` is a flat violet, and
-  `.brand-gradient` is deliberately not used on the primary button, because a
-  gradient on the main action reads as glossy.
-- **The animated gradients stop at magenta.** Amber and the `--pop-*` hues are
+  on every card. A `.section-pop` band, a `.tint-card` wash and an
+  `.empty-panel` are the *deliberate* exceptions: they are hue at 8–32%, chosen
+  so the text on top keeps its contrast, not saturated fills. `bg-primary` is a
+  flat blue, and `.brand-gradient` is deliberately not used on the primary
+  button, because a gradient on the main action reads as glossy.
+- **The animated gradients stop at rose.** Amber and the `--pop-*` hues are
   lighter, so ending a *panning* ramp on one drops the contrast of the white
   text the CTA and promo panels carry. `.brand-gradient-animated` therefore
-  pans violet -> magenta -> violet; the extra hues reach the page through the
+  pans blue -> rose -> blue; the extra hues reach the page through the
   orbs and the icon tiles, where nothing sits on top of them.
 - **One radius system: 8 / 12 / 16px, and no pills.** `--radius` is 12px, so
   `rounded-lg` = 12, `rounded-xl` = 16, `rounded-2xl` = 20. Buttons, chips,
@@ -186,9 +214,9 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `DashShell`'s header are `bg-card/85 backdrop-blur-xl`, because rows really
   do scroll under them. Every other surface is opaque: a translucent panel over
   the brand wash turns muddy. Do not copy the blur onto a card.
-- **Dark mode is deep indigo, not blue-black.** `.dark` is the same saturated
-  identity turned down: a near-black indigo canvas, and the primary becomes a
-  lighter violet so it still reads on the dark surface. Do not "fix" dark mode
+- **Dark mode is deep navy, not blue-black.** `.dark` is the same saturated
+  identity turned down: a near-black navy canvas, and the primary becomes a
+  lighter blue so it still reads on the dark surface. Do not "fix" dark mode
   by making it neutral slate or pure black.
 - **Motion is 140–240ms and reduced-motion is honoured.** Hover/focus is
   150ms, entrances 200ms, drawers 200ms. `src/index.css` drops decorative
@@ -242,18 +270,31 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   that does not resolve to a declared route. When you add a route, add it to
   `src/routes.tsx`; when you link to one, the test will tell you if you
   mistyped it.
-- **One shell per audience, and the public bottom bar belongs to the public
-  shell only.** `MobileTabBar` is mounted by `PublicLayout` and `SiteLayout`
-  and nothing else. It used to be rendered from four places — including both
+- **One shell per audience, and the public bottom bar belongs to the buyer
+  shell.** `MobileTabBar` (`src/components/site/`) is mounted by
+  `PublicLayout`, by `SiteLayout`, and by `DashShell` **for the buyer workspace
+  only** (`workspaceForPath(pathname) === "buyer"`, i.e. `/account` and its
+  sub-pages). It used to be rendered from four places — including both
   dashboard layouts — which is how the public Home / Marketplace / Categories /
-  Account tabs appeared inside Seller Studio on top of the studio's own nav.
-  Buyer, seller and admin all render `DashShell` (`src/components/dash/`),
-  which uses a desktop rail plus a mobile drawer and has no bottom bar at all.
-  `tests/navigation.test.ts` asserts the dashboards never reference the bar.
-- **A `fixed` bottom bar needs its scroll container to reserve room.** The
-  public shell sets `pb-24 md:pb-0` on `<main>`; without it the bar covers the
-  last row of content and the footer. If you add a fixed element, reserve the
-  space where the scrolling content lives rather than padding the element.
+  Account tabs appeared inside Seller Studio on top of the studio's own nav;
+  the buyer workspace then had *no* bottom bar at all, which is the other half
+  of the bug (its navigation was only reachable through the drawer). Seller
+  Studio and the admin console still never mount it — both render `DashShell`
+  (`src/components/dash/`) too, so the mount is gated on the workspace, not on
+  "is this a dashboard". `tests/navigation.test.ts` asserts that gate and that
+  `SellerLayout` never references the bar.
+- **The header person icon is a per-workspace link, resolved by a mapper.** The
+  dashboard header renders `ProfileIcon`, which resolves its destination with
+  `profileHrefForWorkspace(workspaceForPath(pathname))` (`src/components/dash/navs.ts`):
+  Seller Studio → `/seller/profile`, everything else → `/account/profile`. The
+  marketplace's own inline header carries the same link. Keep the destination in
+  the mapper rather than inlining a path in the JSX, so the icon cannot point at
+  a route that does not exist for that workspace.
+- **A `fixed` bottom bar needs its scroll container to reserve room.** Both the
+  public shell (`PublicLayout`/`SiteLayout`) and `DashShell`'s buyer workspace
+  set `pb-24 md:pb-0` on `<main>`; without it the bar covers the last row of
+  content and the footer. If you add a fixed element, reserve the space where
+  the scrolling content lives rather than padding the element.
 - **Tailwind v4 renamed `bg-gradient-to-*` to `bg-linear-to-*`.** The old
   names still work, but a class referenced in TSX with *no* definition at all
   fails silently: `text-gradient` was used by the wordmark, the hero headline
@@ -261,8 +302,8 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   all three accents rendered as plain text. If a class looks like it should do
   something and does not, grep the built CSS for it before assuming a
   specificity problem.
-- **Colour belongs to a token, not to a literal.** The palette is violet plus
-  the magenta/amber brand ramp, with status kept separate (`--success`,
+- **Colour belongs to a token, not to a literal.** The palette is blue plus
+  the blue/rose brand ramp, with status kept separate (`--success`,
   `--warning`, `--info`, `--destructive`). Hardcoded `amber`/`emerald`/`sky`/hex
   values had spread across ~50 files, which is how a saturated amber ended up
   meaning "brand", "pending" and "warning" at the same time. Use `bg-primary`,
@@ -345,6 +386,24 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   redefines `resolve_report`, which `0001` also defines, so presence alone
   proved nothing; the sentinel now checks for `0015`'s specific self-report
   guard.
+- **`ACCSMART_DB` and `settlement_test.dsn` must name the same database, or
+  the dblink suites fail for a reason that has nothing to do with the code.**
+  `tests/run-db-tests.sh` builds `$ACCSMART_DB` (default `accsmarthub_tests`),
+  but the concurrency cases in `settlement.sql` and `credential_claim_guard.sql`
+  open a *second* connection to whatever `settlement_test.dsn` points at. If the
+  two differ, the outer session writes to one database and the dblink session to
+  another, and the race assertions read 0 rows — `7a concurrent callbacks credit
+  exactly once` reports `ledger rows for OX-C: 0`, which looks exactly like a
+  settlement bug. `ACCSMART_DB` must be **exported**, not just set: `FOO=x cmd`
+  in a loop body does not export it, so the harness silently falls back to its
+  default while the DSN still names the intended one. Set both, with `export`,
+  before running anything that uses dblink. The DSN also needs a loopback
+  connection that authenticates without prompting: on the local cluster that
+  means `host all all 127.0.0.1/32 trust` in `pg_hba.conf` (reload, do not
+  restart), or a DSN that carries a password. A `scram-sha-256` loopback rule
+  and a passwordless DSN fail with `fe_sendauth: no password supplied`, and the
+  suite then aborts mid-transaction with `current transaction is aborted`
+  cascading down every later assertion.
 - **`wallet_ledger.kind` decides where a credit belongs, and the pool column
   says which balance it lands in.** `purchase`, `escrow_hold` and
   `escrow_release` are trade money; `deposit` and `adjustment` are top-ups;
@@ -383,4 +442,66 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   workspace. The header wordmark yields below `sm` to make room. The stray
   chevron that sat beside the hamburger was a *second* control reading as an
   identical menu button; it was removed, not restyled.
+
+- **The delivery mode is a column now, not a guess.** `listings.delivery_mode`
+  (`credential` | `manual`, added by `0023`) is what decides how an order is
+  delivered, instead of `finish_single_order_delivery()` inferring it from the
+  claimed-credential count. `credential` means every unit charged for must be
+  claimed (`claimed = quantity`); `manual` means the platform hands nothing over
+  and the claim is skipped entirely. The mode is set at insert (default
+  `manual`), promoted to `credential` by `upload_credentials()`, and pinned by
+  `guard_listing_moderation` for a non-trusted writer exactly like `status` and
+  `stock`.
+- **Inferring the mode was the whole bug.** A credential listing whose `stock`
+  counter drifted above its credential pool could be checked out with
+  `claimed = 0`; `finish_single_order_delivery` then read that as "manual" and
+  the buyer paid for a digital product that was never handed over. `0022`'s
+  `claimed in (0, quantity)` could not tell that apart from a legitimate manual
+  listing — only the explicit mode can.
+- **`place_order` (Buy Now) used to reject every manual listing.** It required
+  `v_free >= quantity`, and a manual listing has no units, so the precheck now
+  applies only to `credential` listings. The cart `checkout` never had that
+  precheck, which is why manual listings only worked through the cart.
+- **The product is credential-only today.** Every seller-facing path attaches
+  units (`upload_credentials` sets `stock = count(unclaimed)`, and the UI copy
+  says "stock is the number of unclaimed accounts"), and no RPC sets `stock`
+  without credentials. So `manual` is a correct, tested backend mode with no
+  seller-facing way to *create* one yet — a manual listing is what you get for
+  an un-credentialed row (tests, a future admin/fulfilment path), not something
+  the current UI can produce.
+- **Each migration has a matching rollback.** `supabase/rollback/*.sql` restore
+  the LATEST prior definition of every function a migration replaced, extracted
+  verbatim from the migration that last wrote it. Roll 0023 back *before* 0022:
+  0023 re-defines the same three order functions on top of 0022, so undoing 0022
+  underneath it would leave the two out of order.
+- **The client-facing grant surface has its own read-only audit.**
+  `supabase/preflight/0003_grants_audit.sql` lists what `anon` and
+  `authenticated` can actually reach (tables, columns, sequences, functions,
+  default privileges) and flags the ones that should not exist. It uses
+  `has_table_privilege`/`has_function_privilege`, not
+  `information_schema.role_table_grants`, because the latter hides privileges
+  granted to PUBLIC — and a function with `proacl is null` is EXECUTE-able by
+  `anon` by default. `F8` flags `security_invoker=false` views, which return
+  rows the caller could not read from the base table.
+- **Replacing a function means copying the LATEST definition forward, not the
+  one you remember.** `resolve_order_request` is written three times (0009,
+  0013, 0025). 0013 added a note-length limit, a confirmed-order check and the
+  `settle_order_refund` settlement path; 0009's earlier body lacks all three.
+  Rewriting the function from 0009 silently dropped every 0013 refinement —
+  and the same mistake on `mark_notifications_read` replaced a working
+  ownership guard with 0009's `return sql%rowcount`, which is **not valid
+  PL/pgSQL** (the correct form is `get diagnostics v_n = row_count`). Read the
+  live definition with `pg_get_functiondef(...)` and diff it against the file
+  before editing: `select pg_get_functiondef('public.f(uuid)'::regprocedure)`.
+  A `create or replace` that shortens a function is a regression the compiler
+  cannot see, because `check_function_bodies` does not reject `sql%rowcount`.
+- **A migration that changes authorization needs a party guard, not just a
+  role guard.** `resolve_order_request` checked *who may approve* and left
+  *who may dismiss* open: it is `SECURITY DEFINER`, so its `select ... for
+  update` reads the request row with the owner's rights and RLS does not hide
+  it. Any signed-in stranger who knew a request id could close it, and a
+  dismissed cancellation is the denial-of-refund primitive. The fix checks
+  `can_moderate()` first, then that the caller is the order's buyer or seller,
+  then that the caller is not the request's own author. `tests/request_authorization.sql`
+  pins all three plus the admin path.
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Search, Shield, ChevronRight } from "lucide-react";
+import { Search, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -190,11 +190,6 @@ export default function AdminAudit() {
                     <span className="w-20 text-right text-xs text-muted-foreground">
                       {new Date(r.created_at).toLocaleDateString()}
                     </span>
-                    <div className="flex flex-col w-20 gap-1.5">
-                      <Button variant="ghost" size="sm" className="rounded-lg">
-                        <ChevronRight className="size-3.5" />
-                      </Button>
-                    </div>
                   </div>
                 </li>
               ))}

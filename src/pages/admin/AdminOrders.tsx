@@ -1,16 +1,22 @@
-import { useState } from "react";
-import {
-  Search,
-  Receipt,
-  MoreHorizontal,
-} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Search, Receipt, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { DashLayout } from "@/components/dash/DashLayout";
 import { adminNav } from "@/components/dash/navs";
-import { EmptyState } from "@/components/common/Primitives";
+import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
+import { refundOrder } from "@/lib/supabaseMutations";
+import { toast } from "sonner";
 
 const TABS = [
   { key: "in_escrow", label: "In escrow" },
@@ -35,38 +41,74 @@ export default function AdminOrders() {
   const [q, setQ] = useState("");
 
   const [rows, setRows] = useState<OrderRow[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const { data, error } = await supabase
+  const [refundFor, setRefundFor] = useState<OrderRow | null>(null);
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Promise chain rather than an async function: the mount effect must not
+  // call setState synchronously, or React reports a cascading render.
+  const load = useCallback(() => {
+    return Promise.resolve(
+      supabase
         .from("orders")
         .select("order_no, listing_title, brand, buyer_id, seller_id, total_usd, status, created_at")
         .eq("status", tab)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }),
+    )
+      .then(({ data, error: fetchError }) => {
+        if (fetchError) throw new Error(fetchError.message);
+        setRows(
+          (data ?? []).map((r) => ({
+            ...r,
+            total_usd: Number(r.total_usd ?? 0),
+          })),
+        );
+        setError(null);
+      })
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : "Unknown error"),
+      )
+      .finally(() => setIsLoading(false));
+  }, [tab]);
 
-      if (error) throw new Error(error.message);
-      setRows(
-        (data ?? []).map((r) => ({
-          ...r,
-          total_usd: Number(r.total_usd ?? 0),
-        }))
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setIsLoading(false);
-    }
+  // Load on mount and on tab change; the queue used to be empty until Refresh.
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const refresh = () => {
+    setIsLoading(true);
+    void load();
   };
 
-  const loadOnce = () => {
-    let ran = false;
-    load().then(() => {
-      if (!ran) ran = true;
-    });
+  const selectTab = (next: string) => {
+    setIsLoading(true);
+    setTab(next);
+  };
+
+  const submitRefund = async () => {
+    if (!refundFor) return;
+    if (note.trim().length < 3) {
+      toast.error("A refund reason is required.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await refundOrder({ orderNo: refundFor.order_no, note: note.trim() });
+      toast.success("Order refunded", { description: refundFor.order_no });
+      setRefundFor(null);
+      setNote("");
+      await load();
+    } catch (err) {
+      toast.error("Could not refund the order", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const filtered =
@@ -92,7 +134,7 @@ export default function AdminOrders() {
             <button
               key={t.key}
               type="button"
-              onClick={() => setTab(t.key)}
+              onClick={() => selectTab(t.key)}
               className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors ${
                 tab === t.key
                   ? "border-primary/50 bg-primary/15 text-primary"
@@ -114,14 +156,14 @@ export default function AdminOrders() {
               className="pl-9"
             />
           </div>
-          <Button className="rounded-xl" onClick={loadOnce}>
+          <Button className="rounded-xl" onClick={refresh} disabled={isLoading}>
             <Receipt className="size-4 mr-2" />
             Refresh
           </Button>
         </div>
 
         {error && (
-          <div className="rounded-xl border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             Could not load orders: {error}
           </div>
         )}
@@ -142,13 +184,6 @@ export default function AdminOrders() {
           />
         ) : (
           <div className="surface overflow-hidden">
-            <div className="hidden grid-cols-[1fr_8rem_8rem_8rem_7rem] gap-4 border-b border-border/70 px-6 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
-              <span>Order</span>
-              <span className="text-right">Total</span>
-              <span className="text-right">Buyer</span>
-              <span className="text-right">Created</span>
-              <span className="text-right">Actions</span>
-            </div>
             <ul className="divide-y divide-border/60">
               {filtered.map((r) => (
                 <li
@@ -167,16 +202,32 @@ export default function AdminOrders() {
                     <span className="w-20 text-right text-sm font-semibold tabular-nums">
                       {formatPrice(r.total_usd)}
                     </span>
-                    <span className="w-20 text-right text-xs text-muted-foreground truncate">
+                    <span className="w-24 text-right text-xs text-muted-foreground truncate">
                       {r.buyer_id.slice(0, 8)}…
                     </span>
+                    <StatusBadge status={r.status} />
                     <span className="w-20 text-right text-xs text-muted-foreground">
                       {new Date(r.created_at).toLocaleDateString()}
                     </span>
-                    <div className="flex flex-col w-20 gap-1.5">
-                      <Button variant="outline" size="sm" className="rounded-lg w-full">
-                        <MoreHorizontal className="size-3.5" />
-                      </Button>
+                    {/* Refund is only valid while the money is still held; the
+                        RPC enforces the same rule server-side. */}
+                    <div className="flex w-28 justify-end">
+                      {r.status === "in_escrow" ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-lg"
+                          onClick={() => {
+                            setRefundFor(r);
+                            setNote("");
+                          }}
+                        >
+                          <Undo2 className="size-3.5 mr-1.5" />
+                          Refund
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </div>
                   </div>
                 </li>
@@ -184,6 +235,37 @@ export default function AdminOrders() {
             </ul>
           </div>
         )}
+
+        <Dialog open={refundFor !== null} onOpenChange={(open) => !open && setRefundFor(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Refund order {refundFor?.order_no}</DialogTitle>
+              <DialogDescription>
+                This returns the held funds to the buyer and closes the order.
+                The reason is recorded on the audit trail.
+              </DialogDescription>
+            </DialogHeader>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              placeholder="Why is this order being refunded?"
+              className="w-full rounded-xl border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/40"
+            />
+            <DialogFooter>
+              <Button variant="outline" className="rounded-xl" onClick={() => setRefundFor(null)}>
+                Cancel
+              </Button>
+              <Button
+                className="rounded-xl"
+                disabled={saving || note.trim().length < 3}
+                onClick={() => void submitRefund()}
+              >
+                {saving ? "Refunding…" : "Refund order"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashLayout>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Wallet,
   Search,
@@ -63,37 +63,48 @@ export default function AdminPayments() {
   const [reference, setReference] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const load = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const { data, error } = await supabase
+  // Promise chain rather than an async function: the mount effect must not
+  // call setState synchronously, or React reports a cascading render.
+  const load = useCallback(() => {
+    return Promise.resolve(
+      supabase
         .from("orders")
         .select("order_no, seller_id, gross_amount, commission_amount, seller_net_amount, status, created_at")
         .in("status", ["completed", "in_escrow", "disputed"])
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }),
+    )
+      .then(({ data, error: fetchError }) => {
+        if (fetchError) throw new Error(fetchError.message);
+        setRows(
+          (data ?? []).filter((r) => r.status === tab).map((r) => ({
+            ...r,
+            gross_amount: Number(r.gross_amount ?? 0),
+            commission_amount: Number(r.commission_amount ?? 0),
+            seller_net_amount: Number(r.seller_net_amount ?? 0),
+          }))
+        );
+        setError(null);
+      })
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : "Unknown error"),
+      )
+      .finally(() => setIsLoading(false));
+  }, [tab]);
 
-      if (error) throw new Error(error.message);
-      setRows(
-        (data ?? []).filter((r) => r.status === tab).map((r) => ({
-          ...r,
-          gross_amount: Number(r.gross_amount ?? 0),
-          commission_amount: Number(r.commission_amount ?? 0),
-          seller_net_amount: Number(r.seller_net_amount ?? 0),
-        }))
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
-    } finally {
-      setIsLoading(false);
-    }
+  // Load on mount and on tab change; previously the table stayed blank until
+  // the Refresh button was clicked.
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const refresh = () => {
+    setIsLoading(true);
+    void load();
   };
 
-  const loadOnce = () => {
-    let ran = false;
-    load().then(() => {
-      if (!ran) ran = true;
-    });
+  const selectTab = (next: string) => {
+    setIsLoading(true);
+    setTab(next);
   };
 
   const filtered =
@@ -175,7 +186,7 @@ export default function AdminPayments() {
             <button
               key={t.key}
               type="button"
-              onClick={() => setTab(t.key)}
+              onClick={() => selectTab(t.key)}
               className={`rounded-lg px-3.5 py-1.5 text-xs font-medium transition-colors ${
                 tab === t.key
                   ? "border-primary/50 bg-primary/15 text-primary"
@@ -197,7 +208,7 @@ export default function AdminPayments() {
               className="pl-9"
             />
           </div>
-          <Button className="rounded-xl" onClick={loadOnce}>
+          <Button className="rounded-xl" onClick={refresh} disabled={isLoading}>
             <Wallet className="size-4 mr-2" />
             Refresh
           </Button>

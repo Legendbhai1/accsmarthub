@@ -579,12 +579,43 @@ export async function reviewStore(input: ReviewStoreInput) {
 export type SetListingStatusInput = {
   listingId: string;
   status: string;
+  /**
+   * Why the listing was moderated. Required by the database when moving a
+   * listing to `paused` (a rejection), optional otherwise. The seller sees it
+   * verbatim, so it is written as the message they should read.
+   */
+  note?: string;
 };
 
 export async function setListingStatus(input: SetListingStatusInput) {
   const { error } = await supabase.rpc("set_listing_status", {
     p_listing_id: input.listingId,
     p_status: input.status,
+    p_note: input.note ?? null,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+export type AdminUpdateListingInput = {
+  listingId: string;
+  title: string;
+  brand: string;
+  summary?: string | null;
+  priceUsd: number;
+  hidden?: boolean;
+  note?: string | null;
+};
+
+/** Correct a listing's content as an administrator, leaving a reason. */
+export async function adminUpdateListing(input: AdminUpdateListingInput) {
+  const { error } = await supabase.rpc("admin_update_listing", {
+    p_listing_id: input.listingId,
+    p_title: input.title,
+    p_brand: input.brand,
+    p_summary: input.summary ?? null,
+    p_price_usd: input.priceUsd,
+    p_hidden: input.hidden ?? null,
+    p_note: input.note ?? null,
   });
   if (error) throw new Error(friendlyError(error));
 }
@@ -1023,6 +1054,37 @@ export async function resolvePayout(input: ResolvePayoutInput): Promise<void> {
     p_decision: input.decision,
     p_note: input.note,
     p_paid_reference: input.paidReference ?? null,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/**
+ * Grant or revoke administrator access for a user. `admin_set_admin()` refuses
+ * to let an admin remove their own access, and writes the change to
+ * `admin_audit`; the UI is only the trigger.
+ */
+export async function adminSetAdmin(userId: string, makeAdmin: boolean): Promise<void> {
+  const { error } = await supabase.rpc("admin_set_admin", {
+    p_user: userId,
+    p_make_admin: makeAdmin,
+  });
+  if (error) throw new Error(friendlyError(error));
+}
+
+/**
+ * Admin refunds an in-escrow order in full. The order number is the handle the
+ * refund RPC takes; `refund_order()` itself enforces the admin check, requires
+ * a reason, and only refunds an order that is still in escrow.
+ */
+export type RefundOrderInput = {
+  orderNo: string;
+  note: string;
+};
+export async function refundOrder(input: RefundOrderInput): Promise<void> {
+  const { error } = await supabase.rpc("refund_order", {
+    p_order_no: input.orderNo,
+    p_note: input.note,
+    p_idempotency_key: `admin-refund:${input.orderNo}`,
   });
   if (error) throw new Error(friendlyError(error));
 }

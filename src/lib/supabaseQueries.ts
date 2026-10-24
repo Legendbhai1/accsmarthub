@@ -281,6 +281,7 @@ async function fetchPlatformStats(): Promise<PlatformStats> {
     storesResult,
     listingsResult,
     reportsResult,
+    disputesResult,
   ] = await Promise.all([
     supabase.from("orders").select("gross_amount, commission_amount, status"),
     supabase.from("profiles").select("id"),
@@ -290,6 +291,12 @@ async function fetchPlatformStats(): Promise<PlatformStats> {
       .from("off_platform_reports")
       .select("status")
       .in("status", ["open", "reviewing"]),
+    // "Open" means still awaiting an admin decision. The resolved_* and
+    // dismissed states are closed, so they are excluded here.
+    supabase
+      .from("disputes")
+      .select("status")
+      .in("status", ["open", "under_review"]),
   ]);
 
   const orders = ordersResult.data ?? [];
@@ -304,6 +311,7 @@ async function fetchPlatformStats(): Promise<PlatformStats> {
   const stores = storesResult.data ?? [];
   const listings = listingsResult.data ?? [];
   const reports = reportsResult.data ?? [];
+  const disputes = disputesResult.data ?? [];
 
   const approvedStoreCount = stores.filter((s) => s.status === "approved").length;
   const pendingStoreCount = stores.filter((s) => s.status === "pending").length;
@@ -318,7 +326,7 @@ async function fetchPlatformStats(): Promise<PlatformStats> {
     userCount: profiles.length,
     approvedStoreCount,
     openReportCount,
-    openDisputeCount: 0,
+    openDisputeCount: disputes.length,
     activeListingCount,
     pendingListingCount,
     pendingStoreCount,

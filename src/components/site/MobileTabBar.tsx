@@ -5,24 +5,26 @@ import { cn } from "@/lib/utils";
 /**
  * The public mobile bottom tab bar.
  *
- * Mounted by `PublicLayout` (and `SiteLayout`) and nothing else. It used to be
+ * Mounted by `PublicLayout` and `SiteLayout`, and by `DashShell` for the
+ * *buyer* workspace only (`/account` and its sub-pages). It used to be
  * rendered from four places — including both dashboard layouts — which is how
  * the public Home / Marketplace / Categories / Account tabs showed up inside
- * Seller Studio. Dashboards now use `DashShell` and never mount this.
+ * Seller Studio. Seller Studio and the admin console still never mount it:
+ * `DashShell` gates the mount on `workspaceForPath() === "buyer"`.
  *
  * Categories points at `/marketplace/categories`. The tab previously linked to
  * `/categories`, which was not a declared route, so tapping it landed on the
  * 404 page.
  */
-const MOBILE_TABS = [
+export const MOBILE_TABS = [
   { label: "Home", to: "/", icon: Home },
   { label: "Marketplace", to: "/marketplace", icon: Compass },
   { label: "Categories", to: "/marketplace/categories", icon: LayoutGrid },
   { label: "Account", to: "/account", icon: User },
 ] as const;
 
-/** Is this tab the one the current URL belongs to? */
-function isTabActive(to: string, pathname: string): boolean {
+/** Is this tab the one the current URL belongs to? Exported for tests. */
+export function isTabActive(to: string, pathname: string): boolean {
   if (to === "/") return pathname === "/";
   // `/account` also owns its sub-pages, so the Account tab stays lit while the
   // user moves around inside the account area.

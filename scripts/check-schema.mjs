@@ -236,6 +236,95 @@ const SENTINELS = [
               and position('earned_usd' in pg_get_functiondef(
                     'public.request_payout(numeric,text,text,text)'::regprocedure)) > 0`,
   },
+  {
+    file: "0020_admin_listing_moderation.sql",
+    what: "listing moderation columns, history and admin edit function",
+    // Presence alone would prove nothing: `set_listing_status` exists without
+    // 0020 too. The columns, the history table and the new admin edit
+    // function only exist after 0020, so the probe names all three.
+    probe: `select exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'listings'
+                and column_name = 'moderation_note')
+              and exists (select 1 from information_schema.columns
+                where table_schema = 'public' and table_name = 'listings'
+                  and column_name = 'moderated_by')
+              and to_regclass('public.listing_reviews') is not null
+              and to_regprocedure(
+                    'public.admin_update_listing(uuid,text,text,text,numeric,boolean,text)'
+                  ) is not null`,
+  },
+  {
+    file: "0021_security_hardening.sql",
+    what: "trusted-write lock, tightened grants, listing DELETE policy",
+    // 0021 is a grants/policy migration, so a `to_regclass` proves nothing.
+    // The probe asserts the two facts only 0021 establishes: the DELETE
+    // policy on `listings` (the seller's Delete button) and that `anon` can
+    // no longer execute the session-only `checkout` RPC.
+    probe: `select exists (select 1 from pg_policies
+              where schemaname = 'public' and tablename = 'listings'
+                and cmd = 'DELETE')
+              and not has_function_privilege(
+                    'anon', 'public.checkout(uuid,uuid[],integer,text)', 'execute')`,
+  },
+  {
+    file: "0022_credential_claim_guard.sql",
+    what: "post-claim credential-count guard in place_order/checkout",
+    // 0022 is a function-body migration, so a `to_regprocedure` proves
+    // nothing (0009/0013/0018 define the same functions). The probe asserts
+    // the guard text only 0022 introduces: the count is verified AFTER the
+    // claim, which is the only check that cannot race the claim statement.
+    probe: `select pg_get_functiondef(
+                    'public.place_order(uuid,integer,text)'::regprocedure
+                  ) like '%Not enough accounts in stock for this listing%'
+              and pg_get_functiondef(
+                    'public.checkout(uuid,uuid[],integer,text)'::regprocedure
+                  ) like '%Not enough accounts in stock%'`,
+  },
+  {
+    file: "0023_listing_delivery_mode.sql",
+    what: "explicit listings.delivery_mode plus its CHECK",
+    probe: `select exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'listings'
+                and column_name = 'delivery_mode')
+              and exists (select 1 from pg_constraint
+              where conname = 'listings_delivery_mode_check')`,
+  },
+  {
+    file: "0024_revoke_client_grants.sql",
+    what: "client write grants removed, catalogue reads kept",
+    // A grants migration cannot be proved by `to_regclass`; the probe asserts
+    // both directions — the money table is no longer client-writable, and the
+    // public catalogue is still readable, which is the regression 0024 could
+    // plausibly cause.
+    probe: `select not has_table_privilege('authenticated','public.wallets','UPDATE')
+              and not has_table_privilege('authenticated','public.wallet_ledger','INSERT')
+              and not has_table_privilege('anon','public.orders','SELECT')
+              and has_table_privilege('anon','public.listings','SELECT')
+              and has_function_privilege('anon','public.is_admin()','EXECUTE')`,
+  },
+  {
+    file: "0025_request_authorization.sql",
+    what: "party guard on resolve_order_request",
+    probe: `select pg_get_functiondef(
+                    'public.resolve_order_request(uuid,text,text)'::regprocedure
+                  ) like '%Only a party to the order or an administrator can resolve this request%'
+              and pg_get_functiondef(
+                    'public.resolve_order_request(uuid,text,text)'::regprocedure
+                  ) like '%2000 characters%'`,
+  },
+  {
+    file: "0026_admin_credit_audit.sql",
+    what: "audited, self-refusing, capped wallet adjustment",
+    // The probe names 0026's own strings: the self-credit refusal and the
+    // ceiling. 0004's body has neither, so this is false on any database
+    // that stopped before 0026 — including one that has 0025.
+    probe: `select pg_get_functiondef(
+                    'public.admin_credit_wallet(uuid,numeric,text)'::regprocedure
+                  ) like '%You cannot adjust your own wallet%'
+              and pg_get_functiondef(
+                    'public.admin_credit_wallet(uuid,numeric,text)'::regprocedure
+                  ) like '%wallet.adjustment%'`,
+  },
 ];
 
 async function runQuery(query) {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { motion } from "framer-motion";
-import { ArrowRight, Gavel, LockKeyhole, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, Gavel, LockKeyhole, PackageOpen, Search, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/site/BrandMark";
@@ -36,9 +36,12 @@ export default function Home() {
   // and carries live stock, so the landing page cannot advertise inventory
   // that cannot be bought.
   const featured = listings.slice(0, 8);
-  // Real per-category counts of live inventory, never a seeded headline.
+  // Real per-category counts of live inventory, never a seeded headline. The
+  // count is taken over *all* live listings, not just the eight on screen —
+  // counting the featured slice made a category with a ninth listing look
+  // empty.
   const countFor = (brand: string) =>
-    featured.filter((l) => l.brand === brand).length;
+    listings.filter((l) => l.brand === brand).length;
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,8 +250,23 @@ export default function Home() {
             ))}
           </div>
           {featured.length === 0 && (
-            <div className="surface mt-6 px-6 py-16 text-center">
-              <p className="font-semibold">No live listings yet</p>
+            <div
+              className="empty-panel mt-6 px-6 py-16 text-center"
+              style={{ ["--pop" as string]: "var(--pop-pink)" }}
+            >
+              <span
+                aria-hidden="true"
+                className="brand-rule absolute inset-x-0 top-0 h-px opacity-80"
+              />
+              <span
+                className="icon-tile mx-auto size-14"
+                style={{ ["--tile" as string]: "var(--pop-pink)" }}
+              >
+                <PackageOpen className="size-6" />
+              </span>
+              <p className="mt-4 text-lg font-bold tracking-tight">
+                No live listings yet
+              </p>
               <p className="mx-auto mt-1.5 max-w-sm text-sm text-muted-foreground">
                 Every listing is reviewed by an admin before it goes live.
                 Check back shortly, or list an account of your own.
