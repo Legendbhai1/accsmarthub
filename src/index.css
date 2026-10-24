@@ -93,18 +93,18 @@
     /* The action colour: a vivid commerce blue, with its pressed shade beside
        it. Tuned to 48% lightness rather than the stock 53% so white button
        text clears 4.5:1 (6.16:1) and the hue still reads as a bright blue. */
-    --primary: 221 83% 48%;          /* #1555E0 */
+    --primary: 217 91% 50%;          /* #0B64F4 — a confident commerce blue */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 224 76% 40%;    /* #1842B4 */
+    --primary-hover: 217 91% 40%;    /* #0A4FC4 */
     /* Tinted secondary surfaces — a soft blue wash. */
-    --secondary: 214 95% 95%;        /* #E6F1FE */
-    --secondary-foreground: 224 76% 32%; /* #143590 */
-    --muted: 214 33% 97%;            /* #F5F7FA */
-    --muted-foreground: 217 20% 32%; /* #41506B — a soft slate that still clears
-                                        4.5:1 on white and on the 32% section
-                                        wash and the 26% brand tint below. */
-    --accent: 214 95% 95%;           /* #E6F1FE */
-    --accent-foreground: 224 76% 32%;
+    --secondary: 217 100% 96%;       /* #EBF2FF */
+    --secondary-foreground: 217 91% 30%; /* #073B94 */
+    --muted: 214 45% 97%;            /* #F4F7FC */
+    --muted-foreground: 222 25% 26%; /* #323C53 — a deep slate that clears
+                                        4.5:1 on white, on the 44% section
+                                        band and on every tint below. */
+    --accent: 217 100% 96%;          /* #EBF2FF */
+    --accent-foreground: 217 91% 30%;
     --surface-2: 214 60% 98%;        /* #F7F9FD */
     /* Status. Kept off the brand hue so a badge means what it says, and each is
        dark enough to clear 4.5:1 as small text on white *and* on its own 12%
@@ -118,7 +118,7 @@
     --info: 199 89% 32%;             /* #096C9A */
     --border: 214 24% 91%;           /* #E3E7EE */
     --input: 214 24% 91%;
-    --ring: 221 83% 48%;             /* blue focus ring */
+    --ring: 217 91% 50%;             /* blue focus ring */
     --bronze: 32 95% 44%;            /* #DB7706 — a vivid amber detail accent */
     /* The brand ramp plus the four pop hues the colourful sections draw on.
        These are the *vivid* set: they are used as bands, icon tiles and orbs,
@@ -127,39 +127,42 @@
        the ink, which is what keeps it readable on both canvases. The one
        exception is `--brand-2`, which also fills the brand gradient behind
        white text, so it stays dark enough for that. */
-    --brand-2: 333 78% 46%;          /* #D11A6C rose */
+    --brand-2: 330 81% 48%;          /* #DE177A rose */
     --brand-3: 32 95% 38%;           /* #BD6705 amber */
-    --pop-pink: 333 78% 46%;         /* #D11A6C */
-    --pop-orange: 24 95% 46%;        /* #E55F06 */
-    --pop-cyan: 189 94% 35%;         /* #0590A8 */
-    --pop-green: 160 84% 34%;        /* #0EA06F */
+    --pop-pink: 330 81% 56%;         /* #EA348F */
+    --pop-orange: 24 95% 50%;        /* #F96706 */
+    --pop-cyan: 189 90% 40%;         /* #0AA6C2 */
+    --pop-green: 160 84% 36%;        /* #0FA976 */
     /* How strongly `brandTint()` mixes a brand hue into a card, as a
        percentage. These are tokens rather than constants because the same
        strength does not read the same way on both canvases: a strong wash over
        a white card is a clear tint, but over a dark card the hue is swallowed
        and the tile looks untinted. Dark mode raises the wash (and the hairline
        with it) so the grid stays colourful there too.
-       `--muted-foreground` was retuned to #41506B alongside these, because at
-       26% a saturated hue lifts the card enough that a lighter grey falls
+       `--muted-foreground` was retuned to #323C53 alongside these, because at
+       32% a saturated hue lifts the card enough that a lighter grey falls
        under 4.5:1 on the rose and crimson tiles. */
-    --tint-wash-mix: 26%;
-    --tint-line-mix: 52%;
+    --tint-wash-mix: 32%;
+    --tint-line-mix: 56%;
     --tint-ink-mix: 62%;
     /* How strongly `.section-pop` washes a section band, top and bottom. The
        band is a *band*, not a fill, so the strength is bounded by the contrast
        of `--muted-foreground` on the strongest stop. It is a token per theme
        because the same mix does not land the same way on a white canvas and a
-       near-black one — see the `.dark` block. */
-    --band-strong: 32%;
-    --band-soft: 10%;
+       near-black one — see the `.dark` block. Raised from 32% to 44% in this
+       pass so the homepage reads as coloured zones rather than a faint tint;
+       `--muted-foreground` was deepened to #323C53 alongside it to hold 4.5:1
+       on the strongest stop of every hue. */
+    --band-strong: 44%;
+    --band-soft: 12%;
     /* 12px base. Tailwind's `rounded-lg`/`xl`/`2xl` land on 8/12/16px, which
        is the whole radius system — nothing here is a pill. */
     --radius: 0.75rem;
-    --chart-1: 221 83% 48%;          /* blue */
-    --chart-2: 333 71% 42%;          /* rose */
-    --chart-3: 160 84% 30%;          /* green */
+    --chart-1: 217 91% 50%;          /* blue */
+    --chart-2: 330 81% 44%;          /* rose */
+    --chart-3: 160 84% 32%;          /* green */
     --chart-4: 32 95% 40%;           /* amber */
-    --chart-5: 192 91% 32%;          /* cyan */
+    --chart-5: 189 90% 36%;          /* cyan */
     /* A soft ambient shadow ramp. Cards lift off the white canvas with these
        rather than a hard border, which is what makes the surface read modern. */
     --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
@@ -182,13 +185,13 @@
     --secondary: 221 33% 19%;        /* #202A41 */
     --secondary-foreground: 217 91% 90%;
     --muted: 221 30% 16%;            /* #1C2436 */
-    --muted-foreground: 215 20% 76%; /* #B6C0CE — lighter than the light
+    --muted-foreground: 215 25% 86%; /* #D2DAE4 — lighter than the light
                                         theme's ink is dark, because the same
                                         wash lifts a near-black card far more
-                                        than it lifts a white one. At 70% the
-                                        28% brand tint fell to 3.82:1 on the
-                                        pop-cyan tile; 76% clears 4.5:1 on
-                                        every tint token *and* on the 24%
+                                        than it lifts a white one. At 80% the
+                                        34% brand tint fell to 4.33:1 on the
+                                        pop-cyan tile; 86% clears 4.5:1 on
+                                        every tint token *and* on the 30%
                                         band, which is the tighter of the two
                                         (see tests/theme.test.ts). */
     --accent: 221 33% 22%;           /* #252F49 */
@@ -207,24 +210,26 @@
     --input: 221 30% 24%;            /* #2B3650 */
     --ring: 217 91% 72%;             /* #77A8F9 */
     --bronze: 43 96% 56%;            /* #FBBD23 */
-    --brand-2: 330 86% 70%;          /* #F471B2 */
+    --brand-2: 330 86% 72%;          /* #F471B2 */
     --brand-3: 43 96% 56%;           /* #FBBD23 */
-    --pop-pink: 330 86% 70%;         /* #F471B2 */
-    --pop-orange: 27 96% 62%;        /* #FB9541 */
-    --pop-cyan: 187 92% 62%;         /* #45E2F7 */
-    --pop-green: 158 74% 55%;        /* #37E1A3 */
+    --pop-pink: 330 86% 72%;         /* #F471B2 */
+    --pop-orange: 27 96% 64%;        /* #FD9A47 */
+    --pop-cyan: 187 92% 64%;         /* #4FE0F6 */
+    --pop-green: 158 74% 58%;        /* #47E6A9 */
     /* A wash that is a clear tint on a white card reads as almost nothing
        against a dark one, so it is stronger here. The ink is pulled a little
        *toward* the hue (a lower mix) so the label keeps more of the brand
        colour now that the wash is doing less of the work. */
-    --tint-wash-mix: 28%;
-    --tint-line-mix: 54%;
+    --tint-wash-mix: 34%;
+    --tint-line-mix: 58%;
     --tint-ink-mix: 55%;
     /* The band is weaker here than in light mode: on a near-black canvas a
-       32% wash of a light pop hue lifts the band far more than the same mix
-       does on white, and `--muted-foreground` would fall under 4.5:1. */
-    --band-strong: 24%;
-    --band-soft: 8%;
+       30% wash of a light pop hue lifts the band far more than the same mix
+       does on white, and `--muted-foreground` would fall under 4.5:1. The
+       tint wash, by contrast, is stronger than light mode so a coloured tile
+       still reads on the dark card. */
+    --band-strong: 30%;
+    --band-soft: 10%;
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
     --shadow-md: 0 4px 14px -4px hsl(0 0% 0% / 0.5);
     --shadow-lg: 0 18px 40px -18px hsl(0 0% 0% / 0.6);
@@ -542,17 +547,17 @@
     background-image:
       radial-gradient(
         90% 70% at 8% 0%,
-        hsl(var(--primary) / 0.30) 0%,
+        hsl(var(--primary) / 0.46) 0%,
         transparent 58%
       ),
       radial-gradient(
         70% 60% at 96% 4%,
-        hsl(var(--brand-2) / 0.28) 0%,
+        hsl(var(--brand-2) / 0.42) 0%,
         transparent 58%
       ),
       radial-gradient(
         80% 60% at 60% 100%,
-        hsl(var(--pop-cyan) / 0.24) 0%,
+        hsl(var(--pop-cyan) / 0.36) 0%,
         transparent 60%
       );
   }
@@ -560,19 +565,25 @@
   /* Alias of the warm wash, kept so the homepage call site does not churn. */
   .brand-wash {
     background-image:
+      linear-gradient(
+        180deg,
+        hsl(var(--primary) / 0.08) 0%,
+        hsl(var(--brand-2) / 0.05) 46%,
+        transparent 100%
+      ),
       radial-gradient(
         90% 70% at 8% 0%,
-        hsl(var(--primary) / 0.30) 0%,
+        hsl(var(--primary) / 0.46) 0%,
         transparent 58%
       ),
       radial-gradient(
         70% 60% at 96% 4%,
-        hsl(var(--brand-2) / 0.28) 0%,
+        hsl(var(--brand-2) / 0.42) 0%,
         transparent 58%
       ),
       radial-gradient(
         80% 60% at 60% 100%,
-        hsl(var(--pop-cyan) / 0.24) 0%,
+        hsl(var(--pop-cyan) / 0.36) 0%,
         transparent 60%
       );
   }
@@ -646,7 +657,13 @@
   .icon-tile {
     @apply flex shrink-0 items-center justify-center rounded-xl;
     background-color: hsl(var(--tile) / 0.14);
-    color: hsl(var(--tile));
+    /* The glyph, pulled 22% toward the theme ink. A raw hue is tuned for
+       filling a shape, not for drawing a 2px stroke on its own wash: at this
+       palette's saturation the cyan, green and orange glyphs fell to
+       2.5–2.6:1 against their tile, under the 3:1 floor for a graphic. The mix
+       keeps the tile vivid while every glyph clears 3:1 in light mode (worst
+       3.65:1) and sits far above it in dark mode. */
+    color: color-mix(in srgb, hsl(var(--tile)) var(--tile-ink-mix, 78%), hsl(var(--foreground)));
     box-shadow: inset 0 0 0 1px hsl(var(--tile) / 0.22);
   }
 
@@ -733,12 +750,12 @@
     background-image:
       radial-gradient(
         80% 90% at 12% 0%,
-        hsl(var(--pop, var(--primary)) / 0.14) 0%,
+        hsl(var(--pop, var(--primary)) / 0.24) 0%,
         transparent 62%
       ),
       radial-gradient(
         70% 80% at 92% 8%,
-        hsl(var(--brand-2) / 0.12) 0%,
+        hsl(var(--brand-2) / 0.20) 0%,
         transparent 62%
       );
     box-shadow: var(--shadow-sm);

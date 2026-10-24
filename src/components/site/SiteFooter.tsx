@@ -42,7 +42,15 @@ export function SiteFooter() {
           closes on the same colour it opened with. */}
       <span
         aria-hidden="true"
-        className="brand-rule absolute inset-x-0 top-0 h-px"
+        className="brand-rule absolute inset-x-0 top-0 h-0.5"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, hsl(var(--primary) / 0.05) 0%, transparent 40%)",
+        }}
       />
       <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6">
         <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">

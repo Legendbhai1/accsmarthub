@@ -182,12 +182,12 @@ describe("the section band is colourful without dropping contrast", () => {
 
   it("keeps the tint wash strength in one token per theme", () => {
     // Both canvases name the mix, and dark is stronger than light — a hue at
-    // 26% is a clear tint on white but is swallowed on the dark card.
+    // 32% is a clear tint on white but is swallowed on the dark card.
     const light = css.match(/--tint-wash-mix:\s*([\d.]+)%/g) ?? [];
     expect(light).toHaveLength(2);
     const values = light.map((s) => Number(s.match(/([\d.]+)%/)![1]));
-    expect(Math.min(...values)).toBe(26);
-    expect(Math.max(...values)).toBeGreaterThan(26);
+    expect(Math.min(...values)).toBe(32);
+    expect(Math.max(...values)).toBeGreaterThan(32);
   });
 
   it("paints the tint card as a flat wash, not a fade to white", () => {
@@ -282,6 +282,73 @@ describe("the section band is colourful without dropping contrast", () => {
           contrast(muted, overCanvas(rgb, wash, token("card", block))),
           `muted-foreground on the ${wash * 100}% --${name} card${block ? " (dark)" : ""}`,
         ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+});
+
+/**
+ * The glyph on a tinted tile is drawn *on top of* the tile's own wash, so it is
+ * the one colour in the palette that has to be measured against a surface made
+ * of itself. A hue tuned to fill a shape is not automatically legible as a 2px
+ * stroke: at this palette's saturation the cyan, green and orange glyphs fell
+ * to 2.5-2.6:1 against their own 14% wash, under the 3:1 floor for a graphic.
+ * The tile therefore pulls its glyph toward the theme ink, and this pins both
+ * the mix and the contrast it buys.
+ */
+describe("the tile glyph stays legible on its own wash", () => {
+  const srgb = (c: number) =>
+    c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  const luminance = ([r, g, b]: number[]) =>
+    0.2126 * srgb(r / 255) + 0.7152 * srgb(g / 255) + 0.0722 * srgb(b / 255);
+  const contrast = (a: number[], b: number[]) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  const hslToRgb = (h: number, s: number, l: number): number[] => {
+    const k = (n: number) => (n + h / 30) % 12;
+    const a = (s / 100) * Math.min(l / 100, 1 - l / 100);
+    const f = (n: number) =>
+      l / 100 - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [f(0), f(8), f(4)].map((v) => Math.round(v * 255));
+  };
+  const overCanvas = (rgb: number[], alpha: number, canvas: number[]) =>
+    rgb.map((v, i) => Math.round(alpha * v + (1 - alpha) * canvas[i]));
+  const mix = (a: number[], b: number[], p: number) =>
+    a.map((v, i) => Math.round(p * v + (1 - p) * b[i]));
+  const token = (name: string, block = "") => {
+    const src = block ? css.slice(css.indexOf(block)) : css;
+    const m = src.match(new RegExp(`--${name}:\\s*([\\d.]+)\\s+([\\d.]+)%\\s+([\\d.]+)%`));
+    expect(m, `--${name} should be a bare HSL triple`).not.toBeNull();
+    return hslToRgb(Number(m![1]), Number(m![2]), Number(m![3]));
+  };
+
+  it("mixes the glyph toward the ink rather than drawing the bare hue", () => {
+    const at = css.indexOf("\n  .icon-tile {");
+    const tile = css.slice(at, at + 700);
+    expect(tile).toMatch(/color:\s*color-mix\(in srgb, hsl\(var\(--tile\)\)/);
+    expect(tile).not.toMatch(/color:\s*hsl\(var\(--tile\)\);/);
+    expect(tile).toMatch(/var\(--tile-ink-mix, 78%\)/);
+  });
+
+  it("clears 3:1 for every theme hue in both themes", () => {
+    const hues = [
+      "primary", "brand-2", "bronze", "info", "success", "warning",
+      "pop-cyan", "pop-green", "pop-orange", "pop-pink",
+    ];
+    const mixMatch = css.match(/--tile-ink-mix:\s*([\d.]+)%/);
+    const inkMix = mixMatch ? Number(mixMatch[1]) / 100 : 0.78;
+    for (const block of ["", ".dark {"]) {
+      const ink = token("foreground", block);
+      const canvas = token("card", block);
+      for (const name of hues) {
+        const hue = token(name, block);
+        const bg = overCanvas(hue, 0.14, canvas);
+        const glyph = mix(hue, ink, inkMix);
+        expect(
+          contrast(glyph, bg),
+          `--${name} glyph on its tile${block ? " (dark)" : ""}`,
+        ).toBeGreaterThanOrEqual(3);
       }
     }
   });
