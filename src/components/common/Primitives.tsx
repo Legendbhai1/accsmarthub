@@ -227,21 +227,31 @@ export function EmptyState({
   title,
   description,
   action,
+  accent = "var(--primary)",
+  icon: Icon = Inbox,
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
+  /** The hue the tile and the panel wash carry. Defaults to the brand. */
+  accent?: string;
+  /** The glyph. Defaults to an inbox, which is the generic "nothing here". */
+  icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="surface flex flex-col items-center px-6 py-16 text-center">
-      {/* The tile and the glyph share one hue. They previously disagreed — a
-          violet disc behind an amber icon — which read as a rendering fault
-          rather than a style. */}
+    <div
+      className="empty-panel flex flex-col items-center px-6 py-16 text-center"
+      style={{ ["--pop" as string]: accent }}
+    >
+      {/* The tile, the glyph and the panel wash share one hue, so an empty
+          state reads as a coloured zone rather than as an unbranded white box.
+          They previously disagreed — a violet disc behind an amber icon —
+          which read as a rendering fault rather than a style. */}
       <span
         className="icon-tile size-14"
-        style={{ ["--tile" as string]: "var(--primary)" }}
+        style={{ ["--tile" as string]: accent }}
       >
-        <Inbox className="size-5" />
+        <Icon className="size-5" />
       </span>
       <h3 className="mt-4 font-semibold">{title}</h3>
       {description && (

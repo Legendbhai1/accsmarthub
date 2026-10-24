@@ -100,9 +100,9 @@
     --secondary: 214 95% 95%;        /* #E6F1FE */
     --secondary-foreground: 224 76% 32%; /* #143590 */
     --muted: 214 33% 97%;            /* #F5F7FA */
-    --muted-foreground: 217 20% 36%; /* #49586E — a soft slate that still clears
-                                        4.5:1 on white and on the 24% section
-                                        wash below. */
+    --muted-foreground: 217 20% 32%; /* #41506B — a soft slate that still clears
+                                        4.5:1 on white and on the 32% section
+                                        wash and the 26% brand tint below. */
     --accent: 214 95% 95%;           /* #E6F1FE */
     --accent-foreground: 224 76% 32%;
     --surface-2: 214 60% 98%;        /* #F7F9FD */
@@ -135,16 +135,23 @@
     --pop-green: 160 84% 34%;        /* #0EA06F */
     /* How strongly `brandTint()` mixes a brand hue into a card, as a
        percentage. These are tokens rather than constants because the same
-       strength does not read the same way on both canvases: 18% over a white
-       card is a clear tint, but over a dark card the hue is swallowed and the
-       tile looks untinted. Dark mode raises the wash (and the hairline with
-       it) so the grid stays colourful there too.
-       `--muted-foreground` was retuned to #49586E alongside these, because at
-       18% a saturated hue lifts the card enough that a lighter grey falls
+       strength does not read the same way on both canvases: a strong wash over
+       a white card is a clear tint, but over a dark card the hue is swallowed
+       and the tile looks untinted. Dark mode raises the wash (and the hairline
+       with it) so the grid stays colourful there too.
+       `--muted-foreground` was retuned to #41506B alongside these, because at
+       26% a saturated hue lifts the card enough that a lighter grey falls
        under 4.5:1 on the rose and crimson tiles. */
-    --tint-wash-mix: 18%;
-    --tint-line-mix: 44%;
+    --tint-wash-mix: 26%;
+    --tint-line-mix: 52%;
     --tint-ink-mix: 62%;
+    /* How strongly `.section-pop` washes a section band, top and bottom. The
+       band is a *band*, not a fill, so the strength is bounded by the contrast
+       of `--muted-foreground` on the strongest stop. It is a token per theme
+       because the same mix does not land the same way on a white canvas and a
+       near-black one — see the `.dark` block. */
+    --band-strong: 32%;
+    --band-soft: 10%;
     /* 12px base. Tailwind's `rounded-lg`/`xl`/`2xl` land on 8/12/16px, which
        is the whole radius system — nothing here is a pill. */
     --radius: 0.75rem;
@@ -198,13 +205,18 @@
     --pop-orange: 27 96% 62%;        /* #FB9541 */
     --pop-cyan: 187 92% 62%;         /* #45E2F7 */
     --pop-green: 158 74% 55%;        /* #37E1A3 */
-    /* The same 18% wash that is a clear tint on a white card reads as almost
-       nothing against a dark one, so it is a shade stronger here. The ink is
-       pulled a little *toward* the hue (a lower mix) so the label keeps more
-       of the brand colour now that the wash is doing less of the work. */
-    --tint-wash-mix: 20%;
-    --tint-line-mix: 46%;
+    /* A wash that is a clear tint on a white card reads as almost nothing
+       against a dark one, so it is stronger here. The ink is pulled a little
+       *toward* the hue (a lower mix) so the label keeps more of the brand
+       colour now that the wash is doing less of the work. */
+    --tint-wash-mix: 28%;
+    --tint-line-mix: 54%;
     --tint-ink-mix: 55%;
+    /* The band is weaker here than in light mode: on a near-black canvas a
+       32% wash of a light pop hue lifts the band far more than the same mix
+       does on white, and `--muted-foreground` would fall under 4.5:1. */
+    --band-strong: 24%;
+    --band-soft: 8%;
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
     --shadow-md: 0 4px 14px -4px hsl(0 0% 0% / 0.5);
     --shadow-lg: 0 18px 40px -18px hsl(0 0% 0% / 0.6);
@@ -522,17 +534,17 @@
     background-image:
       radial-gradient(
         90% 70% at 8% 0%,
-        hsl(var(--primary) / 0.22) 0%,
+        hsl(var(--primary) / 0.30) 0%,
         transparent 58%
       ),
       radial-gradient(
         70% 60% at 96% 4%,
-        hsl(var(--brand-2) / 0.2) 0%,
+        hsl(var(--brand-2) / 0.28) 0%,
         transparent 58%
       ),
       radial-gradient(
         80% 60% at 60% 100%,
-        hsl(var(--pop-cyan) / 0.16) 0%,
+        hsl(var(--pop-cyan) / 0.24) 0%,
         transparent 60%
       );
   }
@@ -542,17 +554,17 @@
     background-image:
       radial-gradient(
         90% 70% at 8% 0%,
-        hsl(var(--primary) / 0.22) 0%,
+        hsl(var(--primary) / 0.30) 0%,
         transparent 58%
       ),
       radial-gradient(
         70% 60% at 96% 4%,
-        hsl(var(--brand-2) / 0.2) 0%,
+        hsl(var(--brand-2) / 0.28) 0%,
         transparent 58%
       ),
       radial-gradient(
         80% 60% at 60% 100%,
-        hsl(var(--pop-cyan) / 0.16) 0%,
+        hsl(var(--pop-cyan) / 0.24) 0%,
         transparent 60%
       );
   }
@@ -572,12 +584,15 @@
     );
   }
 
-  /* A free-floating blurred colour orb. `--orb` is set inline by the caller. */
+  /* A free-floating blurred colour orb. `--orb` is set inline by the caller.
+     It sits behind the hero copy, so its opacity is capped: at 0.55 a rose
+     bloom under the centred paragraph pushed `--muted-foreground` to 4.42:1.
+     0.45 keeps the copy AA on every bloom. */
   .orb {
     position: absolute;
     border-radius: 9999px;
     filter: blur(60px);
-    opacity: 0.55;
+    opacity: 0.45;
     background: radial-gradient(
       circle at 30% 30%,
       hsl(var(--orb)),
@@ -682,20 +697,42 @@
      The band runs from a stronger wash at the top to a light one at the
      bottom, so two adjacent sections read as different colours at a glance
      rather than as one continuous tint. It is a *band*, not a fill: body copy
-     sits on the light end and `--muted-foreground` (#49586E) clears 4.5:1 on
-     the strongest wash at 24% — both the strength and that ratio are pinned by
+     sits on the light end and `--muted-foreground` (#41506B) clears 4.5:1 on
+     the strongest wash at 32% — both the strength and that ratio are pinned by
      tests/theme.test.ts. */
   .section-pop {
     background-image: linear-gradient(
       180deg,
-      color-mix(in srgb, hsl(var(--pop, var(--primary))) 24%, transparent) 0%,
-      color-mix(in srgb, hsl(var(--pop, var(--primary))) 6%, transparent) 100%
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-strong, 32%), transparent) 0%,
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-soft, 10%), transparent) 100%
     );
   }
 
   /* `.card` is an alias of `.surface` so the two names cannot drift apart. */
   .card {
     @apply rounded-xl border border-border bg-card;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* An empty state, which on a young marketplace is the *largest* surface on
+     the page — an unbranded white panel with one grey glyph is what made the
+     storefront read as unfinished rather than as a shop that is simply new.
+     It carries the same soft multi-hue wash as the hero, at a low enough alpha
+     that the copy on top keeps its contrast, plus a brand hairline so the
+     panel reads as a deliberate zone. `--pop` picks the hue per instance. */
+  .empty-panel {
+    @apply relative overflow-hidden rounded-2xl border border-border bg-card;
+    background-image:
+      radial-gradient(
+        80% 90% at 12% 0%,
+        hsl(var(--pop, var(--primary)) / 0.14) 0%,
+        transparent 62%
+      ),
+      radial-gradient(
+        70% 80% at 92% 8%,
+        hsl(var(--brand-2) / 0.12) 0%,
+        transparent 62%
+      );
     box-shadow: var(--shadow-sm);
   }
 

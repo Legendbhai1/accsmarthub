@@ -150,10 +150,28 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
     those properties. Use the first for anything keyed to a platform, the
     second for anything keyed to a theme token (`tokenTint("--info")`).
   The mix strengths are tokens (`--tint-wash-mix`, `--tint-line-mix`,
-  `--tint-ink-mix`) and dark mode raises them: an 18% hue is a clear tint on a
-  white card but is swallowed on a dark one, so the dark canvas uses 20/46/55.
+  `--tint-ink-mix`) and dark mode raises them: a 26% hue is a clear tint on a
+  white card but is swallowed on a dark one, so the dark canvas uses 28/54/55.
   `--tint-ink` is the hue mixed toward the theme ink, which is what keeps a
   label readable in *both* themes — a raw brand hex is not safe as text.
+- **`.section-pop` strength is a per-theme token too.** `--band-strong` /
+  `--band-soft` set the top and bottom stop of the band (32%/10% on white,
+  24%/8% on dark). The same mix does not land the same way on a white canvas
+  and a near-black one, so they are not hardcoded in the rule. `--muted-foreground`
+  is tuned alongside them: it is a slate dark enough to clear 4.5:1 on the
+  *strongest* band and on a brand-tinted card in either theme, which is what
+  lets the bands be this saturated. `tests/theme.test.ts` recomputes that ratio
+  from the tokens for both themes, so raising a band means raising the ink.
+- **`.empty-panel` is the empty state, and on a new marketplace it is the
+  largest surface on the page.** An unbranded white panel with one grey glyph
+  is what made the storefront read as unfinished. It carries a soft multi-hue
+  wash (the hero's, at a low alpha) plus a `--pop` icon tile, so "nothing here
+  yet" is a coloured zone rather than a blank. `EmptyState` takes an `accent`
+  and an `icon`; pass a `--pop-*` token for the hue.
+- **The orbs are capped at 0.45 opacity on purpose.** They sit behind the hero
+  copy, and at 0.55 a rose bloom under the centred paragraph dropped
+  `--muted-foreground` to 4.42:1. Do not raise it without re-measuring the
+  rendered hero.
 - **A pop/tint token is a bare HSL triple, so wrap it in `hsl()` before using
   it as a colour.** This is the trap that made the coloured bands invisible
   when they were first added: `color-mix(in srgb, var(--pop-cyan) 9%, ...)` is
@@ -166,11 +184,11 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
 - **Colour is an accent, not a background.** The brand ramp belongs on the
   wordmark tile, the hero wash, the CTA panel, the promo banner, an active rail
   indicator and one icon tile — never as a saturated fill behind body copy or
-  on every card. A `.section-pop` band and a `.tint-card` wash are the
-  *deliberate* exceptions: they are hue at 6–24%, chosen so the text on top
-  keeps its contrast, not saturated fills. `bg-primary` is a flat blue, and
-  `.brand-gradient` is deliberately not used on the primary button, because a
-  gradient on the main action reads as glossy.
+  on every card. A `.section-pop` band, a `.tint-card` wash and an
+  `.empty-panel` are the *deliberate* exceptions: they are hue at 8–32%, chosen
+  so the text on top keeps its contrast, not saturated fills. `bg-primary` is a
+  flat blue, and `.brand-gradient` is deliberately not used on the primary
+  button, because a gradient on the main action reads as glossy.
 - **The animated gradients stop at rose.** Amber and the `--pop-*` hues are
   lighter, so ending a *panning* ramp on one drops the contrast of the white
   text the CTA and promo panels carry. `.brand-gradient-animated` therefore
@@ -358,6 +376,24 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   redefines `resolve_report`, which `0001` also defines, so presence alone
   proved nothing; the sentinel now checks for `0015`'s specific self-report
   guard.
+- **`ACCSMART_DB` and `settlement_test.dsn` must name the same database, or
+  the dblink suites fail for a reason that has nothing to do with the code.**
+  `tests/run-db-tests.sh` builds `$ACCSMART_DB` (default `accsmarthub_tests`),
+  but the concurrency cases in `settlement.sql` and `credential_claim_guard.sql`
+  open a *second* connection to whatever `settlement_test.dsn` points at. If the
+  two differ, the outer session writes to one database and the dblink session to
+  another, and the race assertions read 0 rows — `7a concurrent callbacks credit
+  exactly once` reports `ledger rows for OX-C: 0`, which looks exactly like a
+  settlement bug. `ACCSMART_DB` must be **exported**, not just set: `FOO=x cmd`
+  in a loop body does not export it, so the harness silently falls back to its
+  default while the DSN still names the intended one. Set both, with `export`,
+  before running anything that uses dblink. The DSN also needs a loopback
+  connection that authenticates without prompting: on the local cluster that
+  means `host all all 127.0.0.1/32 trust` in `pg_hba.conf` (reload, do not
+  restart), or a DSN that carries a password. A `scram-sha-256` loopback rule
+  and a passwordless DSN fail with `fe_sendauth: no password supplied`, and the
+  suite then aborts mid-transaction with `current transaction is aborted`
+  cascading down every later assertion.
 - **`wallet_ledger.kind` decides where a credit belongs, and the pool column
   says which balance it lands in.** `purchase`, `escrow_hold` and
   `escrow_release` are trade money; `deposit` and `adjustment` are top-ups;
