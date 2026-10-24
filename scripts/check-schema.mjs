@@ -266,6 +266,52 @@ const SENTINELS = [
               and not has_function_privilege(
                     'anon', 'public.checkout(uuid,uuid[],integer,text)', 'execute')`,
   },
+  {
+    file: "0022_credential_claim_guard.sql",
+    what: "post-claim credential-count guard in place_order/checkout",
+    // 0022 is a function-body migration, so a `to_regprocedure` proves
+    // nothing (0009/0013/0018 define the same functions). The probe asserts
+    // the guard text only 0022 introduces: the count is verified AFTER the
+    // claim, which is the only check that cannot race the claim statement.
+    probe: `select pg_get_functiondef(
+                    'public.place_order(uuid,integer,text)'::regprocedure
+                  ) like '%Not enough accounts in stock for this listing%'
+              and pg_get_functiondef(
+                    'public.checkout(uuid,uuid[],integer,text)'::regprocedure
+                  ) like '%Not enough accounts in stock%'`,
+  },
+  {
+    file: "0023_listing_delivery_mode.sql",
+    what: "explicit listings.delivery_mode plus its CHECK",
+    probe: `select exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'listings'
+                and column_name = 'delivery_mode')
+              and exists (select 1 from pg_constraint
+              where conname = 'listings_delivery_mode_check')`,
+  },
+  {
+    file: "0024_revoke_client_grants.sql",
+    what: "client write grants removed, catalogue reads kept",
+    // A grants migration cannot be proved by `to_regclass`; the probe asserts
+    // both directions — the money table is no longer client-writable, and the
+    // public catalogue is still readable, which is the regression 0024 could
+    // plausibly cause.
+    probe: `select not has_table_privilege('authenticated','public.wallets','UPDATE')
+              and not has_table_privilege('authenticated','public.wallet_ledger','INSERT')
+              and not has_table_privilege('anon','public.orders','SELECT')
+              and has_table_privilege('anon','public.listings','SELECT')
+              and has_function_privilege('anon','public.is_admin()','EXECUTE')`,
+  },
+  {
+    file: "0025_request_authorization.sql",
+    what: "party guard on resolve_order_request",
+    probe: `select pg_get_functiondef(
+                    'public.resolve_order_request(uuid,text,text)'::regprocedure
+                  ) like '%Only a party to the order or an administrator can resolve this request%'
+              and pg_get_functiondef(
+                    'public.resolve_order_request(uuid,text,text)'::regprocedure
+                  ) like '%2000 characters%'`,
+  },
 ];
 
 async function runQuery(query) {

@@ -126,11 +126,12 @@ on conflict (id) do nothing;
 --   platform commission 10%       = 10
 --   seller net                    = 90
 insert into public.listings
-  (id, listing_key, seller_id, store_id, title, brand, price_usd, stock, status, hidden)
+  (id, listing_key, seller_id, store_id, title, brand, price_usd, stock, status,
+   hidden, delivery_mode)
 values ('bbbbbbbb-0000-0000-0000-000000000001', 'key-1',
         '22222222-2222-2222-2222-222222222222',
         'aaaaaaaa-0000-0000-0000-000000000001',
-        'Test Account', 'instagram', 100, 1, 'active', false)
+        'Test Account', 'instagram', 100, 1, 'active', false, 'credential')
 on conflict (id) do nothing;
 
 -- A manual-delivery listing: no credential units, so checkout leaves it
@@ -147,7 +148,9 @@ on conflict (id) do nothing;
 create or replace function public.test_restock(p_unit text)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  update public.listings set stock = 1
+  -- 0023: a listing with attached units is credential-backed, and the mode is
+  -- pinned for a non-trusted writer, so the fixture declares it here.
+  update public.listings set stock = 1, delivery_mode = 'credential'
    where id = 'bbbbbbbb-0000-0000-0000-000000000001';
   insert into public.listing_credentials
     (id, listing_id, seller_id, unit_key, ciphertext, file_name)
@@ -658,11 +661,13 @@ begin
   perform public.test_expect('7e a client cannot promote themselves to admin',
     $q$update public.profiles set is_admin = true where id = '11111111-1111-1111-1111-111111111111'$q$,
     true);
-  -- There is no UPDATE policy on wallets, so this statement matches zero rows
-  -- rather than raising. The assertion below proves the value did not move.
-  -- `spendable_usd` is the pool under test now that `balance_usd` is generated.
-  perform public.test_expect_ok('7f a direct wallet update is silently a no-op',
-    $q$update public.wallets set spendable_usd = 999999 where user_id = '11111111-1111-1111-1111-111111111111'$q$);
+  -- 0024 revoked write on wallets from `authenticated`, so this is refused at
+  -- the privilege layer. The assertion below still proves the value did not
+  -- move. `spendable_usd` is the pool under test now that `balance_usd` is
+  -- generated.
+  perform public.test_expect('7f a client cannot write a wallet directly',
+    $q$update public.wallets set spendable_usd = 999999 where user_id = '11111111-1111-1111-1111-111111111111'$q$,
+    true);
   perform public.test_expect('7g a client cannot forge an order event',
     $q$insert into public.order_events (order_no, event) values ('AMH-X', 'forged')$q$,
     true);
@@ -690,36 +695,25 @@ end
 $$;
 
 -- ============================================ 8. ANONYMOUS IS LOCKED OUT
+-- 0024 revoked anon's privileges on the private tables, so an anonymous
+-- reader is refused at the privilege layer, not merely filtered to zero rows
+-- by RLS. Both are "locked out"; the privilege is the stronger guarantee,
+-- because it holds even if a future policy is written too loosely. Section 9
+-- keeps the RLS-level checks for `authenticated`, which still holds SELECT.
 do $$
 begin
   perform set_config('request.jwt.claims', '{"role":"anon"}', false);
   set local role anon;
 
-  -- A policy filters rows rather than raising, so an anonymous reader gets an
-  -- empty result. That is the correct outcome; the assertions below check it.
-  perform public.test_expect_ok('8a an anonymous read of orders is allowed but empty',
-    $q$select count(*) from public.orders$q$);
+  perform public.test_expect('8a an anonymous read of orders is refused',
+    $q$select count(*) from public.orders$q$, true);
+  perform public.test_expect('8b an anonymous read of wallets is refused',
+    $q$select count(*) from public.wallets$q$, true);
+  perform public.test_expect('8c an anonymous read of the audit trail is refused',
+    $q$select count(*) from public.admin_audit$q$, true);
   perform public.test_expect('8d an anonymous caller cannot open a dispute',
     $q$select public.open_dispute('AMH-X', 'other', 'anonymous attempt here')$q$, true);
   reset role;
-end
-$$;
-
-do $$
-declare v_orders integer; v_wallets integer; v_audit integer;
-begin
-  perform set_config('request.jwt.claims', '{"role":"anon"}', false);
-  set local role anon;
-  select count(*) into v_orders from public.orders;
-  select count(*) into v_wallets from public.wallets;
-  select count(*) into v_audit from public.admin_audit;
-  reset role;
-  perform public.test_check('8b an anonymous reader sees zero orders through RLS',
-    v_orders = 0, 'visible=' || v_orders);
-  perform public.test_check('8c an anonymous reader sees zero wallets through RLS',
-    v_wallets = 0, 'visible=' || v_wallets);
-  perform public.test_check('8e an anonymous reader sees zero audit rows through RLS',
-    v_audit = 0, 'visible=' || v_audit);
 end
 $$;
 
@@ -1112,10 +1106,10 @@ begin
     $q$insert into public.payout_requests (seller_id, amount_usd, method, destination)
        values ('22222222-2222-2222-2222-222222222222', 999, 'Bank transfer', 'self-serve')$q$,
     true);
-  -- RLS with no update policy filters every row out rather than raising, so
-  -- this asserts the update matched nothing instead of expecting an error.
-  perform public.test_expect_ok('17j a client update of a payout is filtered out',
-    $q$update public.payout_requests set status = 'paid'$q$);
+  -- 0024 revoked write on payout_requests from `authenticated`, so this is
+  -- now refused at the privilege layer rather than filtered to zero rows.
+  perform public.test_expect('17j a client cannot update a payout',
+    $q$update public.payout_requests set status = 'paid'$q$, true);
   reset role;
 
   perform public.test_check('17k the refused payout reserved nothing extra',

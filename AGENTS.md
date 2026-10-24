@@ -397,3 +397,65 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   chevron that sat beside the hamburger was a *second* control reading as an
   identical menu button; it was removed, not restyled.
 
+- **The delivery mode is a column now, not a guess.** `listings.delivery_mode`
+  (`credential` | `manual`, added by `0023`) is what decides how an order is
+  delivered, instead of `finish_single_order_delivery()` inferring it from the
+  claimed-credential count. `credential` means every unit charged for must be
+  claimed (`claimed = quantity`); `manual` means the platform hands nothing over
+  and the claim is skipped entirely. The mode is set at insert (default
+  `manual`), promoted to `credential` by `upload_credentials()`, and pinned by
+  `guard_listing_moderation` for a non-trusted writer exactly like `status` and
+  `stock`.
+- **Inferring the mode was the whole bug.** A credential listing whose `stock`
+  counter drifted above its credential pool could be checked out with
+  `claimed = 0`; `finish_single_order_delivery` then read that as "manual" and
+  the buyer paid for a digital product that was never handed over. `0022`'s
+  `claimed in (0, quantity)` could not tell that apart from a legitimate manual
+  listing — only the explicit mode can.
+- **`place_order` (Buy Now) used to reject every manual listing.** It required
+  `v_free >= quantity`, and a manual listing has no units, so the precheck now
+  applies only to `credential` listings. The cart `checkout` never had that
+  precheck, which is why manual listings only worked through the cart.
+- **The product is credential-only today.** Every seller-facing path attaches
+  units (`upload_credentials` sets `stock = count(unclaimed)`, and the UI copy
+  says "stock is the number of unclaimed accounts"), and no RPC sets `stock`
+  without credentials. So `manual` is a correct, tested backend mode with no
+  seller-facing way to *create* one yet — a manual listing is what you get for
+  an un-credentialed row (tests, a future admin/fulfilment path), not something
+  the current UI can produce.
+- **Each migration has a matching rollback.** `supabase/rollback/*.sql` restore
+  the LATEST prior definition of every function a migration replaced, extracted
+  verbatim from the migration that last wrote it. Roll 0023 back *before* 0022:
+  0023 re-defines the same three order functions on top of 0022, so undoing 0022
+  underneath it would leave the two out of order.
+- **The client-facing grant surface has its own read-only audit.**
+  `supabase/preflight/0003_grants_audit.sql` lists what `anon` and
+  `authenticated` can actually reach (tables, columns, sequences, functions,
+  default privileges) and flags the ones that should not exist. It uses
+  `has_table_privilege`/`has_function_privilege`, not
+  `information_schema.role_table_grants`, because the latter hides privileges
+  granted to PUBLIC — and a function with `proacl is null` is EXECUTE-able by
+  `anon` by default. `F8` flags `security_invoker=false` views, which return
+  rows the caller could not read from the base table.
+- **Replacing a function means copying the LATEST definition forward, not the
+  one you remember.** `resolve_order_request` is written three times (0009,
+  0013, 0025). 0013 added a note-length limit, a confirmed-order check and the
+  `settle_order_refund` settlement path; 0009's earlier body lacks all three.
+  Rewriting the function from 0009 silently dropped every 0013 refinement —
+  and the same mistake on `mark_notifications_read` replaced a working
+  ownership guard with 0009's `return sql%rowcount`, which is **not valid
+  PL/pgSQL** (the correct form is `get diagnostics v_n = row_count`). Read the
+  live definition with `pg_get_functiondef(...)` and diff it against the file
+  before editing: `select pg_get_functiondef('public.f(uuid)'::regprocedure)`.
+  A `create or replace` that shortens a function is a regression the compiler
+  cannot see, because `check_function_bodies` does not reject `sql%rowcount`.
+- **A migration that changes authorization needs a party guard, not just a
+  role guard.** `resolve_order_request` checked *who may approve* and left
+  *who may dismiss* open: it is `SECURITY DEFINER`, so its `select ... for
+  update` reads the request row with the owner's rights and RLS does not hide
+  it. Any signed-in stranger who knew a request id could close it, and a
+  dismissed cancellation is the denial-of-refund primitive. The fix checks
+  `can_moderate()` first, then that the caller is the order's buyer or seller,
+  then that the caller is not the request's own author. `tests/request_authorization.sql`
+  pins all three plus the admin path.
+
