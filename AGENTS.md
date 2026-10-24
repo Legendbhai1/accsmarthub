@@ -124,7 +124,7 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   matching family silently falls back to the body font, so check the computed
   `font-family` if a heading looks wrong.
 - **The brand is blue, with rose and amber as its two supporting hues.**
-  `--primary` is a vivid commerce blue (#1555E0), `--brand-2` rose (#D11A6C) and
+  `--primary` is a vivid commerce blue (#0B64F4), `--brand-2` rose (#DE177A) and
   `--brand-3` amber (#BD6705); `.brand-gradient` sweeps blue -> rose and
   `.text-gradient` sweeps the same ramp as text. `--info` is a real sky blue
   (#096C9A) and means "information" only. If something needs to say "this is
@@ -136,6 +136,15 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   pillars and the commitment row get visual variety without each section
   inventing its own colour. Do not use a `--pop-*` hue for a button, a status
   or any text.
+- **An `.icon-tile` glyph is mixed toward the ink, not drawn as the bare hue.**
+  The tile paints a 14% wash of `--tile` and draws the glyph on top of it, so
+  the glyph is measured against a surface made of itself. A raw hue is tuned to
+  fill a shape, not to stroke a 2px line on its own wash: at the palette's
+  saturation the cyan, green and orange glyphs fell to 2.5–2.6:1, under the 3:1
+  floor for a graphic. The rule mixes `--tile-ink-mix` (default 78%, i.e. 22%
+  ink) so every glyph clears 3:1 in light mode. `tests/theme.test.ts` recomputes
+  it for all ten hues in both themes, so raising a pop hue means re-checking the
+  mix rather than eyeballing it.
 - **A section can carry its own hue, and a card its own brand.** Three classes
   do the colour work, all in `src/index.css` and all driven by custom
   properties set inline:
@@ -150,13 +159,13 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
     those properties. Use the first for anything keyed to a platform, the
     second for anything keyed to a theme token (`tokenTint("--info")`).
   The mix strengths are tokens (`--tint-wash-mix`, `--tint-line-mix`,
-  `--tint-ink-mix`) and dark mode raises them: a 26% hue is a clear tint on a
-  white card but is swallowed on a dark one, so the dark canvas uses 28/54/55.
+  `--tint-ink-mix`) and dark mode raises them: a 32% hue is a clear tint on a
+  white card but is swallowed on a dark one, so the dark canvas uses 34/58/55.
   `--tint-ink` is the hue mixed toward the theme ink, which is what keeps a
   label readable in *both* themes — a raw brand hex is not safe as text.
 - **`.section-pop` strength is a per-theme token too.** `--band-strong` /
-  `--band-soft` set the top and bottom stop of the band (32%/10% on white,
-  24%/8% on dark). The same mix does not land the same way on a white canvas
+  `--band-soft` set the top and bottom stop of the band (44%/12% on white,
+  30%/10% on dark). The same mix does not land the same way on a white canvas
   and a near-black one, so they are not hardcoded in the rule. `--muted-foreground`
   is tuned alongside them: it is a slate dark enough to clear 4.5:1 on the
   *strongest* band and on a brand-tinted card in either theme, which is what
@@ -185,7 +194,7 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
 - **A pop/tint token is a bare HSL triple, so wrap it in `hsl()` before using
   it as a colour.** This is the trap that made the coloured bands invisible
   when they were first added: `color-mix(in srgb, var(--pop-cyan) 9%, ...)` is
-  invalid — `var(--pop-cyan)` resolves to the text `189 94% 35%`, which is not
+  invalid — `var(--pop-cyan)` resolves to the text `189 90% 40%`, which is not
   a colour, so the whole declaration is dropped silently and the section
   renders plain. `hsl(var(--pop-cyan))` is the fix, and it is the same
   convention `.orb` and `.icon-tile` use. `tests/theme.test.ts` pins that no
@@ -195,7 +204,7 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   wordmark tile, the hero wash, the CTA panel, the promo banner, an active rail
   indicator and one icon tile — never as a saturated fill behind body copy or
   on every card. A `.section-pop` band, a `.tint-card` wash and an
-  `.empty-panel` are the *deliberate* exceptions: they are hue at 8–32%, chosen
+  `.empty-panel` are the *deliberate* exceptions: they are hue at 8–44%, chosen
   so the text on top keeps its contrast, not saturated fills. `bg-primary` is a
   flat blue, and `.brand-gradient` is deliberately not used on the primary
   button, because a gradient on the main action reads as glossy.
