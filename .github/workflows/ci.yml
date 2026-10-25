@@ -26,13 +26,20 @@ concurrency:
 jobs:
   app:
     name: TypeScript, lint, unit tests, build
-    runs-on: ubuntu-latest
+    # Pinned rather than `ubuntu-latest`: `latest` resolved to the brand-new
+    # ubuntu-26.04 (`resolute`), which makes the gate a moving target. 24.04 is
+    # the current LTS and is what the pgdg packages below are known-good on.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # @supabase/*@2.118 declares `node: >=22`. Its realtime client needs
+          # a native WebSocket, and on Node 20 `createClient` throws "Node.js
+          # detected but native WebSocket not found" — which fails every test
+          # file that transitively imports src/lib/supabase.ts.
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -52,7 +59,7 @@ jobs:
 
   database:
     name: Database tests (PostgreSQL ${{ matrix.postgres }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -69,9 +76,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-${{ matrix.postgres }} postgresql-contrib-${{ matrix.postgres }}
 
-      - name: Start the cluster
+      - name: Create and start the cluster
         run: |
+          # The pgdg package does not reliably leave a `main` cluster behind on
+          # this runner image, and `pg_ctlcluster` fails outright when one is
+          # missing ("specified cluster '17 main' does not exist"). Create it
+          # only when absent, so an image that does ship one is left alone.
+          if ! sudo pg_lsclusters -h | awk '{print $1, $2}' \
+               | grep -qx "${{ matrix.postgres }} main"; then
+            sudo pg_createcluster ${{ matrix.postgres }} main
+          fi
           sudo pg_ctlcluster ${{ matrix.postgres }} main start
+          sudo pg_lsclusters
           sudo -u postgres psql -c "alter user postgres password 'postgres';"
 
       # The suites connect through `sudo -u postgres` (peer auth on the local
