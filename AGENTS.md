@@ -587,6 +587,22 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   those are success signals and a transition has not succeeded at anything.
   `tests/route_loading.test.ts` pins the mechanism, the duration window and
   the reduced-motion path.
+- **Colour tokens are only half the job — the container has to use the width.**
+  The palette is a vibrant commerce set and the homepage renders ~40% coloured
+  pixels, but the marketplace and auth pages measured near-monochrome at
+  1440px (`auth` 0.7%, `marketplace` 3.9%) while being colourful on a phone
+  (`categories` 74.7% at 390px). The cause was layout, not tokens:
+  `Marketplace.tsx` used `max-w-md` on every container with no breakpoint, so a
+  1440px viewport showed a 448px column with two thirds of the screen as empty
+  white gutter. Each container now carries a `sm:max-w-7xl` partner and the
+  listing grid gains columns (`grid-cols-2 sm:grid-cols-3 lg:grid-cols-4`), and
+  the listings sit in a `.section-pop` band. Measured after: `marketplace`
+  25%, `auth` 4.3%. When a page "looks colourless" on a desktop, screenshot it
+  at 1440px and count hues before touching a token — a phone screenshot will
+  lie to you. `tests/storefront_colour.test.ts` pins the wide containers, the
+  responsive grid and the band. Note the site header overflows horizontally
+  (30px at 768px, 259px at 1024px) from its auth buttons — pre-existing, on
+  every page including `/`, and unrelated to the palette.
 
 
 ## CI (`.github/workflows/ci.yml`)

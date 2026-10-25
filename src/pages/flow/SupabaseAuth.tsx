@@ -330,13 +330,25 @@ export default function SupabaseAuth() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
+      {/* A soft brand wash behind the whole page so signing in does not read as
+          a blank white sheet. It is the hero's wash at a low alpha, and it sits
+          under everything (`-z-10`) so no form control is ever tinted by it. */}
+      <div
+        aria-hidden="true"
+        className="brand-wash pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px]"
+      />
       <div className="flex items-center px-4 py-5 sm:px-6">
         <Logo />
       </div>
 
       <main className="flex flex-1 items-start justify-center px-4 pb-16">
-        <div className="surface w-full max-w-md p-8">
+        <div className="surface w-full max-w-md overflow-hidden p-0">
+          <span
+            aria-hidden="true"
+            className="brand-gradient block h-1.5 w-full"
+          />
+          <div className="p-8">
           {screen !== "sent" && (
             <>
               <h1 className="text-xl font-bold tracking-tight">
@@ -575,6 +587,7 @@ export default function SupabaseAuth() {
               )}
             </>
           )}
+          </div>
         </div>
       </main>
 

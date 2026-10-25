@@ -48,7 +48,7 @@ function AccountCard({
     // backdrop-filter per card is what makes a long list stutter on a phone.
     <article
       style={brandTint(listing.brand)}
-      className="group rounded-3xl border border-border/70 bg-card/70 p-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.5)] hover:border-[var(--tint)]"
+      className="tint-card group rounded-3xl border border-border/70 bg-card/70 p-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_34px_-20px_rgba(0,0,0,0.5)] hover:border-[var(--tint)]"
     >
       <div className="relative">
         <Link
@@ -106,7 +106,7 @@ function AccountCard({
             {formatPrice(listing.priceUsd)}
           </span>
           {listing.discountPercent != null && listing.discountPercent > 0 && (
-            <span className="rounded bg-muted px-1 text-[10px] font-semibold text-muted-foreground">
+            <span className="rounded bg-success/12 px-1 text-[10px] font-semibold text-success">
               -{listing.discountPercent}%
             </span>
           )}
@@ -264,7 +264,7 @@ export default function Marketplace() {
     <div className="relative min-h-screen bg-background pb-32">
       {/* ---------------------------- App header ---------------------------- */}
       <header className="px-4 pt-5">
-        <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3 sm:max-w-7xl">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary">
               <svg viewBox="0 0 24 24" className="size-5 text-primary-foreground" fill="currentColor" aria-hidden="true">
@@ -312,7 +312,7 @@ export default function Marketplace() {
         </div>
 
         {searchOpen && (
-          <form onSubmit={submitSearch} role="search" className="mx-auto mt-4 max-w-md">
+          <form onSubmit={submitSearch} role="search" className="mx-auto mt-4 max-w-md sm:max-w-7xl">
             <label htmlFor="marketplace-search" className="sr-only">
               Search social media accounts
             </label>
@@ -333,7 +333,7 @@ export default function Marketplace() {
         {/* The page's one `h1`. The header above carries the wordmark only, so
             before this the document had no top-level heading at all and a
             screen reader announced the page by its `<title>` alone. */}
-        <div className="mx-auto mt-5 max-w-md">
+        <div className="mx-auto mt-5 max-w-md sm:max-w-7xl">
           <h1 className="page-title">Marketplace</h1>
           <p className="page-sub mt-1">
             Every account here was reviewed by an admin before it went live.
@@ -343,7 +343,7 @@ export default function Marketplace() {
 
       {/* ---------------------------- Promo banner ---------------------------- */}
       <section className="mt-5 px-4">
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-md sm:max-w-7xl">
           <div
             key={slide}
             className="brand-gradient-animated relative overflow-hidden rounded-2xl border border-transparent px-5 py-6 text-primary-foreground shadow-lg shadow-primary/20"
@@ -393,7 +393,7 @@ export default function Marketplace() {
           className="flex gap-4 overflow-x-auto px-4 pb-1"
           style={{ scrollbarWidth: "none" }}
         >
-          <div className="mx-auto flex w-max max-w-md gap-4">
+          <div className="mx-auto flex w-max max-w-md gap-4 sm:max-w-7xl">
             <button
               type="button"
               onClick={() => goCategory(null)}
@@ -448,8 +448,8 @@ export default function Marketplace() {
       </section>
 
       {/* ------------------------------ Listings ------------------------------ */}
-      <main className="mt-7 px-4">
-        <div className="mx-auto max-w-md">
+      <main className="section-pop mt-7 py-10" style={{ ["--pop" as string]: "var(--pop-cyan)" }}>
+        <div className="mx-auto max-w-md px-4 sm:max-w-7xl">
           <div className="flex items-baseline justify-between">
             <h2 className="text-[19px] font-bold tracking-tight text-foreground">New arrivals</h2>
             <span className="text-[11px] text-muted-foreground">
@@ -583,7 +583,7 @@ export default function Marketplace() {
             </div>
           ) : (
             <>
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {paged.map((listing) => (
                   <AccountCard
                     key={listing.id}
