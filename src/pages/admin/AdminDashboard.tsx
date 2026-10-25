@@ -73,7 +73,39 @@ export default function AdminDashboard() {
           open cases all feed into the same operational view.
         </p>
 
-        {stats ? (
+        {statsQuery.error ? (
+          // A failed fetch used to be indistinguishable from an empty platform:
+          // the grid below rendered "$0 volume, 0 users" as if it were real
+          // data. An error state is the only honest thing to show.
+          <div className="surface overflow-hidden">
+            <EmptyState
+              title="Platform figures could not be loaded"
+              description={statsQuery.error}
+              action={
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={statsQuery.refresh}
+                >
+                  Try again
+                </Button>
+              }
+            />
+          </div>
+        ) : !stats ? (
+          <div
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            aria-busy="true"
+          >
+            {cards.map(({ label }) => (
+              <div
+                key={label}
+                className="h-[104px] animate-pulse rounded-2xl border border-border/70 bg-muted/40"
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+        ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {cards.map(({ label, key, icon: Icon, money }) => (
               <div
@@ -110,13 +142,6 @@ export default function AdminDashboard() {
                 )}
               </div>
             ))}
-          </div>
-        ) : (
-          <div className="surface overflow-hidden">
-            <EmptyState
-              title="No metrics yet"
-              description="Platform figures appear here once orders, users, and stores are in the system."
-            />
           </div>
         )}
 

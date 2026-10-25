@@ -299,6 +299,21 @@ async function fetchPlatformStats(): Promise<PlatformStats> {
       .in("status", ["open", "under_review"]),
   ]);
 
+  // A failed query must not be indistinguishable from an empty platform.
+  // Every result here used to be read as `data ?? []`, so an RLS rejection or
+  // a missing table rendered a dashboard of confident zeros — "$0 volume,
+  // 0 users" — with no hint that the numbers were never fetched. Fail loudly
+  // instead; the page renders the error state below.
+  const failed = [
+    ordersResult,
+    profilesResult,
+    storesResult,
+    listingsResult,
+    reportsResult,
+    disputesResult,
+  ].find((r) => r.error);
+  if (failed?.error) throw new Error(friendlyError(failed.error));
+
   const orders = ordersResult.data ?? [];
   const grossVolume = orders.reduce((s, o) => s + Number(o.gross_amount ?? 0), 0);
   const commission = orders.reduce((s, o) => s + Number(o.commission_amount ?? 0), 0);
