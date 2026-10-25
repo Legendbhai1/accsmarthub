@@ -687,13 +687,33 @@ export async function uploadCredentials(input: {
   const { data, error } = await supabase.functions.invoke("upload-credentials", {
     body: { listingId: input.listingId, units: input.units },
   });
-  if (error) throw new Error(friendlyError(error));
+  if (error) throw new Error(await edgeFunctionError(error));
   return (data ?? {}) as {
     uploaded: number;
     attached?: boolean;
     totalUnits?: number;
     availableUnits?: number;
   };
+}
+
+/**
+ * `functions.invoke` reports any non-2xx as the generic "Edge Function
+ * returned a non-2xx status code" and leaves the useful text in the response
+ * body. Read it out so the seller is told what actually went wrong rather than
+ * that something, somewhere, failed.
+ */
+async function edgeFunctionError(error: unknown): Promise<string> {
+  const context = (error as { context?: Response }).context;
+  if (context && typeof context.json === "function") {
+    try {
+      const body = await context.clone().json();
+      const message = typeof body?.error === "string" ? body.error : null;
+      if (message) return message;
+    } catch {
+      // Body was not JSON — fall through to the generic mapping.
+    }
+  }
+  return friendlyError(error);
 }
 
 export type ListingDraft = {

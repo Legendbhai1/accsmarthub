@@ -545,11 +545,6 @@ export const resolveReport = (reportId: string, status: string, penalty?: string
     }),
   );
 
-export const uploadCredentials = (listingId: string, units: unknown[]) =>
-  unwrap(
-    supabase.rpc("upload_credentials", { p_listing_id: listingId, p_units: units }),
-  );
-
 export const fileReport = (input: {
   order_no?: string;
   listing_id?: string;

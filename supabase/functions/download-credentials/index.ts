@@ -19,6 +19,8 @@
  *   (Edge Functions → Secrets → SUPABASE_SERVICE_ROLE_KEY is set for you.)
  */
 
+import { b64ToBytes, openUnit } from "../_shared/credentialCrypto.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const PASSPHRASE = Deno.env.get("CREDENTIALS_ENCRYPTION_KEY");
 
@@ -36,23 +38,6 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-/** base64 -> bytes */
-function b64ToBytes(b64: string): Uint8Array {
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-/** Matches the key derivation in the Postgres migration's sibling client code. */
-async function getKey(passphrase: string): Promise<CryptoKey> {
-  const material = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(passphrase),
-  );
-  return crypto.subtle.importKey("raw", material, "AES-GCM", false, ["decrypt"]);
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -111,19 +96,14 @@ Deno.serve(async (req) => {
   }
 
   // 3. Decrypt.
-  const key = await getKey(PASSPHRASE);
   const files: Array<{ fileName: string; content: string }> = [];
 
   for (const unit of units) {
     try {
-      const plain = await crypto.subtle.decrypt(
-        { name: "AES-GCM" },
-        key,
-        b64ToBytes(unit.ciphertext),
-      );
+      const content = await openUnit(PASSPHRASE, b64ToBytes(unit.ciphertext));
       files.push({
         fileName: unit.file_name || "account.txt",
-        content: new TextDecoder().decode(plain),
+        content,
       });
     } catch {
       return json(

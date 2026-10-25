@@ -21,6 +21,8 @@
  *   Edge Functions → Secrets → CREDENTIALS_ENCRYPTION_KEY = <your saved key>
  */
 
+import { bytesToB64, sealUnit } from "../_shared/credentialCrypto.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const PASSPHRASE = Deno.env.get("CREDENTIALS_ENCRYPTION_KEY");
 
@@ -48,29 +50,19 @@ type IncomingUnit = {
   credentials: string;
 };
 
-/**
- * Identical to the download function's derivation: SHA-256 the passphrase,
- * import as an AES-GCM key. Both sides must stay in lockstep or stored
- * credentials become undecryptable.
- */
-async function getKey(passphrase: string): Promise<CryptoKey> {
-  const material = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(passphrase),
-  );
-  return crypto.subtle.importKey("raw", material, "AES-GCM", false, ["encrypt"]);
-}
-
-function bytesToB64(bytes: Uint8Array): string {
-  let bin = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(bin);
-}
-
 Deno.serve(async (req) => {
+  try {
+    return await handle(req);
+  } catch (err) {
+    // An unhandled throw used to surface as a bare `500 Internal Server Error`
+    // with no body, which is what the seller saw as "unable to upload keys".
+    // Log the real cause for the function logs, return something actionable.
+    console.error("upload-credentials failed:", err);
+    return json({ error: "We could not save your credentials. Please try again." }, 500);
+  }
+});
+
+async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: cors });
   }
@@ -109,22 +101,11 @@ Deno.serve(async (req) => {
     }
   }
 
-  const key = await getKey(PASSPHRASE);
-
   const encrypted: Array<{ unitKey: string; fileName: string; ciphertext: string }> = [];
   for (const [index, u] of units.entries()) {
-    const plain = new TextEncoder().encode(String(u?.credentials ?? ""));
-    // A fresh 12-byte IV per unit: reusing one under the same key would leak
-    // plaintext relationships between accounts.
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const sealed = new Uint8Array(iv.length + plain.length);
-    sealed.set(iv, 0);
-    const body = await crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      key,
-      plain,
-    );
-    sealed.set(new Uint8Array(body), iv.length);
+    // `sealUnit` owns the iv||ciphertext||tag layout so this function and
+    // `download-credentials` cannot drift apart.
+    const sealed = await sealUnit(PASSPHRASE, String(u?.credentials ?? ""));
 
     encrypted.push({
       unitKey: String(u?.unitKey ?? `unit-${index + 1}`),
@@ -166,7 +147,7 @@ Deno.serve(async (req) => {
   const status = res.ok ? await res.json() : null;
 
   return json({ uploaded, ...(status ?? {}) });
-});
+}
 
 function json(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
