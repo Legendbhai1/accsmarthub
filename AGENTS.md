@@ -452,6 +452,45 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   chevron that sat beside the hamburger was a *second* control reading as an
   identical menu button; it was removed, not restyled.
 
+- **A `SECURITY DEFINER` function that takes the recipient as an argument must
+  not be granted to `authenticated`.** `public.notify(uuid, text, text, text,
+  text)` inserted straight into `notifications` with no check on the caller, so
+  any signed-in user could forge a notification into any other user's inbox —
+  a phishing vector that also bypassed the table's `auth.uid() = user_id` RLS
+  policy. `0027_notify_lockdown.sql` revokes execute from
+  `PUBLIC`/`anon`/`authenticated` and leaves it with `service_role`; the
+  function body is unchanged, so the fix is reviewable as a pure privilege
+  change. The right discriminator inside a definer is `current_user` (the
+  owner, not `authenticated`), *not* `auth.uid()`, which stays the original JWT
+  subject. `tests/notify_authorization.sql` pins both halves: a client call is
+  refused, and a real user-triggered flow (`mark_order_delivered`) still writes
+  the row. The same revoke also lands in `0021_security_hardening.sql`, so a
+  database that runs only one of the two is still closed.
+- **`has_function_privilege` is the only sentinel that catches a grant.** A
+  `to_regprocedure`/`to_regclass` probe for a function that an earlier migration
+  also defines proves nothing; for a privilege fix the *only* thing that changes
+  is the grant, so the probe must assert it directly. `scripts/check-schema.mjs`
+  carries a sentinel for every migration, including `0018`, which previously had
+  none while `0018` was the fix for the dead cart oversell guard.
+- **CI is the gate now.** `.github/workflows/ci.yml` runs `tsc -b`, `eslint`,
+  `vitest`, `vite build`, and — against a real PostgreSQL 15 and 17 — the
+  migration chain plus every behavioural SQL suite. The database job uses a
+  throwaway local cluster, so no Supabase token or secret is involved and it is
+  safe on fork PRs. `settlement.sql`'s concurrency case is given a
+  `settlement_test.dsn` so it runs rather than reporting SKIPPED.
+- **Two migrations were numbered `0020` and only one survives as `0020`.** The
+  listing-moderation migration (`0020_admin_listing_moderation.sql`) and the
+  notify lockdown (`0020_notify_lockdown.sql`) were authored on separate
+  branches. Both were committed as `0020`, which git merges without a word —
+  but `tests/verify-migrations.sh` applies migrations *by filename in the order
+  its own lists give*, and `scripts/migrate.mjs` records them in
+  `public.schema_migrations` keyed on filename, so two files sharing a number
+  is an ordering ambiguity the tooling cannot resolve for you. The notify
+  lockdown was renumbered `0027_notify_lockdown.sql` on the merge so the
+  sequence is unambiguous and its ledger entry is distinct. Its sentinel in
+  `check-schema.mjs` moved with it; the guard's *effect* is already delivered
+  by `0021`, so `0027` is a belt-and-braces re-assertion, not the only fix.
+
 - **The delivery mode is a column now, not a guess.** `listings.delivery_mode`
   (`credential` | `manual`, added by `0023`) is what decides how an order is
   delivered, instead of `finish_single_order_delivery()` inferring it from the

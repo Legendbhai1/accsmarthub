@@ -15,7 +15,7 @@
     "check:schema": "node scripts/check-schema.mjs",
     "migrate:plan": "node scripts/migrate.mjs",
     "migrate": "node scripts/migrate.mjs --apply",
-    "test:db": "bash tests/run-db-tests.sh tests/listing_creation.sql && bash tests/run-db-tests.sh tests/order_lifecycle.sql && bash tests/run-db-tests.sh tests/store_application_lifecycle.sql && bash tests/run-db-tests.sh tests/store_application_guards.sql && bash tests/run-db-tests.sh tests/request_authorization.sql && bash tests/run-db-tests.sh tests/admin_credit_audit.sql",
+    "test:db": "bash tests/run-db-tests.sh tests/listing_creation.sql && bash tests/run-db-tests.sh tests/order_lifecycle.sql && bash tests/run-db-tests.sh tests/store_application_lifecycle.sql && bash tests/run-db-tests.sh tests/store_application_guards.sql && bash tests/run-db-tests.sh tests/settlement.sql && bash tests/run-db-tests.sh tests/wallet_pools.sql && bash tests/run-db-tests.sh tests/dispute_creation_payload.sql && bash tests/run-db-tests.sh tests/dispute_reason_migration.sql && bash tests/run-db-tests.sh tests/request_authorization.sql && bash tests/run-db-tests.sh tests/admin_credit_audit.sql && bash tests/run-db-tests.sh tests/notify_authorization.sql",
     "test:db:migrations": "bash tests/migrate-verify.sh",
     "test:preflight": "bash tests/preflight-smoke.sh"
   },

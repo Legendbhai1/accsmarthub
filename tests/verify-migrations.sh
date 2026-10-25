@@ -176,12 +176,15 @@ check s5 "the normalisation function is not client-callable" \
   "select not has_function_privilege('authenticated','public.normalize_dispute_reasons()','execute')"
 
 # ---------------------------------------------------------------- scenario 6
-# The full chain, from a pristine database, through the two hardening
-# migrations. 0020 adds listing moderation (columns, history, admin edit) and
+# The full chain, from a pristine database, through every hardening
+# migration. 0020 adds listing moderation (columns, history, admin edit);
 # 0021 closes the trusted-write bypass, the over-broad grants and the missing
-# listing DELETE policy. A fresh apply is the only way to prove the whole
-# series still runs in order.
-echo "SCENARIO 6  full chain 0001-0021 on a fresh database"
+# listing DELETE policy; 0022-0027 tighten credential claims, delivery mode,
+# client grants, request authorization, wallet adjustment and notify(). A
+# fresh apply is the only way to prove the whole series still runs in order —
+# and, since two branches independently claimed the number 0020, that the
+# renumbered 0027 still applies cleanly on top of the rest.
+echo "SCENARIO 6  full chain 0001-0027 on a fresh database"
 reset_db s6
 apply s6 "$root/tests/bootstrap.sql" || status=1
 for f in 0001_core 0002_storage 0003_disputes 0004_payments \
@@ -193,7 +196,10 @@ for f in 0001_core 0002_storage 0003_disputes 0004_payments \
          0015_support_request_safety 0016_saved_listings \
          0017_store_applications 0018_cart_checkout_stock_guard \
          0019_wallet_pools_and_withdrawals \
-         0020_admin_listing_moderation 0021_security_hardening; do
+         0020_admin_listing_moderation 0021_security_hardening \
+         0022_credential_claim_guard 0023_listing_delivery_mode \
+         0024_revoke_client_grants 0025_request_authorization \
+         0026_admin_credit_audit 0027_notify_lockdown; do
   apply s6 "$(mig "$f.sql")" || status=1
 done
 
