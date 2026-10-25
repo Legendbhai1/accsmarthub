@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { SERVICE_CATEGORIES } from "@/lib/db";
 import { readMyStore, friendlyError } from "@/lib/supabaseData";
@@ -106,18 +105,18 @@ export default function SellerApply() {
 
   if (loading) {
     return (
-      <SellerLayout title="Apply to sell">
+      <>
         <div className="surface flex items-center justify-center gap-2 px-6 py-20 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
           Loading your application…
         </div>
-      </SellerLayout>
+      </>
     );
   }
 
   if (loadError) {
     return (
-      <SellerLayout title="Apply to sell">
+      <>
         <div className="surface px-6 py-16 text-center">
           <AlertCircle className="mx-auto size-6 text-destructive" />
           <p className="mt-3 font-semibold">We could not load your application</p>
@@ -128,13 +127,13 @@ export default function SellerApply() {
             Try again
           </Button>
         </div>
-      </SellerLayout>
+      </>
     );
   }
 
   if (editing) {
     return (
-      <SellerLayout title="Apply to sell">
+      <>
         <ApplicationWizard
           userId={user?.id ?? "anonymous"}
           store={store}
@@ -143,14 +142,14 @@ export default function SellerApply() {
             reload();
           }}
         />
-      </SellerLayout>
+      </>
     );
   }
 
   return (
-    <SellerLayout title="Apply to sell">
+    <>
       <ApplicationStatus store={store} onRevise={() => setEditing(true)} />
-    </SellerLayout>
+    </>
   );
 }
 

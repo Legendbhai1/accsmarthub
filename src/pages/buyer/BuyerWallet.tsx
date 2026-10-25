@@ -21,8 +21,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { buyerNav } from "@/components/dash/navs";
 import { WithdrawalPanel } from "@/components/dash/WithdrawalPanel";
 import { StatCard } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
@@ -169,7 +167,7 @@ export default function BuyerWallet() {
   const busy = depositState.phase === "creating" || verifying;
 
   return (
-    <DashLayout title="Wallet" nav={buyerNav}>
+    <>
       <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
@@ -495,6 +493,6 @@ export default function BuyerWallet() {
           )}
         </DialogContent>
       </Dialog>
-    </DashLayout>
+    </>
   );
 }

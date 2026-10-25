@@ -1,7 +1,5 @@
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { buyerNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
@@ -26,7 +24,7 @@ export default function BuyerSaved() {
   };
 
   return (
-    <DashLayout title="Saved accounts" nav={buyerNav}>
+    <>
       {savedQuery.loading ? (
         <EmptyState title="Loading saved accounts…" description="Fetching your list." />
       ) : savedQuery.error ? (
@@ -85,6 +83,6 @@ export default function BuyerSaved() {
           </ul>
         </div>
       )}
-    </DashLayout>
+    </>
   );
 }

@@ -1,7 +1,5 @@
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { buyerNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
@@ -13,7 +11,7 @@ export default function BuyerPurchased() {
   const completed = orders.filter((o) => o.status === "completed");
 
   return (
-    <DashLayout title="Purchased items" nav={buyerNav}>
+    <>
       {completed.length === 0 ? (
         <EmptyState
           title="Nothing here yet"
@@ -54,6 +52,6 @@ export default function BuyerPurchased() {
           </ul>
         </div>
       )}
-    </DashLayout>
+    </>
   );
 }

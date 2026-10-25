@@ -155,6 +155,45 @@ export function flatNav(sections: NavSection[]): NavItem[] {
 }
 
 /**
+ * Titles for workspace pages that have no rail entry of their own.
+ *
+ * Matched by longest prefix, after an exact nav match fails, so `/seller/apply`
+ * ("Apply to sell") and an order detail (`/account/orders/AMH-1` → "Order")
+ * still get a real heading instead of the workspace's generic fallback. These
+ * pages are reachable but deliberately absent from the rail — a shortcut is not
+ * a destination.
+ */
+const PAGE_TITLE_OVERRIDES: { prefix: string; title: string }[] = [
+  { prefix: "/seller/apply", title: "Apply to sell" },
+  { prefix: "/account/orders/", title: "Order" },
+];
+
+/**
+ * The label the rail gives a path, for use as the page title.
+ *
+ * The shell now renders above the route's outlet, so it has no page-supplied
+ * title to print. Taking it from the nav is what keeps the header and the
+ * highlighted rail entry in agreement instead of drifting apart. The nav's
+ * `?new=1` shortcut entry is compared by its path alone, because a pathname
+ * never carries a query string.
+ */
+export function navTitleForPath(
+  sections: NavSection[],
+  pathname: string,
+  fallback: string,
+): string {
+  const exact = flatNav(sections).find(
+    (item) => item.to.split("?")[0] === pathname,
+  );
+  if (exact) return exact.label;
+
+  const override = PAGE_TITLE_OVERRIDES.filter((o) =>
+    pathname.startsWith(o.prefix),
+  ).sort((a, b) => b.prefix.length - a.prefix.length)[0];
+  return override?.title ?? fallback;
+}
+
+/**
  * Where a workspace lives, so the switcher can tell "the workspace you are
  * standing in" from "the one you would switch to".
  */

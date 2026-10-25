@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SellerLayout } from "@/components/dash/SellerLayout";
 import { SERVICE_CATEGORIES } from "@/lib/db";
 import { readMyStore, friendlyError } from "@/lib/supabaseData";
 import { submitStore } from "@/lib/supabaseMutations";
@@ -95,7 +94,7 @@ export default function SellerSettings() {
   };
 
   return (
-    <SellerLayout title="Store settings">
+    <>
       <div className="mx-auto max-w-2xl space-y-6">
         {loading && (
           <p className="text-sm text-muted-foreground">Loading store settings…</p>
@@ -221,6 +220,6 @@ export default function SellerSettings() {
           </div>
         )}
       </div>
-    </SellerLayout>
+    </>
   );
 }

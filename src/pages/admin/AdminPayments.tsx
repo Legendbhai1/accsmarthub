@@ -15,8 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
@@ -174,7 +172,7 @@ export default function AdminPayments() {
   );
 
   return (
-    <DashLayout title="Payment management" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           View deposits, payouts, and payment health. Filter by settlement state
@@ -458,6 +456,6 @@ export default function AdminPayments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </DashLayout>
+    </>
   );
 }

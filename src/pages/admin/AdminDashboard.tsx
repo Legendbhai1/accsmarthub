@@ -2,8 +2,6 @@ import { Users, Store, Package, Receipt, AlertTriangle, Wallet, BarChart3, Setti
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { disputeReasonLabel } from "@/lib/disputeReasons";
@@ -68,7 +66,7 @@ export default function AdminDashboard() {
   const disputes = disputesQuery.data ?? [];
 
   return (
-    <DashLayout title="Admin overview" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           Trust & safety controls for the platform. Volume, settlements, moderation, and
@@ -216,6 +214,6 @@ export default function AdminDashboard() {
           </Button>
         </div>
       </div>
-    </DashLayout>
+    </>
   );
 }

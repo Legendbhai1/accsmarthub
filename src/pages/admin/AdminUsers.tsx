@@ -10,8 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { supabase } from "@/lib/supabase";
 import { adminSetAdmin } from "@/lib/supabaseMutations";
@@ -168,7 +166,7 @@ export default function AdminUsers() {
   const showFirstLoad = loading && rows.length === 0;
 
   return (
-    <DashLayout title="User management" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           Accounts across all roles. Filtering and paging happen on the server so
@@ -369,6 +367,6 @@ export default function AdminUsers() {
           </div>
         )}
       </div>
-    </DashLayout>
+    </>
   );
 }

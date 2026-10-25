@@ -1,5 +1,4 @@
 import { Percent, Wallet } from "lucide-react";
-import { SellerLayout } from "@/components/dash/SellerLayout";
 import { WithdrawalPanel } from "@/components/dash/WithdrawalPanel";
 import { EmptyState, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
@@ -28,7 +27,7 @@ export default function SellerEarnings() {
   const withdrawable = Math.max(0, earned - pendingPayouts);
 
   return (
-    <SellerLayout>
+    <>
       <div className="seller-page space-y-6">
         <div className="seller-page-head">
           <p className="seller-sub text-sm text-muted-foreground">
@@ -152,6 +151,6 @@ export default function SellerEarnings() {
           </ul>
         </div>
       </div>
-    </SellerLayout>
+    </>
   );
 }

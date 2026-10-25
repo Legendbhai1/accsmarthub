@@ -1,7 +1,5 @@
 import { Bell, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { buyerNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { useNotifications, markNotificationsReadForUser } from "@/lib/supabaseQueries";
 import { useSession } from "@/lib/session";
@@ -26,7 +24,7 @@ export default function BuyerNotifications() {
   };
 
   return (
-    <DashLayout title="Notifications" nav={buyerNav}>
+    <>
       {notifications.length === 0 ? (
         <EmptyState title="No notifications" description="Order updates will appear here." />
       ) : (
@@ -66,6 +64,6 @@ export default function BuyerNotifications() {
           </ul>
         </div>
       )}
-    </DashLayout>
+    </>
   );
 }

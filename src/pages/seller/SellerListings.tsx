@@ -20,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SellerLayout } from "@/components/dash/SellerLayout";
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
@@ -292,7 +291,7 @@ export default function SellerListings() {
   };
 
   return (
-    <SellerLayout>
+    <>
       <div className="seller-page space-y-5">
         <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <p className="max-w-2xl text-sm text-muted-foreground">
@@ -847,6 +846,6 @@ export default function SellerListings() {
         destructive
         onConfirm={remove}
       />
-    </SellerLayout>
+    </>
   );
 }

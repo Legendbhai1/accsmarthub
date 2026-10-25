@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { BarChart3, TrendingUp, Users } from "lucide-react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
-import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatCard } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
@@ -92,7 +91,7 @@ export default function SellerAnalytics() {
   const stockLeft = listings.reduce((s, l) => s + l.stock, 0);
 
   return (
-    <SellerLayout>
+    <>
       <div className="seller-page space-y-6">
         <div className="seller-page-head">
           <p className="seller-sub text-sm text-muted-foreground">
@@ -229,6 +228,6 @@ export default function SellerAnalytics() {
           </>
         )}
       </div>
-    </SellerLayout>
+    </>
   );
 }

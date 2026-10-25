@@ -3,8 +3,6 @@ import { Search, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { supabase } from "@/lib/supabase";
 
@@ -97,7 +95,7 @@ export default function AdminAudit() {
       : rows;
 
   return (
-    <DashLayout title="Audit log" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           Review privileged actions and moderation decisions. Every sensitive
@@ -197,6 +195,6 @@ export default function AdminAudit() {
           </div>
         )}
       </div>
-    </DashLayout>
+    </>
   );
 }

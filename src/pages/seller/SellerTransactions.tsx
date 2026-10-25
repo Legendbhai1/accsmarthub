@@ -1,6 +1,5 @@
 import { Download, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { useMyOrders } from "@/lib/supabaseQueries";
@@ -53,7 +52,7 @@ export default function SellerTransactions() {
   };
 
   return (
-    <SellerLayout>
+    <>
       <div className="seller-page space-y-6">
         <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -146,6 +145,6 @@ export default function SellerTransactions() {
           </div>
         )}
       </div>
-    </SellerLayout>
+    </>
   );
 }

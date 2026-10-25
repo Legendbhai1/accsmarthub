@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { buyerNav } from "@/components/dash/navs";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { useMyOrders, type OrderRow } from "@/lib/supabaseQueries";
@@ -27,7 +25,7 @@ export default function BuyerOrders() {
       : orders;
 
   return (
-    <DashLayout title="My orders" nav={buyerNav}>
+    <>
       <div className="space-y-5">
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((f) => (
@@ -94,6 +92,6 @@ export default function BuyerOrders() {
           </div>
         )}
       </div>
-    </DashLayout>
+    </>
   );
 }

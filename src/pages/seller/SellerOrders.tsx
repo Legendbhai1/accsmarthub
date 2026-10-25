@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
-import { SellerLayout } from "@/components/dash/SellerLayout";
 import { markOrderDelivered } from "@/lib/supabaseMutations";
 import { fetchOrder, useMyOrders } from "@/lib/supabaseQueries";
 import { useSession } from "@/lib/session";
@@ -48,17 +47,17 @@ export default function SellerOrders() {
 
   if (!user) {
     return (
-      <SellerLayout>
+      <>
         <EmptyState
           title="Not signed in"
           description="Sign in to see your orders."
         />
-      </SellerLayout>
+      </>
     );
   }
 
   return (
-    <SellerLayout>
+    <>
       <div className="seller-page space-y-6">
         <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -134,6 +133,6 @@ export default function SellerOrders() {
           onConfirm={beginTransfer}
         />
       </div>
-    </SellerLayout>
+    </>
   );
 }

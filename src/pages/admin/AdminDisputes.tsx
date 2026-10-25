@@ -14,8 +14,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { disputeReasonLabel } from "@/lib/disputeReasons";
 import { useAdminDisputes } from "@/lib/supabaseQueries";
@@ -67,7 +65,7 @@ export default function AdminDisputes() {
   };
 
   return (
-    <DashLayout title="Dispute inbox" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           Review open disputes and guide both sides toward resolution. Every
@@ -281,6 +279,6 @@ export default function AdminDisputes() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashLayout>
+    </>
   );
 }

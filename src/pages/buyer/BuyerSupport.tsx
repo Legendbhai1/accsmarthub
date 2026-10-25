@@ -13,8 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { buyerNav } from "@/components/dash/navs";
 import { BrandMark } from "@/components/site/BrandMark";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { TELEGRAM_LINKS } from "@/lib/contact";
@@ -115,7 +113,7 @@ export default function BuyerSupport() {
   };
 
   return (
-    <DashLayout title="Support" nav={buyerNav}>
+    <>
       <div className="space-y-5">
         {/* The two out-of-app ways to reach us, ahead of the ticket form.
             Both are Telegram: the channel is where updates are posted, and
@@ -231,6 +229,6 @@ export default function BuyerSupport() {
           </ul>
         )}
       </div>
-    </DashLayout>
+    </>
   );
 }

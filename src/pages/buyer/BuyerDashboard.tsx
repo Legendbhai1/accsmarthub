@@ -1,8 +1,6 @@
 import { Link } from "react-router";
 import { ArrowRight, Package, Receipt, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { buyerNav } from "@/components/dash/navs";
 import { EmptyState, SectionHeading, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { useMyOrders } from "@/lib/supabaseQueries";
@@ -26,7 +24,7 @@ export default function BuyerDashboard() {
   const loading = ordersQuery.loading;
 
   return (
-    <DashLayout title="Buyer overview" nav={buyerNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm text-muted-foreground">
           {user?.name ? `Signed in as ${user.name}. ` : ""}
@@ -106,6 +104,6 @@ export default function BuyerDashboard() {
           )}
         </section>
       </div>
-    </DashLayout>
+    </>
   );
 }

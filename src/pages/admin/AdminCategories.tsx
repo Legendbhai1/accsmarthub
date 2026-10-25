@@ -2,8 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Tag, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { supabase } from "@/lib/supabase";
@@ -60,7 +58,7 @@ export default function AdminCategories() {
     : categories;
 
   return (
-    <DashLayout title="Categories" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           The platform directory. Categories are the ecosystems a listing can
@@ -130,6 +128,6 @@ export default function AdminCategories() {
           </div>
         )}
       </div>
-    </DashLayout>
+    </>
   );
 }

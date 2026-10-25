@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { disputeReasonLabel } from "@/lib/disputeReasons";
@@ -176,7 +175,7 @@ export default function SellerDisputes() {
   };
 
   return (
-    <SellerLayout>
+    <>
       <div className="seller-page space-y-6">
         <div className="seller-page-head">
           <p className="seller-sub text-sm text-muted-foreground">
@@ -305,6 +304,6 @@ export default function SellerDisputes() {
           </DialogContent>
         </Dialog>
       </div>
-    </SellerLayout>
+    </>
   );
 }

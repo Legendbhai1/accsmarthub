@@ -2,8 +2,6 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { buyerNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { LottieAnimation } from "@/components/common/LottieAnimation";
 import { BrandMark } from "@/components/site/BrandMark";
@@ -110,7 +108,7 @@ export default function BuyerCart() {
   };
 
   return (
-    <DashLayout title="Cart" nav={buyerNav}>
+    <>
       {cartQuery.loading ? (
         <EmptyState title="Loading your cart…" description="Fetching the items you saved." />
       ) : !cartAvailable ? (
@@ -295,6 +293,6 @@ export default function BuyerCart() {
           </aside>
         </div>
       )}
-    </DashLayout>
+    </>
   );
 }

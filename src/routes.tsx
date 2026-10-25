@@ -1,7 +1,8 @@
 import { Outlet, redirect, type RouteObject } from "react-router";
 import { RequireRole, RequireApprovedSeller } from "@/components/site/guards";
 import { PublicLayout } from "@/components/site/PublicLayout";
-import { motion } from "framer-motion";
+import { AdminShell, BuyerShell } from "@/components/dash/DashLayout";
+import { SellerShell } from "@/components/dash/SellerLayout";
 
 // Buyer
 import BuyerDashboard from "@/pages/buyer/BuyerDashboard";
@@ -60,23 +61,31 @@ import NotFound from "@/pages/NotFound";
 import ErrorPage from "@/pages/ErrorPage";
 
 const PageWrapper = () => (
-  <motion.div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+  <div className="animate-in page-enter duration-200">
     <Outlet />
-  </motion.div>
+  </div>
 );
 
 /**
  * Section wrappers.
  *
- * These render `<Outlet/>`, so the route's own `element` stays a bare layout
- * and the matched child route fills it in. Passing the index page in as
- * `children` would shadow the outlet and make every sub-page render the index
- * dashboard while the URL said something else.
+ * Each renders the workspace shell *once*, above the `<Outlet/>`, so the
+ * header, the rail and the buyer's bottom bar are mounted for the whole
+ * workspace and survive navigation. Previously every page mounted its own
+ * `DashLayout`, so moving between two account pages tore down and rebuilt the
+ * entire shell — a visible jump, and a fresh entrance animation on chrome that
+ * had not actually changed.
+ *
+ * Passing the index page in as `children` would shadow the outlet and make
+ * every sub-page render the index dashboard while the URL said something else,
+ * so the layout element stays bare and the `index` child supplies the page.
  */
 function BuyerLayout() {
   return (
     <RequireRole roles={["buyer", "seller", "admin"]}>
-      <PageWrapper />
+      <BuyerShell>
+        <PageWrapper />
+      </BuyerShell>
     </RequireRole>
   );
 }
@@ -84,7 +93,9 @@ function BuyerLayout() {
 function SellerLayout() {
   return (
     <RequireRole roles={["buyer", "seller", "admin"]}>
-      <PageWrapper />
+      <SellerShell>
+        <PageWrapper />
+      </SellerShell>
     </RequireRole>
   );
 }
@@ -92,7 +103,9 @@ function SellerLayout() {
 function AdminLayout() {
   return (
     <RequireRole roles={["admin"]}>
-      <PageWrapper />
+      <AdminShell>
+        <PageWrapper />
+      </AdminShell>
     </RequireRole>
   );
 }

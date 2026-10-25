@@ -10,8 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
@@ -121,7 +119,7 @@ export default function AdminOrders() {
       : rows;
 
   return (
-    <DashLayout title="Order management" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           View and manage platform orders. Escrow, completed, disputed, and
@@ -267,6 +265,6 @@ export default function AdminOrders() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashLayout>
+    </>
   );
 }

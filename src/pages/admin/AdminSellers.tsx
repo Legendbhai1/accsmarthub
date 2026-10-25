@@ -18,8 +18,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { useReviewQueue, useStoreApplicationEvents, type StoreRow } from "@/lib/supabaseQueries";
 import { reviewStore } from "@/lib/supabaseMutations";
@@ -83,7 +81,7 @@ export default function AdminSellers() {
   };
 
   return (
-    <DashLayout title="Seller management" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           Review and manage seller stores. Each applicant appears in the pending
@@ -308,7 +306,7 @@ export default function AdminSellers() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashLayout>
+    </>
   );
 }
 

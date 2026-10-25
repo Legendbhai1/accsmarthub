@@ -17,8 +17,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { useReports } from "@/lib/supabaseQueries";
 import { resolveReport } from "@/lib/supabaseMutations";
@@ -62,7 +60,7 @@ export default function AdminReports() {
   const openReport = reports.find((r) => r.id === openId);
 
   return (
-    <DashLayout title="Reports" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           Review off-platform contact and policy reports. Each report keeps the
@@ -251,6 +249,6 @@ export default function AdminReports() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashLayout>
+    </>
   );
 }

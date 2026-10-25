@@ -22,8 +22,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { buyerNav } from "@/components/dash/navs";
 import { ConfirmDialog, EmptyState, StatusBadge } from "@/components/common/Primitives";
 import { BrandMark } from "@/components/site/BrandMark";
 import { formatPrice } from "@/lib/format";
@@ -92,15 +90,15 @@ export default function BuyerOrderDetail() {
 
   if (loading) {
     return (
-      <DashLayout title="Order" nav={buyerNav}>
+      <>
         <p className="text-sm text-muted-foreground">Loading this order…</p>
-      </DashLayout>
+      </>
     );
   }
 
   if (!order) {
     return (
-      <DashLayout title="Order" nav={buyerNav}>
+      <>
         <EmptyState
           title="Order not found"
           description="This order doesn't exist or belongs to another account."
@@ -110,7 +108,7 @@ export default function BuyerOrderDetail() {
             </Button>
           }
         />
-      </DashLayout>
+      </>
     );
   }
 
@@ -179,7 +177,7 @@ export default function BuyerOrderDetail() {
   };
 
   return (
-    <DashLayout title={`Order ${order.order_no}`} nav={buyerNav}>
+    <>
       <div className="space-y-6">
         <Link
           to="/account/orders"
@@ -524,6 +522,6 @@ export default function BuyerOrderDetail() {
           onConfirm={confirmTransfer}
         />
       </div>
-    </DashLayout>
+    </>
   );
 }

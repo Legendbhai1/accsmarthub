@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, Shield, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { DISPUTE_REASONS, DISPUTE_REASON_LABELS } from "@/lib/disputeReasons";
 import { TELEGRAM_CHANNEL, TELEGRAM_SUPPORT } from "@/lib/contact";
 import { supabase } from "@/lib/supabase";
@@ -123,7 +121,7 @@ export default function AdminSettings() {
   };
 
   return (
-    <DashLayout title="Settings" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           The values the platform is currently running on. Each one is enforced
@@ -266,6 +264,6 @@ export default function AdminSettings() {
           </div>
         </div>
       </div>
-    </DashLayout>
+    </>
   );
 }

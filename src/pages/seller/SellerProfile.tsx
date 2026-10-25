@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { SellerLayout } from "@/components/dash/SellerLayout";
 import { EmptyState } from "@/components/common/Primitives";
 import { readMyStore, friendlyError } from "@/lib/supabaseData";
 
@@ -26,7 +25,7 @@ export default function SellerProfile() {
   }, []);
 
   return (
-    <SellerLayout title="Store profile">
+    <>
       <div className="mx-auto max-w-2xl space-y-6">
         {loading && (
           <p className="text-sm text-muted-foreground">Loading store profile…</p>
@@ -93,6 +92,6 @@ export default function SellerProfile() {
           </div>
         )}
       </div>
-    </SellerLayout>
+    </>
   );
 }

@@ -1,7 +1,6 @@
 import { Link } from "react-router";
 import { ArrowRight, Eye, Receipt, ShoppingBag, Wallet, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SellerLayout } from "@/components/dash/SellerLayout";
 import { SectionHeading, StatCard, StatusBadge } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { useMyOrders, useSellerListings, useEarningsSummary } from "@/lib/supabaseQueries";
@@ -22,7 +21,7 @@ export default function SellerDashboard() {
   const loading = ordersQuery.loading || listingsQuery.loading;
 
   return (
-    <SellerLayout title="Overview">
+    <>
       <div className="seller-page">
         <div className="seller-page-head flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -116,6 +115,6 @@ export default function SellerDashboard() {
           )}
         </section>
       </div>
-    </SellerLayout>
+    </>
   );
 }
