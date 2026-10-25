@@ -562,6 +562,77 @@
     animation: pulse-glow 2.4s ease-in-out infinite;
   }
 
+  /* ---------------------------------------------------------------------
+   * The purchase tick. Three keyframes, not one: the disc lands, the check
+   * draws, and a ring expands behind it. They are separate animations so a
+   * caller can drop any one of them — `SuccessTick` drops the ring under
+   * reduced motion, because an expanding ring is motion with no information
+   * in it, while the drawn check *is* the outcome and is only shortened.
+   * ------------------------------------------------------------------- */
+
+  /* The disc arriving. A slight overshoot so the mark reads as a stamp
+     landing rather than a shape fading up. */
+  @keyframes tick-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-tick-pop {
+    animation: tick-pop 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* The check stroke drawing itself. `stroke-dasharray` is the path length —
+     the path is M15 27.5 L22.5 35 L37 18.5, ~32.6 units — so a dash offset
+     from that length to zero reveals it left to right. It is delayed so the
+     disc is on screen before the tick starts, otherwise the stroke appears to
+     scribble on nothing. */
+  @keyframes tick-check {
+    from {
+      stroke-dashoffset: 34;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .tick-check {
+    stroke-dasharray: 34;
+    animation: tick-check 0.32s 0.2s ease-out both;
+  }
+
+  /* Reduced motion: the tick is the information, so it is shown, just not
+     drawn. Same path, fully revealed, no animation. */
+  .tick-check-static {
+    stroke-dasharray: none;
+    animation: none;
+  }
+
+  /* The single ring that expands once behind the disc. */
+  @keyframes tick-ring {
+    from {
+      opacity: 0.55;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 0;
+      transform: scale(1.75);
+    }
+  }
+
+  .animate-tick-ring {
+    animation: tick-ring 0.7s ease-out both;
+  }
+
   /* A marquee for the trusted-platforms strip. */
   @keyframes marquee {
     from {

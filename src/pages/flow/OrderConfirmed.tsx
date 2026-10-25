@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/common/Primitives";
 import { LottieAnimation } from "@/components/common/LottieAnimation";
+import { SuccessTick } from "@/components/common/SuccessTick";
 import { formatPrice } from "@/lib/format";
 import {
   fetchOrder,
@@ -166,6 +167,19 @@ export default function OrderConfirmed() {
           <>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm">
               <StatusBadge status={order.status} />
+              {/* The same tick the checkout showed on submit, held as a small
+                  seal beside the status so the buyer who lands here from a
+                  bookmark still sees the payment was captured. Only for a
+                  captured payment — `in_escrow` or `completed` — never for a
+                  refunded or expired order. */}
+              {(order.status === "in_escrow" ||
+                order.status === "completed") && (
+                <SuccessTick
+                  size={20}
+                  label="Payment received"
+                  className="align-middle"
+                />
+              )}
               <span className="text-muted-foreground">
                 · {order.listing_title}
               </span>

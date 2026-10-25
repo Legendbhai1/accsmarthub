@@ -6,11 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { BrandMark } from "@/components/site/BrandMark";
 import { QuantityStepper, StockBadge } from "@/components/common/Primitives";
+import { SuccessTick } from "@/components/common/SuccessTick";
 import { formatPrice } from "@/lib/format";
 import { useLiveStock } from "@/lib/supabaseQueries";
 import { placeOrder } from "@/lib/supabaseMutations";
 import { useSession } from "@/lib/session";
 import { toast } from "sonner";
+
+/**
+ * How long the purchase tick stays on screen before the confirmation page
+ * replaces it. Long enough for the disc to land and the check to finish
+ * drawing (0.2s delay + 0.32s draw), short enough that it never feels like a
+ * deliberate stall. `tests/success_tick.test.ts` keeps it in that window.
+ */
+const TICK_HOLD_MS = 850;
 
 export default function Checkout() {
   const [params] = useSearchParams();
@@ -28,6 +37,10 @@ export default function Checkout() {
 
   const [agreed, setAgreed] = useState(false);
   const [placing, setPlacing] = useState(false);
+  // Set only after `placeOrder` resolves, i.e. only once the server has taken
+  // the funds. It gates the tick overlay, so a failed purchase can never show a
+  // success mark — see the note on `SuccessTick`.
+  const [paid, setPaid] = useState(false);
   // Seed from ?qty= but never let the URL exceed what is actually in stock —
   // otherwise a hand-edited link shows a bogus total and fails at submit.
   const [qty, setQty] = useState<number>(() => {
@@ -41,8 +54,15 @@ export default function Checkout() {
     setPlacing(true);
     try {
       const order = await placeOrder({ listingId, quantity: qty });
+      // The order row is back, so the funds are held. Show the tick first —
+      // the confirmation page's Lottie is a slow, illustrated scene and reads
+      // as "here is a receipt", not as "that worked" — then hand off. The
+      // overlay is only reachable from here, after `placeOrder` resolved.
+      setPaid(true);
+      await new Promise((r) => setTimeout(r, TICK_HOLD_MS));
       navigate(`/order/${encodeURIComponent(order.order_no)}/confirmed`);
     } catch (err) {
+      setPaid(false);
       toast.error("Could not complete this purchase.", {
         description: err instanceof Error ? err.message : "Please try again.",
       });
@@ -101,6 +121,27 @@ export default function Checkout() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
+      {/* The tick overlay. `fixed` so it covers the page rather than pushing
+          the layout, and only mounted after `placeOrder` resolved — the buyer
+          sees the money move before the confirmation page loads. Opaque rather
+          than blurred: the two sticky headers are the only deliberate blur in
+          this theme, and a translucent panel over the tinted canvas turns
+          muddy. */}
+      {paid && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background/95"
+          role="status"
+          aria-live="polite"
+        >
+          <SuccessTick size={104} label="Payment received" />
+          <p className="text-sm font-semibold tracking-tight">
+            Payment received
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Your funds are held in-platform.
+          </p>
+        </div>
+      )}
       <h1 className="text-3xl font-bold tracking-tight">Secure checkout</h1>
       <p className="mt-2 text-muted-foreground">
         Your payment is held in escrow and released to the seller only after
