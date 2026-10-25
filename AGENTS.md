@@ -588,3 +588,29 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `tests/route_loading.test.ts` pins the mechanism, the duration window and
   the reduced-motion path.
 
+
+## CI (`.github/workflows/ci.yml`)
+
+- **CI needs Node 22, not 20.** `@supabase/*@2.118` declares
+  `engines.node >= 22`, and its realtime client looks for a *global*
+  `WebSocket`. On Node 20 `createClient()` throws "Node.js detected but native
+  WebSocket not found", which fails to even load every suite that transitively
+  imports `src/lib/supabase.ts` — reported as failed *suites* with zero failed
+  tests, which reads like a broken test rather than a broken runtime. The
+  installed `ws` package is not assigned to `globalThis`, so it cannot serve as
+  a fallback; the native global (Node 22+) is the only source. The workflow
+  pins `node-version: 22`.
+- **The database job must own port 5432.** The runner image ships its own
+  PostgreSQL (16) whose `main` cluster holds 5432, so a matrix cluster created
+  alongside it lands on 5433 — while the SQL suites connect over the default
+  socket and reach the wrong server. The job drops every preinstalled cluster,
+  then creates the matrix version explicitly on 5432. Both jobs pin
+  `runs-on: ubuntu-24.04` rather than `ubuntu-latest`, so the gate does not
+  move when GitHub promotes a new image (the first run landed on the brand-new
+  `ubuntu-26.04`).
+- The app job runs `tsc -b`, `eslint`, `vitest` and `vite build`; the database
+  job runs `tests/verify-migrations.sh` and every suite in `tests/*.sql` on
+  PostgreSQL 15 and 17. **Keep the suite list in the workflow in step with
+  `package.json`'s `test:db`** — they are two copies of the same list and
+  drifted once already.
+
