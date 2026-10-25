@@ -105,38 +105,38 @@ export default function SellerTransactions() {
             description="When a buyer purchases one of your listings, the payment appears here with its full commission breakdown."
           />
         ) : (
-          <div className="card overflow-hidden">
-            <div className="seller-table-head hidden grid-cols-[1fr_7rem_7rem_7rem_8rem] gap-4 border-b border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid">
+          <div
+            className="card overflow-hidden"
+            style={{ ["--seller-cols" as string]: "minmax(0,1fr) 6rem 6rem 6rem 8rem" }}
+          >
+            <div className="seller-grid-head">
               <span>Order</span>
               <span className="text-right">Gross</span>
               <span className="text-right">Fee</span>
               <span className="text-right">Net</span>
               <span className="text-right">Status</span>
             </div>
-            <ul className="divide-y divide-border/60">
+            <ul className="seller-grid">
               {orders.map((o) => (
-                <li
-                  key={o.order_no}
-                  className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6"
-                >
-                  <span className="seller-order-cell min-w-0 flex-1">
-                    <span className="seller-order-title block truncate text-sm font-medium">
+                <li key={o.order_no} className="seller-grid-row">
+                  <span className="seller-grid-cell">
+                    <span className="block truncate text-sm font-medium">
                       {o.listing_title}
                     </span>
-                    <span className="seller-order-meta text-xs text-muted-foreground">
+                    <span className="block truncate text-xs text-muted-foreground">
                       {o.order_no} · {new Date(o.created_at).toLocaleDateString()}
                     </span>
                   </span>
-                  <span className="w-20 text-right text-sm tabular-nums">
+                  <span className="seller-grid-num text-right">
                     {formatPrice(o.gross_amount)}
                   </span>
-                  <span className="w-20 text-right text-sm tabular-nums text-destructive">
+                  <span className="seller-grid-num text-right text-destructive">
                     −{formatPrice(o.commission_amount)}
                   </span>
-                  <span className="w-20 text-right text-sm font-semibold tabular-nums">
+                  <span className="seller-grid-num text-right font-semibold">
                     {formatPrice(o.seller_net_amount)}
                   </span>
-                  <span className="ml-auto">
+                  <span className="seller-grid-end flex justify-end">
                     <StatusBadge status={o.status} />
                   </span>
                 </li>

@@ -73,26 +73,29 @@ export default function SellerOrders() {
             description="When a buyer purchases one of your listings, the order appears here."
           />
         ) : (
-          <div className="card overflow-hidden">
-            <div className="seller-table-head hidden grid-cols-[1fr_8rem_9rem] gap-4 border-b border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid">
+          <div
+            className="card overflow-hidden"
+            style={{ ["--seller-cols" as string]: "minmax(0,1fr) 8rem 10rem" }}
+          >
+            <div className="seller-grid-head">
               <span>Order</span>
               <span>Status</span>
               <span className="text-right">Action</span>
             </div>
-            <ul className="divide-y divide-border/60">
+            <ul className="seller-grid">
               {myOrders.map((order) => (
-                <li key={order.order_no} className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6">
-                  <span className="seller-order-cell min-w-0 flex-1">
-                    <span className="seller-order-title block truncate text-sm font-medium">
+                <li key={order.order_no} className="seller-grid-row">
+                  <span className="seller-grid-cell">
+                    <span className="block truncate text-sm font-medium">
                       {order.listing_title}
                     </span>
-                    <span className="seller-order-meta text-xs text-muted-foreground">
+                    <span className="block truncate text-xs text-muted-foreground">
                       {order.order_no} · {formatPrice(order.gross_amount)} ·{" "}
                       {new Date(order.created_at).toLocaleDateString()}
                     </span>
                   </span>
                   <StatusBadge status={order.status} />
-                  <span className="seller-order-action flex w-full justify-end lg:w-auto">
+                  <span className="seller-grid-end flex flex-wrap justify-end">
                     {order.status === "in_escrow" && (
                       <Button
                         size="sm"
@@ -108,14 +111,12 @@ export default function SellerOrders() {
                       </Button>
                     )}
                     {order.status === "completed" && (
-                      <span className="seller-order-meta text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         Escrow released
                       </span>
                     )}
                     {order.status === "disputed" && (
-                      <span className="seller-order-meta text-xs text-destructive">
-                        Under dispute
-                      </span>
+                      <span className="text-xs text-destructive">Under dispute</span>
                     )}
                   </span>
                 </li>

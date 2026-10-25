@@ -105,13 +105,16 @@ export default function SellerEarnings() {
           }}
         />
 
-        <div className="card overflow-hidden">
-          <div className="seller-table-head hidden grid-cols-[1fr_8rem_9rem] gap-4 border-b border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
+        <div
+          className="card overflow-hidden"
+          style={{ ["--seller-cols" as string]: "minmax(0,1fr) 7rem 9rem" }}
+        >
+          <div className="seller-grid-head">
             <span>Withdrawal</span>
-            <span>Amount</span>
+            <span className="text-right">Amount</span>
             <span className="text-right">Status</span>
           </div>
-          <ul className="divide-y divide-border/60">
+          <ul className="seller-grid">
             {payoutsQuery.loading ? (
               <li className="px-5 py-6 text-sm text-muted-foreground">Loading your withdrawals…</li>
             ) : (payoutsQuery.data ?? []).length === 0 ? (
@@ -123,15 +126,12 @@ export default function SellerEarnings() {
               </li>
             ) : (
               (payoutsQuery.data ?? []).map((p) => (
-                <li
-                  key={p.id}
-                  className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6"
-                >
-                  <span className="seller-order-cell min-w-0 flex-1">
-                    <span className="seller-order-title block text-sm font-medium">
+                <li key={p.id} className="seller-grid-row">
+                  <span className="seller-grid-cell">
+                    <span className="block truncate text-sm font-medium">
                       {p.method} · {p.destination}
                     </span>
-                    <span className="seller-order-meta text-xs text-muted-foreground">
+                    <span className="block text-xs text-muted-foreground">
                       Requested {new Date(p.requestedAt).toLocaleDateString()}
                       {p.feeUsd > 0
                         ? ` — fee ${formatPrice(p.feeUsd)}, you receive ${formatPrice(p.netUsd)}`
@@ -139,10 +139,10 @@ export default function SellerEarnings() {
                       {p.reviewNote ? ` — ${p.reviewNote}` : ""}
                     </span>
                   </span>
-                  <span className="w-20 text-sm font-semibold tabular-nums">
+                  <span className="seller-grid-num text-right font-semibold">
                     {formatPrice(p.amountUsd)}
                   </span>
-                  <span className="ml-auto">
+                  <span className="seller-grid-end flex justify-end">
                     <StatusBadge status={p.status} />
                   </span>
                 </li>

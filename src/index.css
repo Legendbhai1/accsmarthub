@@ -1088,32 +1088,57 @@
     @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
   }
 
-  .seller-table-head {
-    @apply border-b border-border px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+  /* ---------------------------------------------------------------------
+   * Seller tables
+   *
+   * A header that declares five columns and rows that are a `flex-wrap` of
+   * `w-16`/`w-20` cells do not share a layout: the header is a grid, the rows
+   * are not, so no column lines up under its label and the numbers drift as
+   * the values change width. Header and row now read the *same* column list
+   * from `--seller-cols`, which the page sets once on the card, so the two can
+   * no longer disagree. Below `lg` the row stays a wrapped stack — a five
+   * column table on a phone is unreadable — and only the header is hidden.
+   * ------------------------------------------------------------------- */
+  .seller-grid {
+    @apply divide-y divide-border/60;
   }
 
-  .seller-order-row {
+  .seller-grid-head {
+    @apply hidden border-b border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid;
+    grid-template-columns: var(--seller-cols, 1fr 8rem 9rem);
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .seller-grid-row {
     @apply flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6;
   }
 
-  .seller-order-cell {
-    @apply min-w-0 flex-1;
+  /* One cell of a seller table. `min-w-0` lets the title truncate instead of
+     forcing the row wider than its track. */
+  .seller-grid-cell {
+    @apply min-w-0;
   }
 
-  .seller-order-title {
-    @apply block truncate text-sm font-medium;
+  .seller-grid-num {
+    @apply text-sm tabular-nums;
   }
 
-  .seller-order-meta {
-    @apply text-xs text-muted-foreground;
-  }
-
-  .seller-order-action {
-    @apply flex w-full justify-end lg:w-auto;
-  }
-
-  .seller-order-amount {
-    @apply w-20 text-right text-sm font-semibold tabular-nums;
+  @media (min-width: 1024px) {
+    .seller-grid-row {
+      display: grid;
+      grid-template-columns: var(--seller-cols, 1fr 8rem 9rem);
+      gap: 1rem;
+      align-items: center;
+    }
+    /* In grid mode the cells size to their track, so the phone widths and the
+       `ml-auto` push used to right-align the last cell would fight it. */
+    .seller-grid-row > .seller-grid-num,
+    .seller-grid-row > .seller-grid-cell,
+    .seller-grid-row > .seller-grid-end {
+      width: auto;
+      margin-left: 0;
+    }
   }
 
   .seller-list {

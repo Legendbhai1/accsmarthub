@@ -95,18 +95,18 @@ export default function SellerDashboard() {
               {orders.slice(0, 4).map((order) => (
                 <li
                   key={order.order_no}
-                  className="seller-order-row flex items-center gap-3 rounded-lg py-3.5"
+                  className="flex items-center gap-3 rounded-lg py-3.5"
                 >
-                  <span className="seller-order-cell min-w-0 flex-1">
-                    <span className="seller-order-title block truncate text-sm font-medium">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">
                       {order.listing_title}
                     </span>
-                    <span className="seller-order-meta text-xs text-muted-foreground">
+                    <span className="block truncate text-xs text-muted-foreground">
                       {order.order_no} · {new Date(order.created_at).toLocaleDateString()}
                     </span>
                   </span>
                   <StatusBadge status={order.status} />
-                  <span className="seller-order-amount w-20 text-right text-sm font-semibold tabular-nums">
+                  <span className="w-20 shrink-0 text-right text-sm font-semibold tabular-nums">
                     {formatPrice(order.gross_amount)}
                   </span>
                 </li>

@@ -347,65 +347,65 @@ export default function SellerListings() {
             description="Create your first listing — it goes live after a quick moderation check."
           />
         ) : (
-          <div className="card overflow-hidden">
-            <div className="seller-table-head hidden grid-cols-[1fr_7rem_9rem_7rem_9rem] gap-4 border-b border-border/70 px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground lg:grid">
+          <div
+            className="card overflow-hidden"
+            style={{ ["--seller-cols" as string]: "minmax(0,1fr) 6rem 5rem 8rem 9rem" }}
+          >
+            <div className="seller-grid-head">
               <span>Listing</span>
-              <span>Price</span>
+              <span className="text-right">Price</span>
               <span className="text-center">Stock</span>
               <span>Status</span>
               <span className="text-right">Actions</span>
             </div>
-            <ul className="divide-y divide-border/60">
+            <ul className="seller-grid">
               {myListings.map((l) => {
                 const busy = busyId === l.id;
                 const creds = credentialStatus[l.id];
                 return (
-                  <li
-                    key={l.id}
-                    className="seller-order-row flex flex-wrap items-center gap-3 px-5 py-4 sm:px-6"
-                  >
-                    <span className="flex size-10 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted/40">
-                      {l.image_path ? (
-                        <img
-                          src={publicAssetUrl("listing-assets", l.image_path)}
-                          alt=""
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <BrandMark brand={l.brand} colored className="size-5" />
-                      )}
-                    </span>
-                    <span className="seller-order-cell min-w-0 flex-1">
-                      <span className="seller-order-title block truncate text-sm font-medium">
-                        {l.title}
-                        {l.hidden && (
-                          <span className="seller-order-meta ml-2 text-xs text-muted-foreground">
-                            (hidden)
-                          </span>
+                  <li key={l.id} className="seller-grid-row">
+                    <span className="seller-grid-cell flex items-center gap-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/60 bg-muted/40">
+                        {l.image_path ? (
+                          <img
+                            src={publicAssetUrl("listing-assets", l.image_path)}
+                            alt=""
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <BrandMark brand={l.brand} colored className="size-5" />
                         )}
                       </span>
-                      <span className="seller-order-meta text-xs text-muted-foreground">
-                        {l.service_category ?? l.brand}
-                        {creds?.attached
-                          ? ` · ${creds.totalUnits} account${creds.totalUnits === 1 ? "" : "s"} attached`
-                          : " · no credentials attached yet"}
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">
+                          {l.title}
+                          {l.hidden && (
+                            <span className="ml-2 text-xs font-normal text-muted-foreground">
+                              (hidden)
+                            </span>
+                          )}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {l.service_category ?? l.brand}
+                          {creds?.attached
+                            ? ` · ${creds.totalUnits} account${creds.totalUnits === 1 ? "" : "s"} attached`
+                            : " · no credentials attached yet"}
+                        </span>
                       </span>
                     </span>
-                    <span className="w-16 text-sm font-semibold tabular-nums">
+                    <span className="seller-grid-num text-right font-semibold">
                       {formatPrice(l.price_usd)}
                     </span>
-                    <span className="w-16 text-center">
-                      <span className="text-sm font-bold tabular-nums">{l.stock}</span>
-                      <span className="seller-order-meta block text-[11px] text-muted-foreground">
-                        units
-                      </span>
+                    <span className="text-center">
+                      <span className="seller-grid-num font-bold">{l.stock}</span>
+                      <span className="block text-[11px] text-muted-foreground">units</span>
                     </span>
                     {/* `pending` is the admin-approval queue, so name it that
                         way rather than showing a bare "pending". */}
                     <StatusBadge
                       status={l.status === "pending" ? "under_review" : l.status}
                     />
-                    <span className="seller-order-action flex w-full justify-end gap-1.5 lg:w-auto">
+                    <span className="seller-grid-end flex flex-wrap justify-end gap-1.5">
                       <Button
                         variant="outline"
                         size="icon"

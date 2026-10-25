@@ -508,6 +508,18 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   row is already at its width budget (see the overflow note above), so the strip
   is the first thing to go, not the search field or the account controls.
   `tests/site_header_layout.test.ts` pins that breakpoint pairing.
+- **A seller table is one markup for two layouts, and the column count is a
+  custom property.** `.seller-grid-head` / `.seller-grid-row` are `flex-wrap`
+  cards below `lg` and a CSS grid from `lg` up, so the same `<li>` renders on a
+  phone and a desktop without a second component or a hidden duplicate. The
+  track list comes from `--seller-cols`, set inline per table
+  (`style={{ ["--seller-cols"]: "minmax(0,1fr) 8rem 10rem" }}`), because the
+  column counts differ per page and a class per count would be five near-copies.
+  It replaced the old `.seller-order-*` set, which hardcoded the grid at `lg`
+  and left the mobile cell widths to utilities that then fought the grid track.
+  The first track is `minmax(0,1fr)` — plain `1fr` is `minmax(auto,1fr)`, which
+  refuses to shrink below the title's content width and pushes the row wider
+  than its container.
 - **The workspace switcher must keep its label at every width.** It was
   `hidden sm:inline`, which left a bare icon on a phone — the one place the
   rail is a drawer and the switcher is the only visible way to change
