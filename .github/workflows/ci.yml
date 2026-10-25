@@ -78,14 +78,17 @@ jobs:
 
       - name: Create and start the cluster
         run: |
-          # The pgdg package does not reliably leave a `main` cluster behind on
-          # this runner image, and `pg_ctlcluster` fails outright when one is
-          # missing ("specified cluster '17 main' does not exist"). Create it
-          # only when absent, so an image that does ship one is left alone.
-          if ! sudo pg_lsclusters -h | awk '{print $1, $2}' \
-               | grep -qx "${{ matrix.postgres }} main"; then
-            sudo pg_createcluster ${{ matrix.postgres }} main
-          fi
+          # The runner image ships its own PostgreSQL (16), whose `main` cluster
+          # claims port 5432. That pushes ours to 5433, but the SQL suites
+          # connect over the default socket — i.e. 5432 — so they would talk to
+          # the wrong server (or none). Drop the preinstalled clusters so the
+          # matrix version is the only one, on the port the scripts expect.
+          for line in $(sudo pg_lsclusters -h | awk '{print $1":"$2}'); do
+            sudo pg_dropcluster --stop "${line%%:*}" "${line##*:}"
+          done
+          # --port 5432 explicitly: the suites connect over the default socket,
+          # and with every other cluster dropped the port is free.
+          sudo pg_createcluster ${{ matrix.postgres }} main --port 5432
           sudo pg_ctlcluster ${{ matrix.postgres }} main start
           sudo pg_lsclusters
           sudo -u postgres psql -c "alter user postgres password 'postgres';"
