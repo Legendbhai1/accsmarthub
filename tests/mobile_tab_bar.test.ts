@@ -94,11 +94,13 @@ describe("the header person icon resolves a profile destination per workspace", 
     expect(shell).toMatch(/<ProfileIcon \/>/);
   });
 
-  it("routes signed-in public users to their profile and signed-out users to /auth", () => {
+  it("routes signed-in public users to their profile and signed-out users to the auth page", () => {
     const header = read("src/components/site/SiteHeader.tsx");
     // The public header keeps a real profile link for signed-in accounts…
     expect(header).toMatch(/navigate\("\/account\/profile"\)/);
-    // …and sends signed-out visitors to the auth page.
-    expect(header).toMatch(/<Link to="\/auth"/);
+    // …and sends signed-out visitors to the auth page, preserving where they
+    // were so the sign-in lands them back on it.
+    expect(header).toMatch(/const authTo =/);
+    expect(header).toMatch(/<Link to=\{authTo\}/);
   });
 });

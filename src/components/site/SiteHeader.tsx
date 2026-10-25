@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router";
+import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import {
   Bell,
   LayoutDashboard,
@@ -43,8 +43,19 @@ export function SiteHeader() {
   const { user, signOut } = useSession();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // The header is the only sign-in affordance now that it is the only header,
+  // so its auth links have to preserve where the shopper was. This used to be
+  // the marketplace header's job — it hardcoded `returnTo=/marketplace` — but
+  // that header is gone and the shell is on every page. `/auth` is left bare so
+  // the auth page's own default still applies there.
+  const authTo =
+    location.pathname === "/auth" || location.pathname === "/"
+      ? "/auth"
+      : `/auth?returnTo=${encodeURIComponent(location.pathname + location.search)}`;
 
   const canSell =
     user?.role === "seller" ||
@@ -139,7 +150,7 @@ export function SiteHeader() {
               asChild
             >
               <Link
-                to={user ? "/account/profile" : "/auth"}
+                to={user ? "/account/profile" : authTo}
                 aria-label={user ? "Your profile" : "Sign in"}
                 title={user ? "Your profile" : "Sign in"}
               >
@@ -221,13 +232,13 @@ export function SiteHeader() {
             ) : (
               <>
                 <Button variant="ghost" className="hidden sm:inline-flex" asChild>
-                  <Link to="/auth">
+                  <Link to={authTo}>
                     <LogIn className="size-4" />
                     Log in
                   </Link>
                 </Button>
                 <Button className="hidden sm:inline-flex" asChild>
-                  <Link to="/auth?mode=register">
+                  <Link to={`${authTo}${authTo.includes("?") ? "&" : "?"}mode=register`}>
                     <UserPlus className="size-4" />
                     <span className="hidden sm:inline">Create account</span>
                     <span className="sm:hidden">Sign up</span>
@@ -346,7 +357,7 @@ export function SiteHeader() {
             </form>
             {!user && (
               <Button variant="outline" asChild>
-                <Link to="/auth" onClick={() => setMobileOpen(false)}>
+                <Link to={authTo} onClick={() => setMobileOpen(false)}>
                   <ShoppingCart className="size-4" />
                   Sign in to buy or sell
                 </Link>

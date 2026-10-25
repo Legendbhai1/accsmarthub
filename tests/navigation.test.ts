@@ -24,6 +24,38 @@ import { adminNav, buyerNav, flatNav, sellerNav } from "@/components/dash/navs";
 const root = process.cwd();
 const read = (rel: string) => readFileSync(join(root, rel), "utf8");
 
+/**
+ * Every page under `PublicLayout` already has a header, a footer and a tab bar
+ * from that layout. A page that renders its own copy of any of them stacks two
+ * on top of each other: `/faq` and `/trust` did exactly that by wrapping their
+ * body in `SiteLayout`, which mounted a second `SiteHeader`, `SiteFooter` and
+ * `MobileTabBar`, and `/marketplace` did it with a hand-rolled header bar. The
+ * shell is the only place any of the three may be mounted.
+ */
+describe("public pages do not mount a second copy of the shell", () => {
+  const publicPages = readdirSync(join(root, "src/pages/public")).filter((f) =>
+    f.endsWith(".tsx"),
+  );
+
+  it.each(publicPages)("src/pages/public/%s renders no shell chrome", (file) => {
+    const source = read(`src/pages/public/${file}`);
+    // The marketplace header is the one legitimate `<header>` on a public page
+    // (it is the page title, not a nav bar), so only the nav-bar and footer
+    // shapes are forbidden.
+    expect(source).not.toMatch(/<SiteHeader\b/);
+    expect(source).not.toMatch(/<SiteFooter\b/);
+    expect(source).not.toMatch(/<MobileTabBar\b/);
+    expect(source).not.toMatch(/<SiteLayout\b/);
+  });
+
+  it("keeps the shell chrome in the one layout that owns it", () => {
+    const layout = read("src/components/site/PublicLayout.tsx");
+    expect(layout).toMatch(/<SiteHeader\s*\/>/);
+    expect(layout).toMatch(/<SiteFooter\s*\/>/);
+    expect(layout).toMatch(/<MobileTabBar\s*\/>/);
+  });
+});
+
 describe("mobile navigation does not leak into dashboards", () => {
   // Seller Studio and the admin console never mount the public tab bar; the
   // buyer account workspace now does, on purpose, so it is checked separately
@@ -40,15 +72,15 @@ describe("mobile navigation does not leak into dashboards", () => {
     expect(source).not.toMatch(/MobileChipNav/);
   });
 
-  it("mounts the public tab bar from the public layouts only", () => {
-    for (const file of [
-      "src/components/site/PublicLayout.tsx",
-      "src/components/site/SiteLayout.tsx",
-    ]) {
-      expect(read(file), `${file} should mount MobileTabBar`).toMatch(
-        /<MobileTabBar\s*\/>/,
-      );
-    }
+  it("mounts the public tab bar from the public layout only", () => {
+    // `SiteLayout` used to be a second full-page shell a page could nest
+    // inside `PublicLayout`'s, which rendered two headers, two footers and two
+    // tab bars on `/faq` and `/trust`. It had no callers once those two stopped
+    // using it and is gone; `PublicLayout` is the one public shell.
+    expect(read("src/components/site/PublicLayout.tsx")).toMatch(
+      /<MobileTabBar\s*\/>/,
+    );
+    expect(() => read("src/components/site/SiteLayout.tsx")).toThrow();
   });
 
   it("gives the dashboards their own drawer instead of a bottom bar", () => {

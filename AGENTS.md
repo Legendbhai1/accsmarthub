@@ -281,7 +281,7 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   mistyped it.
 - **One shell per audience, and the public bottom bar belongs to the buyer
   shell.** `MobileTabBar` (`src/components/site/`) is mounted by
-  `PublicLayout`, by `SiteLayout`, and by `DashShell` **for the buyer workspace
+  `PublicLayout` and by `DashShell` **for the buyer workspace
   only** (`workspaceForPath(pathname) === "buyer"`, i.e. `/account` and its
   sub-pages). It used to be rendered from four places — including both
   dashboard layouts — which is how the public Home / Marketplace / Categories /
@@ -292,15 +292,36 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   (`src/components/dash/`) too, so the mount is gated on the workspace, not on
   "is this a dashboard". `tests/navigation.test.ts` asserts that gate and that
   `SellerLayout` never references the bar.
+- **`PublicLayout` is the only public shell; a page must not mount its own
+  copy of the chrome.** `SiteLayout` used to be a second full-page shell
+  (header + footer + tab bar) that a public page could nest *inside*
+  `PublicLayout`'s, and `/faq` and `/trust` did exactly that — two headers, two
+  footers and two tab bars on one page. `/marketplace` hit the same class of bug
+  from the other direction: a hand-rolled 144px header bar, with its own search
+  field, under the sticky `SiteHeader`. `SiteLayout` had no callers once those
+  two stopped using it and is deleted; `PublicLayout` owns the chrome for every
+  route under it, and `tests/navigation.test.ts` now reads every file in
+  `src/pages/public/` and fails if one mounts `SiteHeader`/`SiteFooter`/
+  `MobileTabBar`/`SiteLayout`. A page's own `<header>` for its title is fine —
+  it is the nav bar and the footer that must stay singular.
+- **The sign-in destination is computed by the shell header, not hardcoded per
+  page.** `SiteHeader` builds `authTo` from `useLocation()` —
+  `/auth?returnTo=<current path + search>`, or a bare `/auth` on `/` and
+  `/auth` — and every signed-out affordance in the header (person icon, Log in,
+  Create account, the mobile sheet's "Sign in to buy or sell") uses it. This
+  moved here when the marketplace's own header was removed: that header
+  hardcoded `returnTo=/marketplace`, and dropping it silently broke "sign in
+  from the marketplace returns you to the marketplace". `tests/profile_icon.test.ts`
+  and `tests/mobile_tab_bar.test.ts` pin the computed link.
 - **The header person icon is a per-workspace link, resolved by a mapper.** The
   dashboard header renders `ProfileIcon`, which resolves its destination with
   `profileHrefForWorkspace(workspaceForPath(pathname))` (`src/components/dash/navs.ts`):
-  Seller Studio → `/seller/profile`, everything else → `/account/profile`. The
-  marketplace's own inline header carries the same link. Keep the destination in
-  the mapper rather than inlining a path in the JSX, so the icon cannot point at
+  Seller Studio → `/seller/profile`, everything else → `/account/profile`. Keep
+  the destination in the mapper rather than inlining a path in the JSX, so the
+  icon cannot point at
   a route that does not exist for that workspace.
 - **A `fixed` bottom bar needs its scroll container to reserve room.** Both the
-  public shell (`PublicLayout`/`SiteLayout`) and `DashShell`'s buyer workspace
+  public shell (`PublicLayout`) and `DashShell`'s buyer workspace
   set `pb-24 md:pb-0` on `<main>`; without it the bar covers the last row of
   content and the footer. If you add a fixed element, reserve the space where
   the scrolling content lives rather than padding the element.

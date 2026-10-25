@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Bell, Heart, LayoutGrid, PackageOpen, Search, SearchX, User, X } from "lucide-react";
+import { Heart, LayoutGrid, PackageOpen, SearchX } from "lucide-react";
 import { BrandMark } from "@/components/site/BrandMark";
-import { TopMenu } from "@/components/site/TopMenu";
 import { Pagination } from "@/components/common/Pagination";
 import { formatPrice } from "@/lib/format";
 import { categories } from "@/lib/db";
@@ -125,8 +124,6 @@ export default function Marketplace() {
   const location = useLocation();
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
 
-  const [query, setQuery] = useState(params.get("q") ?? "");
-  const [searchOpen, setSearchOpen] = useState(Boolean(params.get("q")));
   const [slide, setSlide] = useState(0);
 
   const { user } = useSession();
@@ -247,98 +244,22 @@ export default function Marketplace() {
     navigate(qs ? `/marketplace?${qs}` : "/marketplace", { replace: true });
   };
 
-  const submitSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const next = new URLSearchParams(location.search);
-    const q = query.trim();
-    if (q) next.set("q", q);
-    else next.delete("q");
-    const qs = next.toString();
-    navigate(qs ? `/marketplace?${qs}` : "/marketplace", { replace: true });
-    setSearchOpen(false);
-  };
-
   const current = SLIDES[slide];
 
   return (
     <div className="relative min-h-screen bg-background pb-32">
-      {/* ---------------------------- App header ---------------------------- */}
-      <header className="px-4 pt-5">
-        <div className="mx-auto flex max-w-md items-center justify-between gap-3 sm:max-w-7xl">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary">
-              <svg viewBox="0 0 24 24" className="size-5 text-primary-foreground" fill="currentColor" aria-hidden="true">
-                <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H14a1 1 0 0 1 1 1v3.5a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 6V5.5ZM4 12a2.5 2.5 0 0 1 2.5-2.5H18a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 12.5V12ZM4 18.5A2.5 2.5 0 0 1 6.5 16H14a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H6.5A2.5 2.5 0 0 1 4 18.5Z" />
-              </svg>
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-[15px] font-bold leading-tight tracking-tight text-foreground">AccsMartHub</p>
-              <p className="truncate text-[11px] leading-tight text-muted-foreground">Reviewed marketplace</p>
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              aria-label="Search accounts"
-              onClick={() => setSearchOpen((v) => !v)}
-              className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors duration-150 hover:bg-accent"
-            >
-              {searchOpen ? <X className="size-4" /> : <Search className="size-4" />}
-            </button>
-            <Link
-              to="/account/notifications"
-              aria-label="Notifications"
-              className="relative flex size-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors duration-150 hover:bg-accent"
-            >
-              <Bell className="size-4" />
-              <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-destructive" />
-            </Link>
-            {/* The person icon. Signed-in shoppers land on their profile;
-                signed-out visitors are sent to sign in first. It used to be
-                missing here entirely, so there was no one-tap route to the
-                account page from the marketplace header. */}
-            <Link
-              to={user ? "/account/profile" : "/auth?returnTo=/marketplace"}
-              aria-label={user ? "Your profile" : "Sign in"}
-              title={user ? "Your profile" : "Sign in"}
-              className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors duration-150 hover:bg-accent"
-            >
-              <User className="size-4" />
-            </Link>
-            {/* Three-line menu: become a seller / dark-light switch. */}
-            <TopMenu />
-          </div>
-        </div>
-
-        {searchOpen && (
-          <form onSubmit={submitSearch} role="search" className="mx-auto mt-4 max-w-md sm:max-w-7xl">
-            <label htmlFor="marketplace-search" className="sr-only">
-              Search social media accounts
-            </label>
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                id="marketplace-search"
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search accounts, niches, platforms…"
-                className="inset-well h-11 w-full pl-11 pr-4 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/60"
-              />
-            </div>
-          </form>
-        )}
-
-        {/* The page's one `h1`. The header above carries the wordmark only, so
-            before this the document had no top-level heading at all and a
-            screen reader announced the page by its `<title>` alone. */}
-        <div className="mx-auto mt-5 max-w-md sm:max-w-7xl">
-          <h1 className="page-title">Marketplace</h1>
-          <p className="page-sub mt-1">
-            Every account here was reviewed by an admin before it went live.
-          </p>
-        </div>
+      {/* ------------------------------ Page hero ------------------------------ */}
+      {/* This page used to render its own 144px header — wordmark, a search
+          toggle, a bell, a profile icon and a hamburger — directly beneath the
+          sticky `SiteHeader` that `PublicLayout` already mounts. That made
+          `/marketplace` the only page in the app with two header bars and two
+          search fields stacked on each other. The shell header owns navigation
+          and search everywhere now, so this page opens on its title. */}
+      <header className="mx-auto mt-6 max-w-md px-4 sm:max-w-7xl">
+        <h1 className="page-title">Marketplace</h1>
+        <p className="page-sub mt-1">
+          Every account here was reviewed by an admin before it went live.
+        </p>
       </header>
 
       {/* ---------------------------- Promo banner ---------------------------- */}
@@ -571,7 +492,6 @@ export default function Marketplace() {
                 <button
                   type="button"
                   onClick={() => {
-                    setQuery("");
                     setPage(1);
                     navigate("/marketplace", { replace: true });
                   }}

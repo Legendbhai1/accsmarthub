@@ -27,12 +27,12 @@ describe("the public header has a person icon", () => {
   });
 
   it("sends a signed-in shopper to their profile", () => {
-    expect(header).toMatch(/to=\{user \? "\/account\/profile" : "\/auth"\}/);
+    expect(header).toMatch(/to=\{user \? "\/account\/profile" : authTo\}/);
   });
 
   it("sends a signed-out visitor to sign in", () => {
-    // Same ternary: the signed-out branch is `/auth`.
-    expect(header).toMatch(/user \? "\/account\/profile" : "\/auth"/);
+    // Same ternary: the signed-out branch is the computed `authTo`.
+    expect(header).toMatch(/user \? "\/account\/profile" : authTo/);
   });
 
   it("labels the control for screen readers, both ways", () => {
@@ -48,19 +48,27 @@ describe("the public header has a person icon", () => {
   });
 });
 
-describe("the marketplace header returns to the marketplace after sign-in", () => {
-  const page = read("src/pages/public/Marketplace.tsx");
+describe("the shell header returns to the page after sign-in", () => {
+  // This used to live on the marketplace page's own header, which hardcoded
+  // `returnTo=/marketplace`. That header is gone — `/marketplace` renders the
+  // shared shell header like every other public page — so the shell carries the
+  // behaviour now, computed from the current location.
+  const header = read("src/components/site/SiteHeader.tsx");
 
   it("uses returnTo, which the auth page actually reads", () => {
     // The auth page reads `returnTo` (and the stored fallback); it has never
     // read `next`. A `?next=` link dropped the destination, so signing in from
     // the marketplace landed the user somewhere other than the marketplace.
-    expect(page).toMatch(/\/auth\?returnTo=\/marketplace/);
-    expect(page).not.toMatch(/\/auth\?next=/);
+    expect(header).toMatch(/returnTo=\$\{encodeURIComponent/);
+    expect(header).not.toMatch(/\/auth\?next=/);
   });
 
-  it("still points the person icon at the profile when signed in", () => {
-    expect(page).toMatch(/to=\{user \? "\/account\/profile" : "\/auth\?returnTo=\/marketplace"\}/);
+  it("points the person icon at the profile when signed in", () => {
+    expect(header).toMatch(/to=\{user \? "\/account\/profile" : authTo\}/);
+  });
+
+  it("preserves the current path and query in the sign-in destination", () => {
+    expect(header).toMatch(/location\.pathname \+ location\.search/);
   });
 });
 

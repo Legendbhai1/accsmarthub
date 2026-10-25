@@ -9,7 +9,6 @@ import {
   UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SiteLayout } from "@/components/site/SiteLayout";
 import { tokenTint } from "@/lib/brands";
 
 const PILLARS = [
@@ -80,94 +79,92 @@ const ENFORCEMENT = [
 
 export default function Trust() {
   return (
-    <SiteLayout>
-      <div className="mx-auto w-full max-w-5xl px-4 py-14 sm:px-6">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Trust &amp; safety
-        </h1>
-        <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
-          A marketplace for accounts only works if both sides can trust the
-          process. These are the commitments every order on AccsMartHub is
-          held to.
-        </p>
+    <div className="mx-auto w-full max-w-5xl px-4 py-14 sm:px-6">
+      <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+        Trust &amp; safety
+      </h1>
+      <p className="mt-3 max-w-2xl leading-relaxed text-muted-foreground">
+        A marketplace for accounts only works if both sides can trust the
+        process. These are the commitments every order on AccsMartHub is
+        held to.
+      </p>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PILLARS.map(({ icon: Icon, tint, title, body }) => (
-            <div
-              key={title}
-              style={tokenTint(tint)}
-              className="surface tint-card p-6"
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {PILLARS.map(({ icon: Icon, tint, title, body }) => (
+          <div
+            key={title}
+            style={tokenTint(tint)}
+            className="surface tint-card p-6"
+          >
+            <span
+              className="icon-tile size-10"
+              style={{ ["--tile" as string]: `var(${tint})` }}
             >
-              <span
-                className="icon-tile size-10"
-                style={{ ["--tile" as string]: `var(${tint})` }}
-              >
-                <Icon className="size-5" />
-              </span>
-              <h2 className="mt-4 font-semibold tracking-tight">{title}</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                {body}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="surface mt-10 p-8">
-          <h2 className="text-xl font-bold tracking-tight">Strictly prohibited</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Account transfers are restricted by most platforms, so listings
-            that break these rules are removed when reported or found. The
-            following are banned:
-          </p>
-          <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
-            {PROHIBITED.map((item) => (
-              <li key={item} className="flex items-center gap-2.5 text-sm">
-                <span className="size-1.5 rounded-full bg-destructive" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="surface mt-10 border-warning/30 p-8">
-          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight">
-            <ShieldAlert className="size-5 text-warning" />
-            Off-platform contact is absolutely prohibited
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Every deal must happen on AccsMartHub so escrow, disputes and
-            refunds keep working. Sharing contact details or moving payment
-            off-platform is not allowed for anyone:
-          </p>
-          <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
-            {NO_OFF_PLATFORM.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-sm">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning" />
-                {item}
-              </li>
-            ))}
-          </ul>
-
-          <h3 className="mt-8 font-semibold tracking-tight">How it is enforced</h3>
-          <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
-            {ENFORCEMENT.map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-sm">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-          <Button className="rounded-xl" asChild>
-            <Link to="/marketplace">Browse the marketplace</Link>
-          </Button>
-          <Button variant="outline" className="rounded-xl" asChild>
-            <Link to="/account/support">Contact support</Link>
-          </Button>
-        </div>
+              <Icon className="size-5" />
+            </span>
+            <h2 className="mt-4 font-semibold tracking-tight">{title}</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+              {body}
+            </p>
+          </div>
+        ))}
       </div>
-    </SiteLayout>
+
+      <div className="surface mt-10 p-8">
+        <h2 className="text-xl font-bold tracking-tight">Strictly prohibited</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Account transfers are restricted by most platforms, so listings
+          that break these rules are removed when reported or found. The
+          following are banned:
+        </p>
+        <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
+          {PROHIBITED.map((item) => (
+            <li key={item} className="flex items-center gap-2.5 text-sm">
+              <span className="size-1.5 rounded-full bg-destructive" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="surface mt-10 border-warning/30 p-8">
+        <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+          <ShieldAlert className="size-5 text-warning" />
+          Off-platform contact is absolutely prohibited
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+          Every deal must happen on AccsMartHub so escrow, disputes and
+          refunds keep working. Sharing contact details or moving payment
+          off-platform is not allowed for anyone:
+        </p>
+        <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
+          {NO_OFF_PLATFORM.map((item) => (
+            <li key={item} className="flex items-start gap-2.5 text-sm">
+              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning" />
+              {item}
+            </li>
+          ))}
+        </ul>
+
+        <h3 className="mt-8 font-semibold tracking-tight">How it is enforced</h3>
+        <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
+          {ENFORCEMENT.map((item) => (
+            <li key={item} className="flex items-start gap-2.5 text-sm">
+              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+        <Button className="rounded-xl" asChild>
+          <Link to="/marketplace">Browse the marketplace</Link>
+        </Button>
+        <Button variant="outline" className="rounded-xl" asChild>
+          <Link to="/account/support">Contact support</Link>
+        </Button>
+      </div>
+    </div>
   );
 }

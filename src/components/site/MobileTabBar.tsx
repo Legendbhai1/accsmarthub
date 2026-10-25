@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 /**
  * The public mobile bottom tab bar.
  *
- * Mounted by `PublicLayout` and `SiteLayout`, and by `DashShell` for the
+ * Mounted by `PublicLayout`, and by `DashShell` for the
  * *buyer* workspace only (`/account` and its sub-pages). It used to be
  * rendered from four places — including both dashboard layouts — which is how
  * the public Home / Marketplace / Categories / Account tabs showed up inside
