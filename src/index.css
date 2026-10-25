@@ -168,6 +168,12 @@
     --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
     --shadow-md: 0 4px 14px -4px hsl(222 47% 11% / 0.1);
     --shadow-lg: 0 18px 40px -18px hsl(222 47% 11% / 0.22);
+    /* How long the route-transition overlay lives, end to end. Kept in one
+       place because three keyframes in `.route-loader*` divide it up: the
+       overlay is visible for this long, no matter how fast the route itself
+       resolves. The user asked for a one-to-two second page transition, so the
+       default sits inside that window; tests/route_loading.test.ts pins it. */
+    --route-load-ms: 1200ms;
   }
 
   /* The dark appearance is a deep navy, not blue-black: the same saturated
@@ -341,11 +347,38 @@
     animation-name: fade-in;
   }
 
+  /* The route wrapper's entrance. See the `page-enter` keyframe below for why
+     it is opacity-only rather than a slide. */
+  .page-enter {
+    animation-name: page-enter;
+  }
+
   .slide-in-from-bottom-4 {
     animation-name: slide-in-from-bottom-4;
   }
 
   @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* A *fade-only* entrance, for a wrapper that contains a `position: fixed`
+     element.
+
+     `slide-in-from-bottom-4` below animates `transform`, and with
+     `animation-fill-mode: both` the wrapper keeps `transform: translateY(0)`
+     after the animation ends. A transform other than `none` makes the element
+     a containing block for fixed-position descendants, so a `position: fixed`
+     bar inside it is pinned to the *document*, not the viewport — it scrolls
+     away with the page instead of staying put. That is exactly what hid the
+     buyer bottom tab bar on `/account`: it was mounted correctly but rendered
+     at the bottom of a long page. Opacity does not create a containing block,
+     so this keyframe is safe to put above one. */
+  @keyframes page-enter {
     from {
       opacity: 0;
     }
@@ -362,6 +395,81 @@
     to {
       transform: translateY(0);
       opacity: 1;
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+   * The route-transition overlay
+   *
+   * `RouteLoadingScreen` renders one of these on every navigation after the
+   * first. It is deliberately CSS-driven with no JavaScript timer: the element
+   * is remounted by a `key` on the route, so the animation restarts, runs for
+   * `--route-load-ms`, and finishes on `visibility: hidden`. Nothing has to
+   * unmount it, which is what keeps it from racing the router.
+   *
+   * Three keyframes share the timeline: the overlay fades in and back out, the
+   * brand mark lifts into place, and the rail fills. They are percentages of
+   * the same duration, so changing `--route-load-ms` rescales all three.
+   *
+   * `visibility` (not `opacity` alone) is what stops the finished overlay
+   * swallowing clicks; `opacity: 0` alone would leave a full-screen element
+   * over the page.
+   * ------------------------------------------------------------------- */
+
+  .route-loader {
+    animation: route-loader-veil var(--route-load-ms, 1200ms) ease-in-out both;
+  }
+
+  @keyframes route-loader-veil {
+    0% {
+      opacity: 0;
+      visibility: visible;
+    }
+    14% {
+      opacity: 1;
+    }
+    78% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      visibility: hidden;
+    }
+  }
+
+  .route-loader-mark {
+    animation: route-loader-mark var(--route-load-ms, 1200ms) cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes route-loader-mark {
+    0% {
+      opacity: 0;
+      transform: translateY(10px) scale(0.94);
+    }
+    22% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .route-loader-bar {
+    transform-origin: left center;
+    animation: route-loader-bar var(--route-load-ms, 1200ms) cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  @keyframes route-loader-bar {
+    0% {
+      transform: scaleX(0.06);
+    }
+    82% {
+      transform: scaleX(1);
+    }
+    100% {
+      transform: scaleX(1);
     }
   }
 

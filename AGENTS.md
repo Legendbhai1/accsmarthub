@@ -513,4 +513,39 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `can_moderate()` first, then that the caller is the order's buyer or seller,
   then that the caller is not the request's own author. `tests/request_authorization.sql`
   pins all three plus the admin path.
+- **The admin console must degrade on a database that is behind the migrations,
+  because production is.** Production is `0001`-`0006` then `0013`+, so `0020`
+  (which gives `listings` its moderation columns and the three-argument
+  `set_listing_status`) is absent there. Both assumptions failed live:
+  `set_listing_status(p_listing_id, p_note, p_status)` answered `PGRST202`
+  ("Could not find the function … in the schema cache") so Approve and Reject
+  did nothing, and a select naming `moderation_note` answered `42703` so the
+  queue never loaded. `setListingStatus` now retries with the two named
+  arguments the older function declares, `admin_update_listing` explains the
+  missing migration instead of surfacing `PGRST202`, and `AdminListings`
+  re-reads without `moderation_note` on `42703`. `isSchemaCacheError` is the
+  one "the schema is behind" test; `isMissingRpcError` is the RPC-signature
+  one. `tests/admin_listing_fallback.test.ts` pins all three. Apply `0020` to
+  production as well — the fallbacks keep the console usable, not complete.
+- **The public header carries a person icon, and an auth link must use
+  `returnTo`.** `SiteHeader` had no profile control, so the homepage had no
+  one-tap route to the account; it now links to `/account/profile` when signed
+  in and `/auth` when signed out. The auth page reads `returnTo` (and the
+  stored fallback) and has never read `next`, so the marketplace's
+  `/auth?next=/marketplace` silently dropped its destination — the two call
+  sites now emit `returnTo`. `tests/profile_icon.test.ts` pins both.
+- **The route-transition overlay is CSS-driven and keyed on the route.**
+  `RouteLoadingScreen` is mounted once by the pathless root in `src/App.tsx`,
+  above every shell, so the transition is the same on the public pages, the
+  three dashboard workspaces and the transactional pages. It renders nothing
+  for the landing render (the first `location.key` is held in state, not a ref
+  — reading a ref during render is a lint error here), then remounts on every
+  subsequent navigation via `key={location.key}`, which is what replays the
+  animation. It has no `setTimeout`: the overlay, the mark and the progress
+  rail are three keyframes sharing `--route-load-ms` (1200ms), and the veil
+  ends on `visibility: hidden` so a finished overlay cannot swallow clicks.
+  Do **not** reuse `add-to-cart`, `shopping-bag` or `order-confirmed` for it:
+  those are success signals and a transition has not succeeded at anything.
+  `tests/route_loading.test.ts` pins the mechanism, the duration window and
+  the reduced-motion path.
 

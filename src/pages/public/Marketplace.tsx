@@ -144,7 +144,7 @@ export default function Marketplace() {
       toast.error("Sign in to save accounts", {
         description: "Saved accounts are kept with your account.",
       });
-      navigate("/auth?next=/marketplace");
+      navigate("/auth?returnTo=/marketplace");
       return;
     }
     const isSaved = savedIds.has(id);
@@ -299,7 +299,7 @@ export default function Marketplace() {
                 missing here entirely, so there was no one-tap route to the
                 account page from the marketplace header. */}
             <Link
-              to={user ? "/account/profile" : "/auth?next=/marketplace"}
+              to={user ? "/account/profile" : "/auth?returnTo=/marketplace"}
               aria-label={user ? "Your profile" : "Sign in"}
               title={user ? "Your profile" : "Sign in"}
               className="flex size-10 items-center justify-center rounded-lg border border-border bg-card text-foreground transition-colors duration-150 hover:bg-accent"

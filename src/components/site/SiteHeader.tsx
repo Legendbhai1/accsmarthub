@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   Store,
   Sun,
+  User,
   UserPlus,
 } from "lucide-react";
 import {
@@ -119,6 +120,28 @@ export function SiteHeader() {
           </form>
 
           <div className="ml-auto flex items-center gap-2 md:ml-2">
+            {/* The person icon. The public header had no profile control at
+                all, so the one-tap route to the account a shopper reaches for
+                on a phone simply was not there — reaching the profile meant
+                opening the account dropdown. Signed-in shoppers land on their
+                profile; signed-out visitors are sent to sign in first. This
+                mirrors the marketplace header and the dashboard shell, which
+                resolve the same destination. */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full text-muted-foreground hover:text-foreground"
+              asChild
+            >
+              <Link
+                to={user ? "/account/profile" : "/auth"}
+                aria-label={user ? "Your profile" : "Sign in"}
+                title={user ? "Your profile" : "Sign in"}
+              >
+                <User className="size-5" aria-hidden="true" />
+              </Link>
+            </Button>
+
             {user && (
               <Button
                 variant="ghost"

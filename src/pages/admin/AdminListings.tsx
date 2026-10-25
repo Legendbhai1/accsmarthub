@@ -13,12 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DashLayout } from "@/components/dash/DashLayout";
-import { adminNav } from "@/components/dash/navs";
 import { EmptyState } from "@/components/common/Primitives";
 import { formatPrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
-import { adminUpdateListing, setListingStatus } from "@/lib/supabaseMutations";
+import {
+  adminUpdateListing,
+  isSchemaCacheError,
+  setListingStatus,
+} from "@/lib/supabaseMutations";
 import { toast } from "sonner";
 
 const TABS = [
@@ -61,7 +63,8 @@ type ListingRow = {
   hidden: boolean;
   stock: number;
   price_usd: number;
-  moderation_note: string | null;
+  /** Present only once migration 0020 has run. */
+  moderation_note?: string | null;
   updated_at: string;
 };
 
@@ -85,19 +88,41 @@ export default function AdminListings() {
   // setState synchronously, or React reports a cascading render. Loading state
   // is flipped from the event handlers that start a fresh load.
   const load = useCallback(() => {
-    return Promise.resolve(
+    // `moderation_note` is added by migration 0020. A database that has not run
+    // it rejects a select naming the column with 42703, which took the whole
+    // queue down — the admin saw "Could not load listings" and nothing to act
+    // on. Ask for it first and fall back to the columns that always exist, so
+    // moderation works on either schema.
+    //
+    // Both selects are written out in full: PostgREST derives the row type from
+    // the literal passed to `.select()`, and a composed string collapses it to a
+    // parser error.
+    const loadBase = () =>
+      supabase
+        .from("listings")
+        .select("id, title, brand, summary, status, hidden, stock, price_usd, updated_at")
+        .eq("status", tab)
+        .order("updated_at", { ascending: false });
+
+    const loadWithNote = () =>
       supabase
         .from("listings")
         .select(
           "id, title, brand, summary, status, hidden, stock, price_usd, moderation_note, updated_at",
         )
         .eq("status", tab)
-        .order("updated_at", { ascending: false }),
-    )
+        .order("updated_at", { ascending: false });
+
+    return Promise.resolve(loadWithNote())
+      .then((result) =>
+        result.error && isSchemaCacheError(result.error)
+          ? loadBase()
+          : result,
+      )
       .then(({ data, error: fetchError }) => {
         if (fetchError) throw new Error(fetchError.message);
         setRows(
-          (data ?? []).map((r) => ({
+          ((data ?? []) as ListingRow[]).map((r) => ({
             ...r,
             stock: Number(r.stock ?? 0),
             price_usd: Number(r.price_usd ?? 0),
@@ -183,7 +208,7 @@ export default function AdminListings() {
       : rows;
 
   return (
-    <DashLayout title="Listing moderation" nav={adminNav}>
+    <>
       <div className="space-y-6">
         <p className="text-sm leading-relaxed text-muted-foreground">
           Approve, reject or correct listings. A rejection requires a reason —
@@ -369,7 +394,7 @@ export default function AdminListings() {
           }}
         />
       )}
-    </DashLayout>
+    </>
   );
 }
 

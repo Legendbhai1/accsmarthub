@@ -302,12 +302,15 @@ const APPLICATION_ONLY_COLUMNS = [
 ] as const;
 
 /**
- * True when PostgREST rejected the payload because a named column is not in
- * its schema cache. It reports this two ways depending on the route: a
- * `PGRST204` code on some paths, and a `42703` / "schema cache" message on
- * others, so both are matched.
+ * A write or read that an *older* database cannot satisfy.
+ *
+ * PostgREST rejects a column a table does not have with 42703 ("column … does
+ * not exist") and a write naming an unknown column with PGRST204; both name the
+ * schema cache in the message. Callers use this to retry against the columns an
+ * earlier migration left behind, so the app keeps working on a database that is
+ * behind the migrations in this repository.
  */
-function isSchemaCacheError(error: { message?: string; code?: string } | null) {
+export function isSchemaCacheError(error: { message?: string; code?: string } | null) {
   if (!error) return false;
   const message = error.message ?? "";
   return (
@@ -588,12 +591,44 @@ export type SetListingStatusInput = {
 };
 
 export async function setListingStatus(input: SetListingStatusInput) {
-  const { error } = await supabase.rpc("set_listing_status", {
+  const withNote = await supabase.rpc("set_listing_status", {
     p_listing_id: input.listingId,
     p_status: input.status,
     p_note: input.note ?? null,
   });
-  if (error) throw new Error(friendlyError(error));
+  if (!withNote.error) return;
+
+  // 0020 replaced the 2-argument `set_listing_status(uuid, text)` with a
+  // 3-argument version whose `p_note` defaults to null. A database that has
+  // not run 0020 only has the 2-argument function, and PostgREST answers a
+  // call it cannot resolve with PGRST202 ("no matches were found in the schema
+  // cache") rather than running it — so approving a listing failed outright on
+  // that database. Fall back to the two named arguments the older function
+  // declares. A rejection's reason is only recorded by the newer function,
+  // which is the same migration that added the column it writes.
+  if (!isMissingRpcError(withNote.error)) {
+    throw new Error(friendlyError(withNote.error));
+  }
+  const withoutNote = await supabase.rpc("set_listing_status", {
+    p_listing_id: input.listingId,
+    p_status: input.status,
+  });
+  if (withoutNote.error) throw new Error(friendlyError(withoutNote.error));
+}
+
+/**
+ * PostgREST reports an RPC whose signature it cannot resolve as PGRST202 —
+ * "Could not find the function … in the schema cache". That is the signal that
+ * the function exists in an older shape (or not at all), which the callers
+ * below use to retry against the older shape instead of failing.
+ */
+function isMissingRpcError(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return (
+    error.code === "PGRST202" ||
+    /could not find the function/i.test(error.message ?? "") ||
+    /schema cache/i.test(error.message ?? "")
+  );
 }
 
 export type AdminUpdateListingInput = {
@@ -617,7 +652,17 @@ export async function adminUpdateListing(input: AdminUpdateListingInput) {
     p_hidden: input.hidden ?? null,
     p_note: input.note ?? null,
   });
-  if (error) throw new Error(friendlyError(error));
+  if (!error) return;
+  // `admin_update_listing` arrives with migration 0020. On a database that has
+  // not run it the RPC does not exist, and PGRST202 reads as a mysterious
+  // "Could not find the function" in the dialog. Approve and reject still work
+  // there, so say plainly that only the edit is unavailable and why.
+  if (isMissingRpcError(error)) {
+    throw new Error(
+      "Editing a listing needs the latest database migration. Approving and rejecting still work.",
+    );
+  }
+  throw new Error(friendlyError(error));
 }
 
 export type CredentialUnit = {
