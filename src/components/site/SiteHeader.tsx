@@ -70,7 +70,12 @@ export function SiteHeader() {
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
           <Logo />
 
-          <nav aria-label="Primary" className="ml-4 hidden items-center lg:flex">
+          {/* The primary nav needs 500px on its own. Below `xl` there is not
+              room for it beside the wordmark, the search field and the auth
+              buttons — at 1024px the row overflowed its container by 205px,
+              which put a horizontal scrollbar on every page. The hamburger
+              below carries the same links, so nothing becomes unreachable. */}
+          <nav aria-label="Primary" className="ml-4 hidden items-center xl:flex">
             {NAV_LINKS.map((link) => (
               <NavLink
                 key={link.to}
@@ -102,7 +107,7 @@ export function SiteHeader() {
             ))}
           </nav>
 
-          <form onSubmit={submitSearch} role="search" className="ml-auto hidden md:block">
+          <form onSubmit={submitSearch} role="search" className="ml-auto hidden min-w-0 md:block">
             <label htmlFor="site-search" className="sr-only">
               Search listings
             </label>
@@ -114,7 +119,7 @@ export function SiteHeader() {
                 placeholder="Search accounts, niches, platforms…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="inset-well h-10 w-56 rounded-lg pl-9 pr-3 text-sm outline-none transition-all duration-200 placeholder:text-muted-foreground focus:w-64 focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-ring/25"
+                className="inset-well h-10 w-40 rounded-lg pl-9 pr-3 text-sm outline-none transition-all duration-200 placeholder:text-muted-foreground focus:border-primary/40 focus:bg-card focus:ring-2 focus:ring-ring/25 sm:w-56"
               />
             </div>
           </form>
@@ -233,11 +238,15 @@ export function SiteHeader() {
 
             {/* Three-line menu. On mobile its first two entries are the two
                 quick actions — become a seller, and switch between dark and
-                light mode — followed by the rest of the site navigation. */}
+                light mode — followed by the rest of the site navigation.
+                It must appear exactly where the desktop nav does not: the nav
+                is `xl:flex`, so this is `xl:hidden`. While the nav was
+                `lg:flex` this was `lg:hidden`; moving one without the other
+                would leave 1024-1279px with no navigation at all. */}
             <Button
               variant="outline"
               size="icon"
-              className="lg:hidden"
+              className="xl:hidden"
               aria-label="Open menu"
               aria-haspopup="menu"
               onClick={() => setMobileOpen(true)}

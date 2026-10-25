@@ -600,9 +600,27 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   25%, `auth` 4.3%. When a page "looks colourless" on a desktop, screenshot it
   at 1440px and count hues before touching a token — a phone screenshot will
   lie to you. `tests/storefront_colour.test.ts` pins the wide containers, the
-  responsive grid and the band. Note the site header overflows horizontally
-  (30px at 768px, 259px at 1024px) from its auth buttons — pre-existing, on
-  every page including `/`, and unrelated to the palette.
+  responsive grid and the band. Note the site header overflowed horizontally
+  (30px at 768px, 173px at 1024px) from its auth buttons — see the header note
+  below; that was a separate, pre-existing bug.
+
+
+## The site header is one row, and it has to fit
+
+- **The primary nav is an `xl` feature, and the hamburger is its mirror.** The
+  nav is 500px wide on its own. With the wordmark, the search field and the
+  account buttons, the row's children measured 1187px inside a 1014px viewport
+  at 1024px — 173px of overflow, so `document.documentElement.scrollWidth`
+  (1272) exceeded `clientWidth` (1014) and *every* page grew a horizontal
+  scrollbar from `md` to 1279px. There is no width below `xl` where 500px of
+  nav fits, so the nav is `xl:flex` and the hamburger is `xl:hidden`. Those two
+  breakpoints are load-bearing as a pair: they sit one line apart, and if one
+  moves without the other, 1024-1279px is left with no navigation at all.
+  `tests/site_header_layout.test.ts` pins the pair, that the sheet maps the same
+  `NAV_LINKS`, and that the search field is `w-40 sm:w-56` (it used to be a
+  fixed `w-56` that grew to `w-64` on focus — a hard 256px floor in a row with
+  no room). Verified: zero overflow at 360/390/640/768/820/1024/1180/1279/1280/
+  1366/1440/1600px, and the nav/hamburger swap is exclusive at every one.
 
 
 ## CI (`.github/workflows/ci.yml`)
