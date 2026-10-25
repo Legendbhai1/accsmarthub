@@ -173,17 +173,24 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   always stronger". `--tint-ink` is the hue mixed toward the theme ink, which
   is what keeps a label readable in *both* themes — a raw brand hex is not safe
   as text.
-- **`.section-pop` strength is a per-theme token too.** `--band-strong` /
-  `--band-soft` set the top and bottom stop of the band (54%/16% on the light
-  canvas, 38%/11% on dark). The same mix does not land the same way on a light
-  canvas and a near-black one, so they are not hardcoded in the rule.
+- **`.section-pop` strength is a per-theme token too, and the band fades at
+  its edges.** `--band-strong` / `--band-soft` set the middle and the top/bottom
+  stop of the band (32%/8% on the light canvas, 20%/6% on dark). The same mix
+  does not land the same way on a light canvas and a near-black one, so they are
+  not hardcoded in the rule. The gradient runs soft → strong → soft rather than
+  strong → weak, because two adjacent bands used to meet at their strongest stop
+  and the seam between them read as a hard edge — the "glitchy colour blocks"
+  that a strong band produced. Held at 32%: a full-width `--pop-green` band at
+  54% read as a saturated mint block rather than a tinted zone, while anything
+  under ~28% stops reading as a coloured zone at all.
   `--muted-foreground` is tuned alongside them: it is a slate dark enough to
   clear 4.5:1 on the *strongest* band and on a brand-tinted card in either
   theme, which is what lets the bands be this saturated. The two move together
   — the band ceiling on a given canvas is a function of this ink, so raising a
   band means raising the ink (deepening it from #323C53 to #29344C is what
   bought the band its last few points when the canvas came down).
-  `tests/theme.test.ts` recomputes that ratio from the tokens for both themes.
+  `tests/theme.test.ts` recomputes that ratio from the tokens for both themes
+  and bounds `--band-strong` between 10% and 36%.
 - **The dark ink is lighter than the light ink is dark, and that is not a
   mistake to "fix".** Dark `--muted-foreground` is `215 25% 86%`, not the 76%
   it looks like it should be: a wash lifts a near-black card far more than it
@@ -481,6 +488,26 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `loop={false}` and the lazy-loaded chunks. Do not move a player up so it
   renders before its flow succeeds; that is the failure the tests exist to
   catch.
+- **The purchase tick is a fourth success signal, and it is inline SVG, not
+  another Lottie.** `src/components/common/SuccessTick.tsx` is the crisp
+  disc-plus-check that fires the moment `placeOrder` resolves — the checkout
+  holds it for `TICK_HOLD_MS` (850ms) and then navigates, and the confirmation
+  page keeps a 20px copy as a seal beside the status. It is SVG rather than a
+  Lottie because it has to be legible at 20px, where the `order-confirmed`
+  scene's own text layers are not, and because a `stroke-dashoffset` draw costs
+  no extra payload. Same gate as the Lotties: it may only mount once the server
+  has agreed, so it is keyed off a `paid` flag set *after* `await placeOrder`,
+  never off `placing` (which is true for a request that will fail too). Under
+  reduced motion the expanding ring is dropped — motion with nothing in it —
+  but the tick itself is shown finished, because the outcome is information.
+  `tests/success_tick.test.ts` pins the `await`-before-flag ordering, the
+  cleared-on-failure flag, the 600–1400ms hold and the status guard on the seal.
+- **The header carries a promo strip above the nav row.** A storefront header
+  has an offer line; its absence was a large part of why the shell read as a
+  documentation site. It is `hidden … sm:block` on purpose: at 360px the header
+  row is already at its width budget (see the overflow note above), so the strip
+  is the first thing to go, not the search field or the account controls.
+  `tests/site_header_layout.test.ts` pins that breakpoint pairing.
 - **The workspace switcher must keep its label at every width.** It was
   `hidden sm:inline`, which left a bare icon on a phone — the one place the
   rail is a drawer and the switcher is the only visible way to change

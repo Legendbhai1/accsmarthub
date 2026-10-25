@@ -9,6 +9,7 @@ import {
   Search,
   ShoppingBag,
   ShoppingCart,
+  Sparkles,
   Store,
   Sun,
   User,
@@ -72,6 +73,21 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40">
+      {/* The promo strip. Every shopping site carries one — a single line of
+          offer text on the brand ramp — and its absence is a large part of why
+          the header read as a documentation site rather than a storefront. It
+          is `hidden sm:block` because at 360px the header row is already at its
+          width budget (see the note on the search field below); on a phone the
+          same message lives in the footer. */}
+      <div className="brand-gradient-animated hidden text-primary-foreground sm:block">
+        <div className="mx-auto flex h-9 w-full max-w-7xl items-center justify-center gap-2 px-4 text-[12px] font-medium tracking-tight sm:px-6">
+          <Sparkles className="size-3.5 shrink-0" aria-hidden="true" />
+          <span>
+            Every listing is admin-reviewed · your payment is held in-platform
+            until you confirm
+          </span>
+        </div>
+      </div>
       <div className="relative border-b border-border/70 bg-card/85 backdrop-blur-xl">
         {/* A hairline of the brand ramp along the top edge of the header. */}
         <span

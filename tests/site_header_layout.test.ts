@@ -54,4 +54,12 @@ describe("the site header fits every width", () => {
     // controls; the homepage and marketplace both carry their own search.
     expect(header).toMatch(/hidden min-w-0 md:block/);
   });
+
+  it("carries a promo strip, and drops it on the narrowest phones", () => {
+    // A storefront header has an offer line above the nav row. It is `sm:block`
+    // because at 360px the row is already at its width budget — the strip is
+    // the first thing to go, not the search field or the account controls.
+    expect(header).toMatch(/brand-gradient-animated hidden text-primary-foreground sm:block/);
+    expect(header).toMatch(/sm:block[\s\S]{0,400}?Every listing is admin-reviewed/);
+  });
 });
