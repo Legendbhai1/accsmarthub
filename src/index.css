@@ -163,16 +163,20 @@
     --tint-wash-mix: 40%;
     --tint-line-mix: 56%;
     --tint-ink-mix: 62%;
-    /* How strongly `.section-pop` washes a section band, top and bottom. The
-       band is a *band*, not a fill, so the strength is bounded by the contrast
-       of `--muted-foreground` on the strongest stop. It is a token per theme
-       because the same mix does not land the same way on a light canvas and a
-       near-black one — see the `.dark` block. Raised from 32% to 44% and now
-       to 54%, the measured ceiling on this canvas; the ceiling moved up only
-       because `--muted-foreground` deepened with it. Both the strength and
-       that ratio are pinned by tests/theme.test.ts. */
-    --band-strong: 54%;
-    --band-soft: 16%;
+    /* How strongly `.section-pop` washes a section band: the middle stop and
+       the two edge stops. The band is a *band*, not a fill, so the strength is
+       bounded by the contrast of `--muted-foreground` on the strongest stop.
+       It is a token per theme because the same mix does not land the same way
+       on a light canvas and a near-black one — see the `.dark` block. The
+       gradient runs soft → strong → soft rather than strong → weak: two
+       adjacent bands used to meet at their strongest stop, and that seam read
+       as a hard edge (the "glitchy colour blocks" a strong band produced).
+       Held at 32%: at 54% a full-width `--pop-green` band read as a saturated
+       mint block rather than a tinted zone, while anything under ~28% stops
+       reading as a coloured zone at all. A band has to say "this is a
+       different part of the page", not "this page is green". */
+    --band-strong: 32%;
+    --band-soft: 8%;
     /* 12px base. Tailwind's `rounded-lg`/`xl`/`2xl` land on 8/12/16px, which
        is the whole radius system — nothing here is a pill. */
     --radius: 0.75rem;
@@ -250,12 +254,12 @@
     --tint-line-mix: 58%;
     --tint-ink-mix: 55%;
     /* The band is weaker here than in light mode: on a near-black canvas a
-       38% wash of a light pop hue lifts the band far more than the same mix
-       does on a light one, and `--muted-foreground` would fall under 4.5:1.
-       The tint wash, by contrast, is stronger than light mode so a coloured
-       tile still reads on the dark card. */
-    --band-strong: 38%;
-    --band-soft: 11%;
+       wash of a light pop hue lifts the band far more than the same mix does
+       on a light one, so the same mix reads much stronger. Kept below the
+       light value for that reason. The tint wash, by contrast, is stronger
+       than light mode so a coloured tile still reads on the dark card. */
+    --band-strong: 20%;
+    --band-soft: 6%;
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
     --shadow-md: 0 4px 14px -4px hsl(0 0% 0% / 0.5);
     --shadow-lg: 0 18px 40px -18px hsl(0 0% 0% / 0.6);
@@ -847,17 +851,21 @@
      sequence of coloured zones instead of one long white column. `--pop` is a
      bare HSL triple like every other theme token (`var(--pop-cyan)`), so it is
      wrapped in `hsl()` here — the same convention `.orb` and `.icon-tile` use.
-     The band runs from a stronger wash at the top to a light one at the
-     bottom, so two adjacent sections read as different colours at a glance
-     rather than as one continuous tint. It is a *band*, not a fill: body copy
-     sits on the light end and `--muted-foreground` (#41506B) clears 4.5:1 on
-     the strongest wash at 32% — both the strength and that ratio are pinned by
-     tests/theme.test.ts. */
+     The band is strongest in its middle and fades back to the canvas at both
+     edges, so two adjacent bands meet on the page colour instead of butting a
+     hard edge against the next — stacked strong-to-soft gradients left a
+     visible seam where each zone started. It is a *band*, not a fill: body copy
+     sits on the light end and `--muted-foreground` (#29344C) clears 4.5:1 on
+     the strongest wash — both the strength and that ratio are pinned by
+     tests/theme.test.ts. The strength is deliberately moderate (32%/8%): a band is a
+     zone of the page, and at 54% a full-width `--pop-green` band read as a
+     saturated mint block rather than a tint. */
   .section-pop {
     background-image: linear-gradient(
       180deg,
-      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-strong, 54%), transparent) 0%,
-      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-soft, 16%), transparent) 100%
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-soft, 8%), transparent) 0%,
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-strong, 32%), transparent) 50%,
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-soft, 8%), transparent) 100%
     );
   }
 

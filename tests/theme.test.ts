@@ -141,8 +141,31 @@ describe("the section band is colourful without dropping contrast", () => {
     // The strength is a per-theme token so the same class can be bold on a
     // light canvas and restrained on near-black; both stops read it. The
     // fallbacks here are the light-theme values, so they must track that block.
-    expect(band).toMatch(/var\(--band-strong, 54%\)/);
-    expect(band).toMatch(/var\(--band-soft, 16%\)/);
+    expect(band).toMatch(/var\(--band-strong, 32%\)/);
+    expect(band).toMatch(/var\(--band-soft, 8%\)/);
+  });
+
+  it("keeps the band a tint rather than a saturated fill", () => {
+    // A full-width band at high strength reads as a colour block, not a zone.
+    // At 54% the FAQ hero was a solid mint panel; the band is what makes a
+    // section *read* as tinted, so it has to stay well under half strength.
+    // Read both blocks by slicing from the theme's own `:root`/`.dark` marker,
+    // the same way the contrast test below does.
+    const bandOf = (from: number) => {
+      const m = css.slice(from).match(/--band-strong:\s*([\d.]+)%/);
+      expect(m, "--band-strong should be a percentage").not.toBeNull();
+      return Number(m![1]) / 100;
+    };
+    const darkAt = css.indexOf("  .dark {");
+    for (const [name, from] of [
+      ["light", css.indexOf("  :root {")],
+      ["dark", darkAt],
+    ] as const) {
+      expect(from, `${name} block should exist`).toBeGreaterThan(-1);
+      const strong = bandOf(from);
+      expect(strong, `--band-strong (${name})`).toBeLessThanOrEqual(0.36);
+      expect(strong, `--band-strong (${name})`).toBeGreaterThanOrEqual(0.1);
+    }
   });
 
   it("keeps muted-foreground at 4.5:1 on the strongest band of every hue", () => {
