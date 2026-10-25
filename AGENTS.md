@@ -107,11 +107,15 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
   `import.meta.env.DEV`, so development stays diagnosable while production
   does not leak internal table or column names.
 
-## The theme is vibrant commerce on white, and it lives in the tokens
+## The theme is vibrant commerce on a tinted canvas, and it lives in the tokens
 
-- **The canvas is white and the cards are white.** Separation comes from a
-  shadow (`--shadow-*`), not from a tinted page or a heavy border. The values
-  are recorded in `src/index.css`'s `:root` block with their hex comments.
+- **The canvas is tinted and the cards are white.** `--background` is a soft
+  cool tint (#E9EEF6) while `--card` stays pure white, so a card reads as a
+  raised surface and the page reads as a shop. It used to be white-on-white:
+  the storefront then measured 52–64% *pure white* by pixel area and the whole
+  page read as an unfinished document — separation came only from
+  `--shadow-*`, which is not enough on a full-width page. `--muted` sits one
+  step *below* the canvas (a recessed well) and `--surface-2` one step above it.
   Anything that needs a colour uses a token (`bg-card`, `text-muted-foreground`,
   `bg-primary-hover`, `text-bronze`) — earlier palettes were removed rather
   than left beside a second system. Re-check computed styles in
@@ -159,34 +163,45 @@ Commands: `npm run build` (tsc -b && vite build), `npm run lint`, `npm test`,
     those properties. Use the first for anything keyed to a platform, the
     second for anything keyed to a theme token (`tokenTint("--info")`).
   The mix strengths are tokens (`--tint-wash-mix`, `--tint-line-mix`,
-  `--tint-ink-mix`) and dark mode raises them: a 32% hue is a clear tint on a
-  white card but is swallowed on a dark one, so the dark canvas uses 34/58/55.
-  `--tint-ink` is the hue mixed toward the theme ink, which is what keeps a
-  label readable in *both* themes — a raw brand hex is not safe as text.
+  `--tint-ink-mix`) and each theme has its own: a 32% hue is a clear tint on a
+  white card but is swallowed on a dark one, so light uses 40/56/62 and dark
+  37/58/55. The ceilings are *measured*, not chosen: light can go to 45% and
+  dark to 37% before `--muted-foreground` drops under 4.5:1 on the crimson
+  platform hex, which is the tightest case. Note the dark ceiling is the
+  *lower* one — a light ink on a near-black card is washed out by a lighter
+  hue faster than a dark ink on a white card, so the ordering is not "dark is
+  always stronger". `--tint-ink` is the hue mixed toward the theme ink, which
+  is what keeps a label readable in *both* themes — a raw brand hex is not safe
+  as text.
 - **`.section-pop` strength is a per-theme token too.** `--band-strong` /
-  `--band-soft` set the top and bottom stop of the band (44%/12% on white,
-  30%/10% on dark). The same mix does not land the same way on a white canvas
-  and a near-black one, so they are not hardcoded in the rule. `--muted-foreground`
-  is tuned alongside them: it is a slate dark enough to clear 4.5:1 on the
-  *strongest* band and on a brand-tinted card in either theme, which is what
-  lets the bands be this saturated. `tests/theme.test.ts` recomputes that ratio
-  from the tokens for both themes, so raising a band means raising the ink.
+  `--band-soft` set the top and bottom stop of the band (54%/16% on the light
+  canvas, 38%/11% on dark). The same mix does not land the same way on a light
+  canvas and a near-black one, so they are not hardcoded in the rule.
+  `--muted-foreground` is tuned alongside them: it is a slate dark enough to
+  clear 4.5:1 on the *strongest* band and on a brand-tinted card in either
+  theme, which is what lets the bands be this saturated. The two move together
+  — the band ceiling on a given canvas is a function of this ink, so raising a
+  band means raising the ink (deepening it from #323C53 to #29344C is what
+  bought the band its last few points when the canvas came down).
+  `tests/theme.test.ts` recomputes that ratio from the tokens for both themes.
 - **The dark ink is lighter than the light ink is dark, and that is not a
-  mistake to "fix".** Dark `--muted-foreground` is `215 20% 76%`, not the 70%
-  it looks like it should be: a 28% wash lifts a near-black card far more than
-  it lifts a white one, so the *same* wash needs a *lighter* ink to stay
-  readable. At 70% the dark 28% brand tint fell to 3.82:1 on the `--pop-cyan`
-  tile — under AA — while every platform brand hex still passed, because the
-  brand-hex suite did not cover the theme tokens that `Trust.tsx`
+  mistake to "fix".** Dark `--muted-foreground` is `215 25% 86%`, not the 76%
+  it looks like it should be: a wash lifts a near-black card far more than it
+  lifts a white one, so the *same* wash needs a *lighter* ink to stay readable.
+  At 76% the dark brand tint fell under 4.5:1 on the `--pop-cyan` tile while
+  every platform brand hex still passed, because the brand-hex suite did not
+  cover the theme tokens that `Trust.tsx`
   (`--primary/--brand-2/--bronze/--info/--success`) and `Disputes.tsx`
   (`--pop-*`) feed into `tint-card`. `tests/theme.test.ts` now measures those
   too; if you add a token to a tint card, add it to that list.
 - **`.empty-panel` is the empty state, and on a new marketplace it is the
   largest surface on the page.** An unbranded white panel with one grey glyph
-  is what made the storefront read as unfinished. It carries a soft multi-hue
-  wash (the hero's, at a low alpha) plus a `--pop` icon tile, so "nothing here
-  yet" is a coloured zone rather than a blank. `EmptyState` takes an `accent`
-  and an `icon`; pass a `--pop-*` token for the hue.
+  is what made the storefront read as unfinished. It carries a full-panel wash
+  of `--pop` *plus* the hero's two corner blooms and a `--pop` icon tile, so
+  "nothing here yet" is a coloured zone rather than a blank. The full-panel
+  base matters: the radial blooms alone faded to `transparent` by 62% and left
+  the centre — where the copy sits — white. `EmptyState` takes an `accent` and
+  an `icon`; pass a `--pop-*` token for the hue.
 - **The orbs are capped at 0.45 opacity on purpose.** They sit behind the hero
   copy, and at 0.55 a rose bloom under the centred paragraph dropped
   `--muted-foreground` to 4.42:1. Do not raise it without re-measuring the

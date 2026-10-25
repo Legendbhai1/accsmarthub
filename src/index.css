@@ -83,10 +83,17 @@
    * says and never borrows the brand hue.
    */
   :root {
-    /* White canvas, deep navy ink. */
-    --background: 0 0% 100%;         /* #FFFFFF */
+    /* A cool tinted canvas, deep navy ink. The canvas is *not* white: a white
+       page with white cards has no figure-ground separation, so the storefront
+       measured 52-64% pure white by pixel area and read as an unfinished
+       document rather than a shop. Cards stay white and now lift off this
+       canvas instead of dissolving into it. */
+    --background: 216 44% 94%;       /* #E9EEF6 — a soft cool canvas, deep
+                                        enough that a white card clearly lifts
+                                        off it (1.17:1) instead of dissolving
+                                        into it. */
     --foreground: 222 47% 11%;       /* #0F1729 */
-    --card: 0 0% 100%;               /* #FFFFFF */
+    --card: 0 0% 100%;               /* #FFFFFF — the raised surface */
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
@@ -99,13 +106,20 @@
     /* Tinted secondary surfaces — a soft blue wash. */
     --secondary: 217 100% 96%;       /* #EBF2FF */
     --secondary-foreground: 217 91% 30%; /* #073B94 */
-    --muted: 214 45% 97%;            /* #F4F7FC */
-    --muted-foreground: 222 25% 26%; /* #323C53 — a deep slate that clears
-                                        4.5:1 on white, on the 44% section
-                                        band and on every tint below. */
+    --muted: 214 38% 90%;            /* #DDE5F0 — a step below the canvas, so
+                                        an inset well or a footer band reads as
+                                        recessed rather than as more page. */
+    --muted-foreground: 222 30% 23%; /* #29344C — a deep slate that clears
+                                        4.5:1 on the canvas, on white cards,
+                                        on the 54% section band and on every
+                                        tint below. Deepened from #323C53 when
+                                        the canvas came down: the band's
+                                        ceiling tracks this token, so a darker
+                                        grey is what pays for a bolder band. */
     --accent: 217 100% 96%;          /* #EBF2FF */
     --accent-foreground: 217 91% 30%;
-    --surface-2: 214 60% 98%;        /* #F7F9FD */
+    --surface-2: 214 40% 91.5%;      /* #E2E8F2 — one step above the canvas, for
+                                        a panel that sits on a card. */
     /* Status. Kept off the brand hue so a badge means what it says, and each is
        dark enough to clear 4.5:1 as small text on white *and* on its own 12%
        chip wash — they are rendered as `text-success` / `text-warning` /
@@ -116,8 +130,9 @@
     --success: 158 84% 26%;          /* #0B7A51 */
     --warning: 26 90% 34%;           /* #A54C09 */
     --info: 199 89% 32%;             /* #096C9A */
-    --border: 214 24% 91%;           /* #E3E7EE */
-    --input: 214 24% 91%;
+    --border: 214 26% 89%;           /* #DCE2EC — a hairline that reads on the
+                                        tinted canvas as well as on a card. */
+    --input: 214 26% 89%;
     --ring: 217 91% 50%;             /* blue focus ring */
     --bronze: 32 95% 44%;            /* #DB7706 — a vivid amber detail accent */
     /* The brand ramp plus the four pop hues the colourful sections draw on.
@@ -141,20 +156,23 @@
        with it) so the grid stays colourful there too.
        `--muted-foreground` was retuned to #323C53 alongside these, because at
        32% a saturated hue lifts the card enough that a lighter grey falls
-       under 4.5:1 on the rose and crimson tiles. */
-    --tint-wash-mix: 32%;
+       under 4.5:1 on the rose and crimson tiles. Raised again to 40% in this
+       pass — the measured ceiling is 45% in light and 37% in dark, so 40% is
+       bold while the platform hexes (YouTube red, Pinterest crimson) still
+       hold 4.5:1. */
+    --tint-wash-mix: 40%;
     --tint-line-mix: 56%;
     --tint-ink-mix: 62%;
     /* How strongly `.section-pop` washes a section band, top and bottom. The
        band is a *band*, not a fill, so the strength is bounded by the contrast
        of `--muted-foreground` on the strongest stop. It is a token per theme
-       because the same mix does not land the same way on a white canvas and a
-       near-black one — see the `.dark` block. Raised from 32% to 44% in this
-       pass so the homepage reads as coloured zones rather than a faint tint;
-       `--muted-foreground` was deepened to #323C53 alongside it to hold 4.5:1
-       on the strongest stop of every hue. */
-    --band-strong: 44%;
-    --band-soft: 12%;
+       because the same mix does not land the same way on a light canvas and a
+       near-black one — see the `.dark` block. Raised from 32% to 44% and now
+       to 54%, the measured ceiling on this canvas; the ceiling moved up only
+       because `--muted-foreground` deepened with it. Both the strength and
+       that ratio are pinned by tests/theme.test.ts. */
+    --band-strong: 54%;
+    --band-soft: 16%;
     /* 12px base. Tailwind's `rounded-lg`/`xl`/`2xl` land on 8/12/16px, which
        is the whole radius system — nothing here is a pill. */
     --radius: 0.75rem;
@@ -198,7 +216,7 @@
                                         than it lifts a white one. At 80% the
                                         34% brand tint fell to 4.33:1 on the
                                         pop-cyan tile; 86% clears 4.5:1 on
-                                        every tint token *and* on the 30%
+                                        every tint token *and* on the 38%
                                         band, which is the tighter of the two
                                         (see tests/theme.test.ts). */
     --accent: 221 33% 22%;           /* #252F49 */
@@ -226,17 +244,18 @@
     /* A wash that is a clear tint on a white card reads as almost nothing
        against a dark one, so it is stronger here. The ink is pulled a little
        *toward* the hue (a lower mix) so the label keeps more of the brand
-       colour now that the wash is doing less of the work. */
-    --tint-wash-mix: 34%;
+       colour now that the wash is doing less of the work. Raised to 37%, the
+       measured ceiling in this theme. */
+    --tint-wash-mix: 37%;
     --tint-line-mix: 58%;
     --tint-ink-mix: 55%;
     /* The band is weaker here than in light mode: on a near-black canvas a
-       30% wash of a light pop hue lifts the band far more than the same mix
-       does on white, and `--muted-foreground` would fall under 4.5:1. The
-       tint wash, by contrast, is stronger than light mode so a coloured tile
-       still reads on the dark card. */
-    --band-strong: 30%;
-    --band-soft: 10%;
+       38% wash of a light pop hue lifts the band far more than the same mix
+       does on a light one, and `--muted-foreground` would fall under 4.5:1.
+       The tint wash, by contrast, is stronger than light mode so a coloured
+       tile still reads on the dark card. */
+    --band-strong: 38%;
+    --band-soft: 11%;
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
     --shadow-md: 0 4px 14px -4px hsl(0 0% 0% / 0.5);
     --shadow-lg: 0 18px 40px -18px hsl(0 0% 0% / 0.6);
@@ -837,8 +856,8 @@
   .section-pop {
     background-image: linear-gradient(
       180deg,
-      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-strong, 32%), transparent) 0%,
-      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-soft, 10%), transparent) 100%
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-strong, 54%), transparent) 0%,
+      color-mix(in srgb, hsl(var(--pop, var(--primary))) var(--band-soft, 16%), transparent) 100%
     );
   }
 
@@ -856,7 +875,19 @@
      panel reads as a deliberate zone. `--pop` picks the hue per instance. */
   .empty-panel {
     @apply relative overflow-hidden rounded-2xl border border-border bg-card;
+    /* A base wash of the panel's own hue, then the two corner blooms on top.
+       Without the base the radial gradients faded out by 62% and the middle of
+       the panel — which is where the copy sits — stayed white, so the largest
+       surface on a young marketplace read as a blank rather than a zone. The
+       base is deliberately light (10%) so `muted-foreground` still clears AA on
+       it, and it is `hsl(...)` rather than a `color-mix` so the wash is a flat
+       tint of the hue, not a fade to transparent. */
     background-image:
+      linear-gradient(
+        180deg,
+        hsl(var(--pop, var(--primary)) / 0.10) 0%,
+        hsl(var(--pop, var(--primary)) / 0.06) 100%
+      ),
       radial-gradient(
         80% 90% at 12% 0%,
         hsl(var(--pop, var(--primary)) / 0.24) 0%,

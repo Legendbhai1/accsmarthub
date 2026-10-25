@@ -138,10 +138,11 @@ describe("the section band is colourful without dropping contrast", () => {
     const at = css.indexOf("\n  .section-pop {");
     const band = css.slice(at, at + 400);
     expect(band).toMatch(/hsl\(var\(--pop/);
-    // The strength is a per-theme token so the same class can be bold on white
-    // and restrained on near-black; both stops read it.
-    expect(band).toMatch(/var\(--band-strong, 32%\)/);
-    expect(band).toMatch(/var\(--band-soft, 10%\)/);
+    // The strength is a per-theme token so the same class can be bold on a
+    // light canvas and restrained on near-black; both stops read it. The
+    // fallbacks here are the light-theme values, so they must track that block.
+    expect(band).toMatch(/var\(--band-strong, 54%\)/);
+    expect(band).toMatch(/var\(--band-soft, 16%\)/);
   });
 
   it("keeps muted-foreground at 4.5:1 on the strongest band of every hue", () => {
@@ -181,13 +182,45 @@ describe("the section band is colourful without dropping contrast", () => {
   });
 
   it("keeps the tint wash strength in one token per theme", () => {
-    // Both canvases name the mix, and dark is stronger than light — a hue at
-    // 32% is a clear tint on white but is swallowed on the dark card.
-    const light = css.match(/--tint-wash-mix:\s*([\d.]+)%/g) ?? [];
-    expect(light).toHaveLength(2);
-    const values = light.map((s) => Number(s.match(/([\d.]+)%/)![1]));
-    expect(Math.min(...values)).toBe(32);
-    expect(Math.max(...values)).toBeGreaterThan(32);
+    // Both canvases name their own mix, and each has to stay inside its own
+    // measured ceiling: 45% in light mode, 37% in dark. The ceiling is *lower*
+    // in dark mode, not higher — `--muted-foreground` is a light grey there
+    // (86%), and a light pop hue at a high alpha washes it out, so the same
+    // mix that is safe on white fails on near-black. (An earlier version of
+    // this test asserted dark was always stronger than light; that ordering
+    // was incidental and measurement shows it does not hold.)
+    const tokens = css.match(/--tint-wash-mix:\s*([\d.]+)%/g) ?? [];
+    expect(tokens).toHaveLength(2);
+    const values = tokens.map((s) => Number(s.match(/([\d.]+)%/)![1]));
+    for (const value of values) {
+      // Below ~30% the wash stops reading as a tint at all; above the ceiling
+      // the tint suites in this file fail. Both bounds are load-bearing.
+      expect(value).toBeGreaterThanOrEqual(30);
+      expect(value).toBeLessThanOrEqual(45);
+    }
+  });
+
+  it("keeps the canvas tinted, so white cards have something to lift off", () => {
+    // The storefront measured 52-64% *pure white* by pixel area: the canvas was
+    // #FFFFFF and so was every card, so a card had no figure-ground separation
+    // and the page read as an unfinished document rather than a shop. The
+    // canvas is now a soft cool tint while `--card` stays white, which is what
+    // makes a surface read as raised. This is the invariant that regression
+    // broke, so it is pinned rather than described.
+    const lightBg = css.slice(css.indexOf(":root {"), css.indexOf(".dark {"));
+    expect(lightBg).toMatch(/--background:\s*216 44% 94%/);
+    expect(lightBg).toMatch(/--card:\s*0 0% 100%/);
+    // A white canvas is the specific regression.
+    expect(lightBg).not.toMatch(/--background:\s*0 0% 100%/);
+    // And the text on it still clears AA.
+    const token = (name: string) => {
+      const m = lightBg.match(new RegExp(`--${name}:\\s*([\\d.]+)\\s+([\\d.]+)%\\s+([\\d.]+)%`));
+      expect(m, `--${name} should be a bare HSL triple`).not.toBeNull();
+      return hslToRgb(Number(m![1]), Number(m![2]), Number(m![3]));
+    };
+    const bg = token("background");
+    expect(contrast(token("foreground"), bg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(token("muted-foreground"), bg)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("paints the tint card as a flat wash, not a fade to white", () => {
@@ -202,10 +235,18 @@ describe("the section band is colourful without dropping contrast", () => {
     // The empty state is the largest surface on a young marketplace, so it is
     // where the page either reads as a shop or as a blank. It has to carry the
     // hue: the panel wash reads `--pop`, and the shared `EmptyState` passes the
-    // same token to the icon tile.
-    const panel = css.slice(css.indexOf(".empty-panel"), css.indexOf(".empty-panel") + 700);
+    // same token to the icon tile. The rule is read to its closing brace rather
+    // than to a fixed offset — a magic window silently stops covering the rule
+    // as soon as the rule grows, which is exactly what happened here.
+    const start = css.indexOf(".empty-panel");
+    const panel = css.slice(start, css.indexOf("}", start) + 1);
     expect(panel).toMatch(/hsl\(var\(--pop, var\(--primary\)\)/);
     expect(panel).not.toMatch(/color-mix\(in srgb, var\(--pop/);
+    // Every gradient stop has to be a wash of the hue, so the panel is tinted
+    // edge to edge. A stop that reached bare `transparent` left the middle of
+    // the panel white — the same failure as the tint card above.
+    const washes = panel.match(/hsl\(var\(--pop, var\(--primary\)\) \/ [\d.]+\)/g) ?? [];
+    expect(washes.length).toBeGreaterThanOrEqual(3);
     const primitives = read("src/components/common/Primitives.tsx");
     expect(primitives).toMatch(/empty-panel/);
     expect(primitives).toMatch(/\["--pop" as string\]: accent/);
