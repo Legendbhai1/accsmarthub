@@ -23,6 +23,11 @@ import {
 import { useSession } from "@/lib/session";
 import { roleHome } from "@/components/site/guards";
 import { disposableEmailReason } from "@/lib/emailPolicy";
+import {
+  CONFIRMATION_NOTE,
+  SENT_FOOTNOTE,
+  sentCopy,
+} from "@/lib/registrationCopy";
 import { toast } from "sonner";
 
 type Mode = "signin" | "register" | "sent";
@@ -127,6 +132,11 @@ export default function SupabaseAuth() {
   const shownError =
     error ?? (linkFailed ? (linkError ?? LINK_DEAD_COPY) : null);
 
+  // The copy for the "check your inbox" screen, per kind of link. Derived from
+  // `sentFor` and the address, so it always names the address we actually sent
+  // to rather than a stale field.
+  const sent = sentCopy(sentFor, normalized);
+
   const returnTo = params.get("returnTo");
   const storedReturnTo = (() => {
     try {
@@ -183,13 +193,12 @@ export default function SupabaseAuth() {
   };
 
   /** Shared by both tabs: hand the form over to the "check your inbox" screen. */
-  const showSent = (what: string, forWhat: "register" | "link") => {
+  const showSent = (forWhat: "register" | "link") => {
     setSentFor(forWhat);
     setMode("sent");
     setPasswordRejected(false);
-    toast.success(what, {
-      description: `Check ${normalized} and click the link to continue.`,
-    });
+    const copy = sentCopy(forWhat, normalized);
+    toast.success(copy.toastTitle, { description: copy.toastBody });
   };
 
   const signIn = async (e: React.FormEvent) => {
@@ -261,7 +270,7 @@ export default function SupabaseAuth() {
         return;
       }
       // Confirmation required: the emailed link is what activates the account.
-      showSent("Confirmation link sent", "register");
+      showSent("register");
     } catch (err) {
       setError(
         err instanceof Error
@@ -281,7 +290,7 @@ export default function SupabaseAuth() {
     try {
       rememberDestination();
       await sendMagicLink(normalized, redirectTo);
-      showSent("Sign-in link sent", "link");
+      showSent("link");
     } catch (err) {
       setError(
         err instanceof Error
@@ -482,15 +491,49 @@ export default function SupabaseAuth() {
                   ? "Finishing sign-in…"
                   : linkFailed
                     ? "That link did not work"
-                    : "Check your email"}
+                    : sent.heading}
               </h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
                 {returning
                   ? "Signing you in and taking you to your account…"
                   : normalized
-                    ? `We sent a link to ${normalized}. Open it to confirm your address and continue — the link works once and expires shortly.`
+                    ? sent.lead
                     : "Request a new sign-in link below to continue."}
               </p>
+
+              {/* The numbered steps only make sense for the message we just
+                  sent. On the "that link did not work" screen they would
+                  describe an email the user has already tried. */}
+              {!returning && !linkFailed && normalized && (
+                <ol className="mt-5 space-y-3 text-left">
+                  {sent.steps.map((step, i) => (
+                    <li key={step.title} className="flex gap-3">
+                      <span
+                        className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+                        aria-hidden="true"
+                      >
+                        {i + 1}
+                      </span>
+                      <span className="text-sm">
+                        <span className="font-medium text-foreground">
+                          {step.title}
+                        </span>
+                        <span className="mt-0.5 block text-muted-foreground">
+                          {step.detail}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+
+              {!returning && !linkFailed && normalized && (
+                <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+                  {sentFor === "register"
+                    ? `${CONFIRMATION_NOTE} ${SENT_FOOTNOTE}`
+                    : SENT_FOOTNOTE}
+                </p>
+              )}
 
               {shownError && (
                 <p
@@ -510,7 +553,7 @@ export default function SupabaseAuth() {
                     disabled={busy}
                     onClick={resend}
                   >
-                    Resend link
+                    {sent.resendLabel}
                   </Button>
                   <Button
                     type="button"

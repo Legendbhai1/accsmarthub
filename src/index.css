@@ -171,9 +171,10 @@
     /* How long the route-transition overlay lives, end to end. Kept in one
        place because three keyframes in `.route-loader*` divide it up: the
        overlay is visible for this long, no matter how fast the route itself
-       resolves. The user asked for a one-to-two second page transition, so the
-       default sits inside that window; tests/route_loading.test.ts pins it. */
-    --route-load-ms: 1200ms;
+       resolves. It is 1600ms so the empty-box artwork — 90 frames at 60fps,
+       i.e. 1.5s — plays through to its last frame instead of being cut off
+       mid-open. tests/route_loading.test.ts pins it inside one-to-two seconds. */
+    --route-load-ms: 1600ms;
   }
 
   /* The dark appearance is a deep navy, not blue-black: the same saturated

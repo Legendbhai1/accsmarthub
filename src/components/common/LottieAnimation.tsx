@@ -4,13 +4,23 @@ import { useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 /**
- * The three bundled LottieFiles animations.
+ * The bundled LottieFiles animations.
  *
  * `src/assets/animations/README.md` records where each one came from and the
  * licence it is used under. They are bundled rather than fetched from the
  * LottieFiles CDN so they render offline and cannot be swapped underneath us.
+ *
+ * Three of them are *success signals* — `add-to-cart`, `shopping-bag`,
+ * `order-confirmed` — and each may only mount once the flow it celebrates has
+ * actually succeeded. `empty-box` is the exception: it is a neutral piece of
+ * artwork with no outcome attached, which is why the page-transition overlay is
+ * allowed to use it and none of the other three.
  */
-export type AnimationName = "add-to-cart" | "shopping-bag" | "order-confirmed";
+export type AnimationName =
+  | "add-to-cart"
+  | "shopping-bag"
+  | "order-confirmed"
+  | "empty-box";
 
 /**
  * The player is imported lazily, and so is each animation's JSON. A visitor
@@ -30,6 +40,7 @@ const loaders: Record<AnimationName, () => Promise<{ default: unknown }>> = {
   "add-to-cart": () => import("@/assets/animations/add-to-cart.json"),
   "shopping-bag": () => import("@/assets/animations/shopping-bag.json"),
   "order-confirmed": () => import("@/assets/animations/order-confirmed.json"),
+  "empty-box": () => import("@/assets/animations/empty-box.json"),
 };
 
 /** The visible text each animation stands in for. Screen readers get this. */
@@ -37,6 +48,7 @@ const labels: Record<AnimationName, string> = {
   "add-to-cart": "Added to your cart",
   "shopping-bag": "Your shopping bag",
   "order-confirmed": "Order confirmed",
+  "empty-box": "Loading",
 };
 
 /**

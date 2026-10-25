@@ -7,13 +7,17 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel: string) => readFileSync(join(root, rel), "utf8");
 
 /**
- * Where the three LottieFiles animations are allowed to appear.
+ * Where the four LottieFiles animations are allowed to appear.
  *
- * Each one is a success signal, so the failure mode that matters is a
+ * Three of them are success signals, so the failure mode that matters is a
  * celebration rendered before — or without — the server agreeing. These pin the
  * gate in the source, because that is the part a refactor is most likely to
  * quietly remove: the animation is a component either way, and it looks fine on
  * screen when it is shown at the wrong moment.
+ *
+ * The fourth, `empty-box`, is neutral artwork and carries no outcome, so it is
+ * the only one the page-transition overlay may use — see
+ * `tests/route_loading.test.ts`.
  */
 
 describe("the add-to-cart animation follows the cart write", () => {
@@ -115,6 +119,7 @@ describe("the bundled animations are the requested ones", () => {
       "add-to-cart-WCwxTKlisi",
       "shopping-bag-WjAOPr7V8K",
       "order-confirmed-Edkng7cpMO",
+      "empty-box-XtO1oiZwG6",
     ]) {
       expect(readme).toContain(id);
     }
@@ -126,6 +131,7 @@ describe("the bundled animations are the requested ones", () => {
       "add-to-cart.json",
       "shopping-bag.json",
       "order-confirmed.json",
+      "empty-box.json",
     ]) {
       const json = read(`src/assets/animations/${file}`);
       expect(json).toMatch(/"v"\s*:/);

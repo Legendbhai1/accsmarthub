@@ -63,15 +63,37 @@ describe("the overlay covers navigations and skips the first paint", () => {
     expect(source).toMatch(/aria-hidden="true"/);
   });
 
-  it("does not borrow one of the three success-signal animations", () => {
+  it("borrows the neutral artwork, never a success signal", () => {
     // `add-to-cart`, `shopping-bag` and `order-confirmed` each mean "the flow
     // succeeded". A page transition has not succeeded at anything, so reusing
-    // one would make a success signal lie. Assert on the code, not the prose:
-    // the component's own comment names the three to say it is *not* using
-    // them.
-    expect(source).not.toMatch(/import .*LottieAnimation/);
-    expect(source).not.toMatch(/<LottieAnimation/);
-    expect(source).not.toMatch(/name="(add-to-cart|shopping-bag|order-confirmed)"/);
+    // one would make a success signal lie. `empty-box` is neutral artwork with
+    // no outcome attached, which is why it is the only permitted choice.
+    expect(source).toMatch(/name="empty-box"/);
+    for (const signal of ["add-to-cart", "shopping-bag", "order-confirmed"]) {
+      expect(source, signal).not.toMatch(new RegExp(`name="${signal}"`));
+    }
+  });
+});
+
+describe("the overlay is suppressed in the work-surface workspaces", () => {
+  const source = read("src/components/site/RouteLoadingScreen.tsx");
+
+  it("skips seller and admin, keeps the public storefront and the buyer", () => {
+    // Seller Studio and the admin console are rails, not browsable pages: a
+    // full-screen transition between two of their screens reads as a flicker.
+    expect(source).toMatch(/isDashboardPath\(location\.pathname\)/);
+    expect(source).toMatch(/isDashboardPath/);
+  });
+
+  it("matches the two workspaces by path, not by role", () => {
+    // The overlay renders above the route tree and has no session. A role would
+    // also be the wrong question: an admin browsing /marketplace is on a public
+    // page and should still see the transition.
+    const fn = source.slice(source.indexOf("function isDashboardPath"));
+    const body = fn.slice(0, fn.indexOf("\n}"));
+    expect(body).toMatch(/"\/seller"/);
+    expect(body).toMatch(/"\/admin"/);
+    expect(body).not.toMatch(/\/account/);
   });
 });
 
